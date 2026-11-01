@@ -547,8 +547,7 @@
   function showLogin() {
     login.hidden = false;
     const live = window.Auth && Auth.ready();
-    $('#login-note').textContent = live ? '' : 'Đăng nhập Gmail / Facebook sẽ mở khi chùa hoàn tất cài đặt máy chủ.';
-    $('[data-login="admin-tam"]').hidden = !!live;
+    $('#login-note').textContent = live ? '' : 'Không kết nối được máy chủ đăng nhập, mời vào với tư cách khách.';
   }
   function setRole(role, user) {
     state.role = role; state.user = user || null; save(); login.hidden = true; paintWallet(); paintRole();
@@ -563,19 +562,27 @@
   $$('[data-login]', login).forEach(b => b.addEventListener('click', async () => {
     const k = b.dataset.login;
     if (k === 'guest') return setRole('guest');
-    if (k === 'admin-tam') return setRole('admin', { name: 'Quản trị' });
     if (!window.Auth || !Auth.ready()) { toast('Đăng nhập ' + (k === 'google' ? 'Gmail' : 'Facebook') + ' chưa mở, mời vào với tư cách khách'); return; }
-    try { const u = await Auth.signIn(k); setRole(u.admin ? 'admin' : 'guest', { name: u.name, email: u.email }); }
+    try { const u = await Auth.signIn(k); setRole(u.admin ? 'admin' : 'guest', { name: u.name, email: u.email, admin: u.admin }); }
     catch (err) { toast('Đăng nhập không thành công: ' + (err && err.message || err)); }
   }));
   $('#acct').addEventListener('click', () => {
     openModal('Tài khoản', `<p>Đang vào chùa với vai <b>${isAdmin() ? 'Quản trị' : 'Khách'}</b>${state.user ? ' · ' + esc(state.user.name) : ''}.</p>
-      <div class="grid" style="grid-template-columns:1fr 1fr">${isAdmin() ? '<button id="go-admin">Mở trang quản trị</button>' : ''}<button id="logout">Đăng xuất</button></div>`,
+      <div class="grid" style="grid-template-columns:1fr 1fr">${isAdmin() ? '<button id="go-admin">Mở trang quản trị</button>' : ''}${window.__roleSwitch ? __roleSwitch() : ''}<button id="logout">Đăng xuất</button></div>`,
       body => {
+        const sw = $('#sw-role', body); if (sw) sw.addEventListener('click', () => { closeModal(); setRole(isAdmin() ? 'guest' : 'admin', state.user); });
         const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => adminPanel('so'));
         $('#logout', body).addEventListener('click', () => { closeModal(); window.Auth && Auth.ready() && Auth.signOut(); state.role = ''; state.user = null; save(); window.Nguoi && Nguoi.abbotLeave(); paintRole(); paintWallet(); showLogin(); });
       });
   });
+  // chỉ tài khoản Gmail quản trị mới giữ được vai Quản trị (bỏ vai quản trị tạm thời cũ)
+  if (state.role === 'admin' && !(state.user && window.Auth && Auth.isAdminEmail && Auth.isAdminEmail(state.user.email))) { state.role = ''; state.user = null; save(); }
+  // quản trị có thể đổi sang vai khách và quay lại
+  function roleSwitch() {
+    if (!(state.user && window.Auth && Auth.isAdminEmail && Auth.isAdminEmail(state.user.email))) return '';
+    return `<button id="sw-role">${isAdmin() ? 'Vào vai Khách' : 'Vào vai Quản trị'}</button>`;
+  }
+  window.__roleSwitch = roleSwitch;
   paintRole();
   if (!state.role) showLogin();
   addEventListener('chua-ready', () => { if (isAdmin() && Nguoi.room() === 'hall') Nguoi.abbotEnter(); });
