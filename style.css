@@ -209,3 +209,10 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #urn-view canvas{display:block;width:1040px;height:666px;cursor:grab;touch-action:none}
 #urn-view .uv-x{background:none;border:0;color:#ffe2a3;font-size:28px;cursor:pointer}
 #urn-view .uv-huong{padding:8px 20px;border-radius:20px;border:1.5px solid #f0c46e;background:linear-gradient(#c8462c,#8e2414);color:#fff3d6;font:600 19px var(--sans);cursor:pointer}
+
+/* góc nhìn thẳng lên điện Phật (3D) */
+#dien3d{position:absolute;left:0;top:0;width:1672px;height:941px;display:none;cursor:grab;touch-action:none}
+#dien3d.on{display:block}
+#dien3d:active{cursor:grabbing}
+#dien3d-tag{position:absolute;left:50%;top:88px;transform:translateX(-50%);display:none;padding:6px 18px;border-radius:20px;background:rgba(40,14,6,.72);border:1px solid rgba(232,181,74,.6);color:#ffe7b0;font:600 17px/1.3 system-ui,sans-serif;letter-spacing:.3px;pointer-events:none}
+#dien3d-tag.on{display:block}

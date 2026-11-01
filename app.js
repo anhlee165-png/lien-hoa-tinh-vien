@@ -48,8 +48,15 @@
     cam.y = Math.max(hh, Math.min(H - hh, cam.y));
     scene.style.transform = `translate(${W / 2 - cam.x * cam.s}px, ${H / 2 - cam.y * cam.s}px) scale(${cam.s})`;
   }
+  const d3 = () => window.Dien3D && Dien3D.active();
   function setView(name) {
-    Object.assign(cam, VIEWS[name]); applyCam();
+    if (name === 'phat3d') {                    // góc nhìn thẳng lên điện Phật, dựng 3D
+      if (!window.Dien3D || !Dien3D.show()) { toast('Máy này chưa hỗ trợ đồ họa 3D'); return; }
+      Dien3D.reset();
+    } else {
+      window.Dien3D && Dien3D.hide();
+      Object.assign(cam, VIEWS[name]); applyCam();
+    }
     $$('#views [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
   }
   $$('#views [data-view]').forEach(b => b.addEventListener('click', () => {
@@ -79,10 +86,12 @@
   function loop() {
     cancelAnimationFrame(raf);
     const step = () => {
-      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); return; }
+      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); window.Dien3D && Dien3D.drive(0, 0); return; }
       let x = jv.x, y = jv.y;
       if (keys.has('l')) x -= 1; if (keys.has('r')) x += 1; if (keys.has('u')) y -= 1; if (keys.has('d')) y += 1;
-      if (window.Nguoi) {                      // joystick điều khiển nhân vật "Bạn" đi khắp chùa
+      if (d3()) {                              // trong góc 3D: tiến lên / lùi lại giữa điện
+        Dien3D.drive(x, y);
+      } else if (window.Nguoi) {               // joystick điều khiển nhân vật "Bạn" đi khắp chùa
         const m = Math.hypot(x, y); Nguoi.drive(m > 1 ? x / m : x, m > 1 ? y / m : y);
       } else {                                 // dự phòng: di chuyển camera
         cam.s *= 1 - y * 0.012; cam.x += x * 9 / cam.s;
@@ -213,7 +222,7 @@
     chaptay() { chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
     cuichao() { chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
     layphat() {
-      bell(); window.Nguoi && Nguoi.layPhat(3); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
+      bell(); window.Nguoi && Nguoi.layPhat(3); window.Dien3D && Dien3D.bow(); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
       floatText('Kính lạy Bổn Sư Thích Ca Mâu Ni Phật'); addMerit(3, 'Lạy Phật'); petals(14);
     },
     niemphat: { toggle: true, start() {
@@ -240,7 +249,9 @@
       save();
     },
     thaphuong() {
-      if (window.Nguoi) {
+      if (d3()) {
+        Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
+      } else if (window.Nguoi) {
         Nguoi.incense().then(ok => { if (ok === false && !busyIncense()) toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); });
         floatText('Thắp nén tâm hương', 843, 520, true);
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
@@ -262,6 +273,7 @@
   function goInside() { window.Nguoi && Nguoi.go('hall'); }
   addEventListener('chua-room', e => {
     const { room, name } = e.detail;
+    window.Dien3D && Dien3D.hide();
     state.outside = room !== 'hall';
     scene.classList.toggle('outside', state.outside);
     $('#exit-label').textContent = state.outside ? 'Vào trong' : 'Ra ngoài';
@@ -384,7 +396,7 @@
         const upd = n => { $('#a-n', body).textContent = n; paintHall(); };
         $$('[data-ao]', body).forEach(b => b.addEventListener('click', () => upd(Nguoi.setAo(Nguoi.ao() + +b.dataset.ao))));
         $('#a-full', body).addEventListener('click', () => upd(Nguoi.setAo(Nguoi.maxAo())));
-        $('#a-lay', body).addEventListener('click', () => { closeModal(); bell(); Nguoi.allLay(); floatText('Đại chúng đồng lạy Phật'); });
+        $('#a-lay', body).addEventListener('click', () => { closeModal(); bell(); Nguoi.allLay(); window.Dien3D && Dien3D.bow(); floatText('Đại chúng đồng lạy Phật'); });
       });
   });
 
