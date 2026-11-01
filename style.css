@@ -200,3 +200,12 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #views .head span{flex:none}
 
 #scene.outside .glow,#scene.outside .smoke-src{display:none}
+/* ---------- Lư hương 3D: xem cận cảnh ---------- */
+#urn-view{position:absolute;inset:0;z-index:60;display:grid;place-items:center;background:rgba(15,6,2,.72)}
+#urn-view[hidden]{display:none}
+#urn-view .uv-box{width:1040px;border-radius:18px;overflow:hidden;border:2px solid rgba(240,196,110,.8);background:#1d0e06;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#urn-view .uv-head,#urn-view .uv-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;color:#ffe2a3;font:600 20px var(--sans)}
+#urn-view .uv-head b{font:700 24px var(--serif)}
+#urn-view canvas{display:block;width:1040px;height:666px;cursor:grab;touch-action:none}
+#urn-view .uv-x{background:none;border:0;color:#ffe2a3;font-size:28px;cursor:pointer}
+#urn-view .uv-huong{padding:8px 20px;border-radius:20px;border:1.5px solid #f0c46e;background:linear-gradient(#c8462c,#8e2414);color:#fff3d6;font:600 19px var(--sans);cursor:pointer}
