@@ -727,6 +727,7 @@
       if (meBusy) return; meBusy = true; me.busy = true;
       try { if (R().shrine) await prostrateUp(me, times); else await prostrate(me, times); } finally { me.busy = false; meBusy = false; }
     },
+    canIncense: () => meBusy ? 'busy' : !R().urn ? 'nourn' : true,
     async incense() {
       if (meBusy) return false;
       if (abbot && room === 'hall') return 'abbot';
