@@ -35,23 +35,23 @@
       block: [[180, 730, 290, 812]],                                         // chỗ thầy ngồi
       exits: [[[790, 540, 900, 563], 'cua', [836, 900], 'up'], [[0, 690, 14, 900], 'cua-hong', [836, 900], 'up'], [[1658, 690, 1672, 900], 'lau-trong', [836, 900], 'up']],
       urn: { stand: [845, 806], face: 'down', plant: [843, 800], len: 58 } },
-    'cua': { name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
+    'cua': { urn3d: { bb: [755, 423, 917, 606], elev: 12 }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[238, 560, 425, 835], [1245, 560, 1440, 835], [735, 534, 935, 620]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [845, 575], 'down']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
-    'cua-hong': { name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
+    'cua-hong': { urn3d: { bb: [754, 422, 918, 606], elev: 12 }, name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[238, 560, 425, 835], [1245, 560, 1440, 835], [735, 534, 935, 620]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [60, 790], 'right']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
-    'san': { name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
+    'san': { urn3d: { bb: [682, 511, 988, 847], elev: 8 }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 822], [1112, 560], [1042, 500], [628, 500], [558, 560], [0, 822]],
       block: [[690, 545, 985, 850]],
       exits: [[[600, 490, 1070, 510], 'san-gan', [560, 905], 'up'], [[0, 924, 1672, 941], 'mat-tien', [836, 905], 'up'],
               [[0, 800, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 800, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [836, 905], face: 'up', plant: [836, 588], len: 50 } },
-    'san-gan': { name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
+    'san-gan': { urn3d: { bb: [677, 584, 1071, 940], elev: 6 }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 782], [1122, 560], [1000, 528], [700, 528], [560, 560], [0, 782]],
       block: [[660, 560, 1080, 941]],
       exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'mat-tien', [836, 905], 'up'], [[1090, 930, 1672, 941], 'mat-tien', [836, 905], 'up'],
@@ -59,7 +59,7 @@
     'tam-quan': { name: 'Cổng Tam Quan', img: 'assets/ngoai/tam-quan.jpg', hz: 520, k: .62,
       floor: [[300, 941], [1380, 941], [1380, 702], [1230, 672], [440, 672], [300, 702]],
       exits: [[[300, 930, 1380, 941], 'mat-tien', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
-    'mat-tien': { name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
+    'mat-tien': { urn3d: { bb: [699, 518, 970, 829], elev: 8 }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
       floor: [[332, 941], [1338, 941], [1338, 642], [1098, 626], [1090, 522], [580, 522], [572, 626], [332, 642]],
       block: [[690, 600, 985, 838]],
       exits: [[[640, 505, 1030, 530], 'hall', [845, 575], 'down'], [[332, 930, 1338, 941], 'san', [836, 905], 'up'],
@@ -256,7 +256,8 @@
     flying.push({ room: p.room, from, to, len: u.len, t0: performance.now() });
     if (u.face !== 'up') p.frame = F.standBow;
     await sleep(650); p.frame = u.face === 'up' ? F.up : F.stand;
-    for (const dx of [-.12, 0, .12]) sticks.push({ room: p.room, x: to[0] + dx * u.len, y: to[1] + Math.abs(dx) * 4, len: u.len * rnd(.9, 1.05), t0: performance.now() });
+    if (ROOMS[p.room].urn3d && window.Urn3D && Urn3D.ok()) Urn3D.plant(3);
+    else for (const dx of [-.12, 0, .12]) sticks.push({ room: p.room, x: to[0] + dx * u.len, y: to[1] + Math.abs(dx) * 4, len: u.len * rnd(.9, 1.05), t0: performance.now() });
     while (sticks.length > 60) sticks.shift();
     dispatchEvent(new CustomEvent('chua-huong', { detail: { me: !!p.me } }));
     await sleep(500);
@@ -399,6 +400,8 @@
         SEATS.forEach(s => items.push({ y: s.y - .5, draw: () => drawCushion(s.x, s.y, hallH(s.y)) }));
         if (monk) items.push({ y: 802, draw: () => { const b = 1 + Math.sin(t * 1.2) * .006; ctx.drawImage(monk, 198, 693 + 106 * (1 - b), 75, 106 * b); } });
       }
+      const u3 = R().urn3d;
+      if (u3 && window.Urn3D && Urn3D.ok()) items.push({ y: u3.bb[3], draw: () => Urn3D.draw(ctx, u3, t) });
       items.sort((a, b) => a.y - b.y).forEach(i => i.draw());
       if (room === 'hall' && imgs.hallFg) ctx.drawImage(imgs.hallFg, 0, ROOMS.hall.fgY);
       sticks.forEach(s => { if (s.room !== room) return; const age = (now - s.t0) / 1000, a = age > 80 ? Math.max(0, 1 - (age - 80) / 10) : 1; if (a > 0) stick(s.x, s.y, s.len * (1 - Math.min(.5, age / 200)), t, a); });
@@ -415,6 +418,17 @@
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  cv.addEventListener('click', e => {
+    const u3 = R().urn3d; if (!u3 || !window.Urn3D) return;
+    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+    if (inRect(x, y, u3.bb)) Urn3D.open();
+  });
+  cv.addEventListener('mousemove', e => {
+    const u3 = R().urn3d; if (!u3) { cv.style.cursor = ''; return; }
+    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+    cv.style.cursor = inRect(x, y, u3.bb) ? 'pointer' : '';
+  });
 
   /* ---------- Giao tiếp với app.js ---------- */
   const hallNpcs = () => people.filter(p => !p.me && p.room === 'hall');
