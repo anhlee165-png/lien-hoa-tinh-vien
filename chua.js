@@ -96,6 +96,24 @@
   const carpetX = y => { const t = (y - 548) / (790 - 548); return [806 + (732 - 806) * t, 884 + (958 - 884) * t]; };
   const NAMES = { '323,794': ['Minh Tâm', 'nu'], '487,792': ['Quang Huy', 'nam'], '677,782': ['Liên Hoa', 'nu'],
                   '1024,788': ['An Nhiên', 'nu'], '1193,792': ['Từ Hạnh', 'nu'], '1353,792': ['Nhật Minh', 'nam'] };
+  // tên cho mọi Phật tử ảo (không trùng trong cùng một điện)
+  const TEN = {
+    nu: ['Diệu Hạnh', 'Tâm An', 'Thanh Tịnh', 'Diệu Âm', 'Ngọc Liên', 'Huệ Chi', 'Bảo Châu', 'Thiện Mỹ', 'Diệu Thảo', 'Phương Thảo', 'Ngọc Hân',
+         'Minh Châu', 'Thu Hằng', 'Lan Anh', 'Bích Ngọc', 'Mai Hương', 'Kim Liên', 'Diệu Tâm', 'Như Ý', 'Hạnh Nguyên', 'Tuệ Lâm', 'Thảo Vy',
+         'Hồng Nhung', 'Thùy Dương', 'Ánh Tuyết', 'Diệu Liên', 'Tịnh Nghiêm', 'Quế Chi', 'Ngọc Trâm', 'Thanh Hương', 'Bảo Ngọc', 'Hải Yến',
+         'Kim Oanh', 'Thu Trang', 'Mỹ Duyên', 'Ngọc Diệp', 'Tường Vi', 'Khánh Linh', 'Diệu Nhàn', 'Thiện Hoa'],
+    nam: ['Thiện Tâm', 'Minh Đức', 'Trí Tuệ', 'Phúc Lâm', 'Thanh Sơn', 'Đức Hải', 'Minh Quang', 'Hải Đăng', 'Văn Tín', 'Hoàng Nam', 'Gia Bảo',
+          'Tuấn Kiệt', 'Bảo Long', 'Trung Hiếu', 'Quốc Khánh', 'Đình Phong', 'Thành Công', 'Minh Khang', 'Hữu Phước', 'Chánh Niệm', 'Tâm Đức',
+          'Văn Hòa', 'Đăng Khoa', 'Thiện Phúc', 'Quang Minh', 'Trí Dũng', 'Hữu Nghĩa', 'Nhật Quang', 'Tâm Thiện', 'Phước Sang']
+  };
+  function nameFor(sheet) {
+    const used = new Set(people.map(p => p.name));
+    const free = TEN[sheet].filter(n => !used.has(n));
+    if (free.length) return pick(free);
+    const A = TEN[sheet].map(n => n.split(' ')[0]), B = TEN[sheet].map(n => n.split(' ')[1]);
+    for (let k = 0; k < 400; k++) { const n = pick(A) + ' ' + pick(B); if (!used.has(n) && n.split(' ')[0] !== n.split(' ')[1]) return n; }
+    for (let i = 2; ; i++) { const n = pick(TEN[sheet]) + ' ' + i; if (!used.has(n)) return n; }
+  }
   const SEATS = [];
   [[323, 794], [487, 792], [677, 782], [1024, 788], [1193, 792], [1353, 792]].forEach(([x, y]) => SEATS.push({ x, y, front: true }));
   SEATS.push({ x: 845, y: 778, abbotSeat: true });                       // chỗ chính giữa trên thảm đỏ: chỉ thầy trụ trì được ngồi
@@ -109,6 +127,7 @@
   }
   SEATS.find(s => s.y === 702).mine = true;                              // chỗ của Bạn: hàng sau, sát thảm đỏ
   const MAX_AO = SEATS.length - 2;
+  const CAP = SEATS.length - 1;                                          // số chỗ của một điện (trừ chỗ thầy), kể cả Bạn
 
   /* ---------- Nhân vật ---------- */
   let uid = 0;
@@ -122,24 +141,108 @@
   seatPerson(me, SEATS.find(s => s.mine)); people.push(me);
 
   let aoCount = Math.min(MAX_AO, store.get('ao', MAX_AO - 4));
+  /* ---------- Điện đầy / Phật tử thật ----------
+     Mỗi Phật tử thật (đăng nhập Gmail/Facebook) vào điện thì 2 Phật tử ảo đứng dậy đi ra.
+     Điện đủ CAP người thật thì báo đầy, mời sang điện khác. Quy tắc giống nhau cho mọi điện. */
+  let hallId = 1, realList = [];
+  const noise = id => { const v = Math.sin(id * 12.9898) * 43758.5453; return v - Math.floor(v); };
+  const baseAo = id => id === 1 ? aoCount : Math.round(aoCount * (.45 + .55 * noise(id)));
+  const realsIn = id => realList.filter(r => (r.hall | 0) === id).length;
+  const aoTarget = id => { const n = realsIn(id); return Math.max(0, Math.min(baseAo(id) - 2 * n, CAP - 1 - n)); };   // số đếm
+  const aoShown = id => { const n = realsIn(id); return Math.max(0, Math.min(baseAo(id) - n, CAP - 1 - n)); };       // trên màn hình
+  const hallCount = id => aoTarget(id) + realsIn(id) + (id === hallId ? 1 : 0);
+  const isFull = id => id !== hallId && realsIn(id) >= CAP;
+  const virtuals = () => people.filter(p => !p.me && !p.abbot && !p.real && !p.leaving && (p.room === 'hall' || p.room === 'away'));
+  let syncedOnce = false; const gone = [];                             // chỗ vừa được người ảo nhường
   function syncVirtual() {
-    const npcs = people.filter(p => !p.me && !p.abbot && p.room === 'hall');
-    while (npcs.length < aoCount) {
+    gone.length = 0;
+    const npcs = virtuals(), want = aoShown(hallId);
+    while (npcs.length < want) {
       const free = SEATS.filter(s => !s.owner && !s.mine && !s.abbotSeat);
       if (!free.length) break;
       const s = free.find(s => s.front) || pick(free);
-      const key = s.x + ',' + s.y, nm = NAMES[key];
-      const p = makePerson(nm ? { name: nm[0], sheet: nm[1], flip: false } : {});
+      const key = s.x + ',' + s.y, nm = hallId === 1 && NAMES[key];
+      const sheet = nm ? nm[1] : (Math.random() < .55 ? 'nu' : 'nam');
+      const p = makePerson({ name: nm ? nm[0] : nameFor(sheet), sheet, flip: nm ? false : Math.random() < .5 });
       seatPerson(p, s); people.push(p); npcs.push(p);
     }
-    while (npcs.length > aoCount) {                                         // bớt người ở hàng sau trước
-      const p = npcs.filter(p => !p.busy && p.mode === 'seat').sort((a, b) => a.fy - b.fy)[0]; if (!p) break;
-      p.seat.owner = null; people.splice(people.indexOf(p), 1); npcs.splice(npcs.indexOf(p), 1);
-      if (tags[p.id]) { tags[p.id].remove(); delete tags[p.id]; }
+    while (npcs.length > want) {                                            // bớt người ở hàng sau trước
+      const p = npcs.filter(p => !p.busy && p.mode === 'seat').sort((a, b) => a.fy - b.fy)[0] || npcs.find(p => !p.busy); if (!p) break;
+      npcs.splice(npcs.indexOf(p), 1);
+      gone.push(p.seat); drop(p);
+    }
+    syncedOnce = ready;
+    dispatchEvent(new CustomEvent('chua-count', { detail: count() }));
+  }
+  function drop(p) {
+    if (p.seat && p.seat.owner === p) p.seat.owner = null;
+    p.room = 'gone'; const i = people.indexOf(p); if (i >= 0) people.splice(i, 1);
+    if (tags[p.id]) { tags[p.id].remove(); delete tags[p.id]; }
+  }
+  // Ra vào điện: từng tốp 1–3 người đứng dậy ra ngoài khám phá, lúc khác lại có tốp quay về chỗ (giữ chỗ khi đi vắng)
+  async function walkOut(p) {
+    p.busy = true;
+    try {
+      if (p.mode === 'seat') { await standUp(p); }
+      if (p.fy > 690) await walkTo(p, p.fx, Math.min(812, Math.max(p.fy + 14, 806)));
+      if (p.fy > 690) await walkTo(p, p.fx < 845 ? 770 : 920, 806);
+      await walkTo(p, 845 + rnd(-25, 25), 680); await walkTo(p, 836 + rnd(-15, 15), 560);
+      if (p.room === 'hall') { p.room = 'away'; p.mode = 'pose'; }
+    } finally { p.busy = false; }
+  }
+  async function walkIn(p) {
+    const s = p.seat; if (!s || s.owner !== p) return drop(p);
+    p.busy = true; p.room = 'hall'; p.mode = 'pose'; p.frame = F.down; p.fx = 836 + rnd(-15, 15); p.fy = 560;
+    try { await walkTo(p, 845 + rnd(-25, 25), 680); if (s.y > 690) await walkTo(p, s.x < 845 ? 770 : 920, 806); await walkTo(p, s.x, Math.min(812, s.y + 16)); await sitAt(p, s); }
+    finally { p.busy = false; }
+  }
+  function tripGroup() {
+    if (abbot) return;
+    const k = 1 + (Math.random() * 3 | 0);
+    const away = people.filter(p => p.room === 'away' && !p.real);
+    const free = people.filter(p => !p.me && !p.abbot && !p.real && !p.busy && p.mode === 'seat' && p.room === 'hall');
+    const back = away.length && (away.length >= 6 || Math.random() < .5);
+    const who = (back ? away : free).sort(() => Math.random() - .5).slice(0, k);
+    who.forEach((p, i) => setTimeout(() => back ? walkIn(p) : walkOut(p), i * rnd(700, 1600)));
+  }
+  // Phật tử thật: ngồi một chỗ trống trong điện, hoặc đứng ngoài sân nếu đang ở cảnh đó
+  const realPeople = {};
+  function syncReal() {
+    const here = realList.filter(r => (r.hall | 0) === hallId);
+    for (const uid in realPeople) {
+      const p = realPeople[uid], r = here.find(r => r.uid === uid);
+      if (!r || (r.room || 'hall') !== p.room) { drop(p); delete realPeople[uid]; }
+    }
+    syncVirtual();                                                          // ảo ra trước để nhường chỗ
+    for (const r of here) {
+      if (realPeople[r.uid]) continue;
+      const rm = r.room || 'hall', sheet = r.sheet === 'nu' ? 'nu' : 'nam', name = String(r.name || 'Đạo hữu').slice(0, 24);
+      let p;
+      if (rm === 'hall') {
+        const free = SEATS.filter(s => !s.owner && !s.mine && !s.abbotSeat);
+        if (!free.length) continue;
+        const s = gone.find(s => !s.owner) || free.sort((a, b) => b.y - a.y)[0];      // ngồi đúng chỗ người ảo vừa nhường
+        p = makePerson({ name, sheet, real: true, flip: false }); seatPerson(p, s);
+      } else if (ROOMS[rm]) {
+        const R2 = ROOMS[rm]; let x, y, k = 0;
+        do { x = rnd(200, W - 200); y = rnd(R2.hz + 80, 900); k++; } while (!walkable(x, y, R2) && k < 80);
+        p = makePerson({ name, sheet, real: true, room: rm, fx: x, fy: y, mode: 'pose', frame: F.stand });
+      } else continue;
+      people.push(p); realPeople[r.uid] = p;
     }
     dispatchEvent(new CustomEvent('chua-count', { detail: count() }));
   }
-  const count = () => people.filter(p => p.room === 'hall' && !p.me).length + 1;
+  addEventListener('presence', e => { realList = e.detail || []; if (ready) syncReal(); });
+  function setHall(id) {
+    if (id === hallId) return;
+    hallId = id; syncedOnce = false;
+    people.filter(p => !p.me && !p.abbot).forEach(drop);
+    for (const k in realPeople) delete realPeople[k];
+    strollers.length = 0;
+    if (me.seat && !me.seat.owner && me.mode === 'seat') me.seat.owner = me;
+    if (ready) syncReal();
+  }
+  const count = () => hallCount(hallId);
 
   /* ---------- Thẻ tên ---------- */
   const scene = document.getElementById('scene');
@@ -147,8 +250,28 @@
   const tags = {};
   function tagFor(p) {
     if (!p.name) return null;
-    if (!tags[p.id]) { const el = document.createElement('div'); el.className = 'tag' + (p.me ? ' me' : ''); el.textContent = p.name; scene.appendChild(el); tags[p.id] = el; }
+    if (!tags[p.id]) { const el = document.createElement('div'); el.className = 'tag' + (p.me ? ' me' : p.real ? ' real' : ''); el.textContent = p.name; scene.appendChild(el); tags[p.id] = el; }
     return tags[p.id];
+  }
+
+  // Tên nhỏ dần ở hàng xa; tên chồng lên nhau thì giữ tên người gần hơn (Bạn, người thật, thầy luôn hiện)
+  let tagT = 0;
+  function layoutTags() {
+    const now = performance.now(), full = now - tagT > 250; if (full) tagT = now;
+    const vis = [];
+    people.forEach(p => { const el = tags[p.id]; if (!el) return; if (p.room !== room || p._tx == null) { el.style.display = 'none'; return; } el.style.display = ''; vis.push(p); });
+    if (!full) return;
+    const rank = p => p.me ? 3e4 : p.abbot ? 2e4 : p.real ? 1e4 : p.fy;
+    vis.sort((a, b) => rank(b) - rank(a));
+    const kept = [];
+    for (const p of vis) {
+      const el = tags[p.id]; if (!p._tw) p._tw = el.offsetWidth || 80;
+      const w = p._tw * p._tk + 4, hh = 22 * p._tk, r = [p._tx - w / 2, p._ty - hh / 2, p._tx + w / 2, p._ty + hh / 2];
+      const over = () => kept.some(k => r[0] < k[2] && r[2] > k[0] && r[1] < k[3] && r[3] > k[1]);
+      if (rank(p) >= 1e4) { let n = 0; while (over() && n++ < 4) { r[1] -= hh + 2; r[3] -= hh + 2; } p._off = -n * (hh + 2); }
+      const hit = rank(p) < 1e4 && over();
+      el.style.visibility = hit ? 'hidden' : ''; if (!hit) kept.push(r);
+    }
   }
 
   /* ---------- Tải ảnh ---------- */
@@ -156,7 +279,7 @@
   Promise.all([
     load('assets/song/nu.png').then(i => SHEETS.nu.img = i), load('assets/song/nam.png').then(i => SHEETS.nam.img = i), load('assets/song/tru-tri.png').then(i => SHEETS.tt.img = i),
     load('assets/song/monk.png').then(i => monk = i), load(ROOMS.hall.img).then(i => imgs.hall = i), load(ROOMS.hall.fg).then(i => imgs.hallFg = i)
-  ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); syncVirtual();
+  ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); realList = window.Presence ? Presence.others() : []; syncReal();
     Object.keys(ROOMS).forEach(k => { if (k !== 'hall') load(ROOMS[k].img).then(i => imgs[k] = i); if (ROOMS[k].lu) load(ROOMS[k].lu.src).then(i => imgs['lu-' + k] = i); }); });
   Object.keys(ROOMS).forEach(loadDepth);
 
@@ -243,7 +366,7 @@
     ctx.restore();
     if (p.holding) drawHeldSticks(p, h);
     const el = tagFor(p);
-    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); el.style.left = (p.fx + dx).toFixed(1) + 'px'; el.style.top = (top - 10 + dy).toFixed(1) + 'px'; }
+    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.left = p._tx.toFixed(1) + 'px'; el.style.top = (p._ty + (p._off || 0)).toFixed(1) + 'px'; el.style.transform = `translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
   }
   // Gió: mạnh yếu từng đợt (dùng chung cho lá cây trong nền và khói hương)
   window.GIO = t => .65 + .35 * Math.sin(t * .37) + .15 * Math.sin(t * 1.13);
@@ -471,12 +594,14 @@
     [me.fx, me.fy] = at || [836, 900]; me.dir = face; me.frame = face === 'up' ? F.up : F.stand;
     if (!walkable(me.fx, me.fy)) { const c = R().floor; me.fx = 836; me.fy = 900; if (!walkable(me.fx, me.fy)) [me.fx, me.fy] = c[0]; }
     if (to !== 'hall') {                                                    // vài Phật tử đang dạo ngoài sân
-      const n = (Math.random() * 3) | 0;
+      const nReal = realList.filter(r => (r.hall | 0) === hallId && r.room === to).length;
+      const n = Math.max(0, ((Math.random() * 3) | 0) + 1 - 2 * nReal);
       for (let i = 0; i < n; i++) {
         let x, y, k = 0; const rm = R();
         do { x = rnd(0, W); y = rnd(rm.hz + 80, 900); k++; } while (!walkable(x, y, rm) && k < 80);
         if (k >= 80) continue;
-        const p = makePerson({ room: to, fx: x, fy: y, mode: 'pose', frame: F.stand }); people.push(p); strollers.push(p); stroll(p);
+        const sheet = Math.random() < .55 ? 'nu' : 'nam';
+        const p = makePerson({ room: to, fx: x, fy: y, mode: 'pose', frame: F.stand, sheet, name: nameFor(sheet) }); people.push(p); strollers.push(p); stroll(p);
       }
     }
     Object.values(tags).forEach(el => el.style.display = 'none');
@@ -485,7 +610,7 @@
   }
 
   /* ---------- Vòng lặp ---------- */
-  let last = performance.now(), nextBow = 2, nextTrip = 3, fadeT = 0;
+  let last = performance.now(), nextBow = 2, nextTrip = 3, nextGroup = rnd(12, 30), fadeT = 0;
   function frame(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now; const t = now / 1000;
     if (ready) {
@@ -494,12 +619,13 @@
       if (room === 'hall' || true) {
         nextBow -= dt;
         if (nextBow <= 0) { nextBow = rnd(.8, 2.6); const p = pick(people); if (p && !p.me && p.room === 'hall') bowOnce(p, rnd(700, 1400)); }
+        nextGroup -= dt; if (nextGroup <= 0) { nextGroup = rnd(20, 75); tripGroup(); }
         nextTrip -= dt;
         if (nextTrip <= 0) {
           nextTrip = rnd(3, 7);
           const busy = people.filter(p => p.busy && !p.me && p.room === 'hall').length;
-          const free = people.filter(p => !p.me && !p.abbot && !p.busy && p.mode === 'seat' && p.room === 'hall');
-          if (free.length && busy < 4 && !abbot) { const r = Math.random(); outing(pick(free), r < .22 ? 'door' : r < .44 ? 'huong' : r < .62 ? 'lay' : r < .74 ? 'left' : r < .86 ? 'right' : 'wander'); }
+          const free = people.filter(p => !p.me && !p.abbot && !p.real && !p.leaving && !p.busy && p.mode === 'seat' && p.room === 'hall');
+          if (free.length && busy < 4 && !abbot) { const r = Math.random(); outing(pick(free), r < .22 ? 'wander' : r < .44 ? 'huong' : r < .62 ? 'lay' : r < .74 ? 'left' : r < .86 ? 'right' : 'wander'); }
         }
       }
       // vẽ
@@ -515,7 +641,7 @@
       const at = (x, y, fn) => () => { const [dx, dy] = shiftAt(x, y); ctx.save(); ctx.translate(dx, dy); fn(); ctx.restore(); };
       const items = vis.map(p => ({ y: p.fy, draw: at(p.fx, p.fy, () => drawPerson(p)) }));
       if (room === 'hall') {
-        SEATS.forEach(s => items.push({ y: s.y - .5, draw: at(s.x, s.y, () => drawCushion(s.x, s.y, hallH(s.y))) }));
+        SEATS.forEach(s => !s.abbotSeat && items.push({ y: s.y - .5, draw: at(s.x, s.y, () => drawCushion(s.x, s.y, hallH(s.y))) }));
       }
       const lu = R().lu;                                                  // lư hương vẽ: tách lớp để người đi sau lư bị lư che
       if (lu && imgs['lu-' + room]) { const [x, y, w, h] = lu.at; items.push({ y: y + h - 6, draw: at(x + w / 2, y + h - 6, () => ctx.drawImage(imgs['lu-' + room], x, y, w, h)) }); }
@@ -529,7 +655,7 @@
         const x = f.from[0] + (f.to[0] - f.from[0]) * k, y = f.from[1] + (f.to[1] - f.from[1]) * k - Math.sin(k * Math.PI) * 30;
         stick(x, y, f.len, t);
       }
-      people.forEach(p => { const el = tags[p.id]; if (el) el.style.display = p.room === room ? '' : 'none'; });
+      layoutTags();
       if (aura) { aura.style.display = room === 'hall' ? '' : 'none'; aura.style.left = me.fx + 'px'; aura.style.top = (me.fy - hAt(me.fy) * .5) + 'px'; }
       if (fadeT > 0) { ctx.fillStyle = `rgba(20,10,4,${Math.min(1, fadeT)})`; ctx.fillRect(0, 0, W, H); fadeT -= dt * 2.2; }
     }
@@ -576,7 +702,7 @@
   }
 
   /* ---------- Giao tiếp với app.js ---------- */
-  const hallNpcs = () => people.filter(p => !p.me && !p.abbot && p.room === 'hall');
+  const hallNpcs = () => people.filter(p => !p.me && !p.abbot && !p.real && !p.leaving && p.room === 'hall');
   window.Nguoi = {
     drive(x, y) { input = { x, y }; },
     me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
@@ -611,7 +737,8 @@
     },
     meditate(on) { if (me.mode === 'seat') me.frame = on ? F.zen : F.sit; },
     count, maxAo: () => MAX_AO, ao: () => aoCount,
-    setAo(n) { aoCount = Math.max(0, Math.min(MAX_AO, n | 0)); store.set('ao', aoCount); syncVirtual(); return aoCount; },
+    cap: () => CAP, hallCount, isFull, setHall, realsIn, trip: tripGroup, hallId: () => hallId,
+    setAo(n) { aoCount = Math.max(0, Math.min(MAX_AO, n | 0)); store.set('ao', aoCount); syncedOnce = false; syncVirtual(); return aoCount; },
     allLay() { hallNpcs().filter(p => !p.busy && p.mode === 'seat').forEach(p => { p.busy = true; setTimeout(() => prostrate(p, 3).then(() => p.busy = false), rnd(100, 900)); }); },
     outing: (i, kind) => { const p = hallNpcs()[i]; p && outing(p, kind); }
   };

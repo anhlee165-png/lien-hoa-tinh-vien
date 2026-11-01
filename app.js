@@ -376,21 +376,30 @@
   addEventListener('chua-count', () => paintHall());
 
   /* ---------- Chánh điện / số người ---------- */
-  const halls = Array.from({ length: 20 }, (_, i) => ({ id: i + 1, n: i === 0 ? 37 : 8 + ((i * 37) % 85) }));
+  // 20 chánh điện, quy tắc như nhau: mỗi Phật tử thật vào thì 2 Phật tử ảo đi ra; đủ chỗ thì báo đầy
+  const N_HALLS = 20;
+  const cap = () => window.Nguoi && Nguoi.cap ? Nguoi.cap() : 100;
+  const hallN = id => window.Nguoi && Nguoi.hallCount ? Nguoi.hallCount(id) : 0;
+  const halls = Array.from({ length: N_HALLS }, (_, i) => ({ id: i + 1, get n() { return hallN(i + 1); } }));
+  const fullOf = id => window.Nguoi && Nguoi.isFull ? Nguoi.isFull(id) : false;
   function paintHall() {
     const h = halls[state.hall - 1];
-    if (window.Nguoi && Nguoi.count) h.n = Nguoi.count();
     $('#hall-name').textContent = `Chánh điện ${h.id}`; $('#info-hall').textContent = `Chánh điện ${h.id}`;
-    $('#online').textContent = h.n; $('#info-online').textContent = h.n;
+    $('#online').textContent = h.n; $('#info-online').textContent = h.n; $$('.cap').forEach(e => e.textContent = cap());
   }
   paintHall();
-  setInterval(() => {
-    halls.forEach(h => { if (window.Nguoi && h.id === state.hall) return; h.n = Math.max(3, Math.min(100, h.n + Math.round(Math.random() * 2 - 1))); });
+  window.Nguoi && Nguoi.setHall && Nguoi.setHall(state.hall); window.Presence && Presence.set({ hall: state.hall });
+  let checkedFull = false;
+  addEventListener('presence', () => setTimeout(() => {
     paintHall();
-  }, 7000);
+    // vừa vào web mà điện mình chọn đã đủ người thật → báo đầy, mời sang điện khác
+    if (!checkedFull && window.Nguoi && Nguoi.realsIn) { checkedFull = true; const old = state.hall; if (Nguoi.realsIn(old) >= cap()) { const alt = emptiest(old); if (alt) { joinHall(alt.id); toast(`Chánh điện ${old} đã đầy, mời đạo hữu sang Chánh điện ${alt.id}`); } } }
+  }, 0));
+  const hallLabel = h => fullOf(h.id) ? `${cap()}/${cap()} · đầy` : `${h.n}/${cap()}`;
+  const emptiest = except => halls.filter(h => h.id !== except && !fullOf(h.id)).sort((a, b) => a.n - b.n)[0];
   const hallMenu = $('#hall-menu'), bellMenu = $('#bell-menu');
   function openHallMenu() {
-    hallMenu.innerHTML = halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Chánh điện ${h.id}<small>${h.n}/100</small></button>`).join('');
+    hallMenu.innerHTML = halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Chánh điện ${h.id}<small>${hallLabel(h)}</small></button>`).join('');
     hallMenu.style.left = '622px'; hallMenu.hidden = false; bellMenu.hidden = true;
   }
   $('#hall-btn').addEventListener('click', e => { e.stopPropagation(); hallMenu.hidden ? openHallMenu() : (hallMenu.hidden = true); });
@@ -398,8 +407,16 @@
     const b = e.target.closest('[data-h]'); if (!b) return;
     joinHall(+b.dataset.h); hallMenu.hidden = true;
   });
+  function hallFull(id) {
+    const alt = emptiest(id);
+    openModal(`Chánh điện ${id} đã đầy`, `<p>Chánh điện ${id} đã đủ ${cap()}/${cap()} Phật tử, không còn chỗ ngồi.</p>
+      ${alt ? `<p>Mời đạo hữu sang <b>Chánh điện ${alt.id}</b> (đang có ${alt.n}/${cap()} người).</p><button class="btn" id="go-alt">Sang Chánh điện ${alt.id}</button>` : '<p>Tất cả các điện đều đã đầy, mời đạo hữu quay lại sau.</p>'}`,
+      body => { const b = $('#go-alt', body); if (b) b.addEventListener('click', () => { closeModal(); joinHall(alt.id); }); });
+    toast(`Chánh điện ${id} đã đầy`);
+  }
   function joinHall(id) {
-    state.hall = id; save(); paintHall(); setView('all'); chime(523, 2.5, .3);
+    if (fullOf(id)) return hallFull(id);
+    state.hall = id; save(); window.Nguoi && Nguoi.setHall && Nguoi.setHall(id); window.Presence && Presence.set({ hall: id }); paintHall(); setView('all'); chime(523, 2.5, .3);
     if (isAdmin() && window.Nguoi) { Nguoi.abbotLeave(); if (Nguoi.room() === 'hall') Nguoi.abbotEnter(); else Nguoi.go('hall'); }
     toast(`Đã vào Chánh điện ${id}`); chatRoom(chat.room, chat.room === 'hall' ? 'Chánh điện ' + id : $('#chat-room').textContent);
   }
@@ -433,7 +450,7 @@
 
   const PANELS = {
     rooms() {
-      openModal('20 chánh điện', `<div class="grid">${halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Điện ${h.id}<small>${h.n}/100 người</small></button>`).join('')}</div>`,
+      openModal(N_HALLS + ' chánh điện', `<div class="grid">${halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Điện ${h.id}<small>${hallLabel(h)} người</small></button>`).join('')}</div>`,
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) { joinHall(+b.dataset.h); closeModal(); } }));
     },
     hall() { closeModal(); setView('all'); if (state.outside) goInside(); },
@@ -636,7 +653,7 @@
     $$('[data-way]', box).forEach(b => b.addEventListener('click', () => { const e = ex[+b.dataset.way]; window.Dien3D && Dien3D.hide(); paintXoay(); Nguoi.go(e.to, e.at, e.face); }));
   }
   addEventListener('chua-room', e => {
-    paintWays(); syncMusic(); paintXoay();
+    paintWays(); syncMusic(); paintXoay(); window.Presence && Presence.set({ room: e.detail.room });
     if (e.detail.room === 'hall' && isAdmin()) Nguoi.abbotEnter(); else if (e.detail.room !== 'hall' && window.Nguoi) Nguoi.abbotLeave();
   });
   setTimeout(paintWays, 500);
