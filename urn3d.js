@@ -146,7 +146,8 @@ class Incense {
       const f = this.puffs[i], age = t - f.t0, life = 5.5;
       if (age > life) { this.parent.remove(f.sp); f.sp.material.dispose(); this.puffs.splice(i, 1); continue; }
       f.sp.position.y += dt * (.22 + age * .02);
-      f.sp.position.x += dt * (f.vx + Math.sin(t * .9 + f.ph) * .04);
+      const wind = this.wind && window.GIO ? GIO(t) * .17 * Math.min(1, age / 1.2) : 0;   // gió thổi khói nghiêng dần
+      f.sp.position.x += dt * (f.vx + wind + Math.sin(t * .9 + f.ph) * .04);
       f.sp.scale.setScalar(.08 + age * .09);
       f.sp.material.opacity = Math.min(1, age * 2) * (1 - age / life) * .5;
     }
@@ -170,7 +171,7 @@ function makeStage(renderer, withGround) {
     urn.traverse(o => o.isMesh && (o.castShadow = true));
     scene.background = new THREE.Color(0x1d0e06); scene.fog = new THREE.Fog(0x1d0e06, 6, 12);
   }
-  const incense = new Incense(urn, M); incense.add(22, .34);
+  const incense = new Incense(urn, M); incense.add(22, .34); incense.wind = !withGround;
   return { scene, urn, incense };
 }
 
