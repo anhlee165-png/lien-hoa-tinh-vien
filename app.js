@@ -79,12 +79,14 @@
   function loop() {
     cancelAnimationFrame(raf);
     const step = () => {
-      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); return; }
+      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); window.Ngoai && Ngoai.drive(0, 0); return; }
       let x = jv.x, y = jv.y;
       if (keys.has('l')) x -= 1; if (keys.has('r')) x += 1; if (keys.has('u')) y -= 1; if (keys.has('d')) y += 1;
       if (window.Nguoi && !state.outside) {     // joystick điều khiển nhân vật "Bạn"
         const m = Math.hypot(x, y); Nguoi.drive(m > 1 ? x / m : x, m > 1 ? y / m : y);
-      } else {                                 // dự phòng / ngoài sân: di chuyển camera
+      } else if (window.Ngoai && state.outside) { // ngoài sân: đi qua các cảnh
+        Ngoai.drive(x, y);
+      } else {                                 // dự phòng: di chuyển camera
         cam.s *= 1 - y * 0.012; cam.x += x * 9 / cam.s;
         if (cam.s > 1.05) cam.y += -y * 1.5 / cam.s * (420 - cam.y) / 100;
         applyCam(); $$('#views [data-view]').forEach(b => b.classList.remove('on'));
@@ -210,10 +212,10 @@
     $$('#actions button').forEach(b => b.classList.remove('on')); current = null;
   }
   const ACTIONS = {
-    chaptay() { chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
-    cuichao() { chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
+    chaptay() { state.outside && window.Ngoai && Ngoai.pose('chao'); chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
+    cuichao() { state.outside && window.Ngoai && Ngoai.pose('chao'); chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
     layphat() {
-      bell(); window.Nguoi && Nguoi.layPhat(3); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
+      bell(); state.outside && window.Ngoai ? Ngoai.pose('lay') : window.Nguoi && Nguoi.layPhat(3); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
       floatText('Kính lạy Bổn Sư Thích Ca Mâu Ni Phật'); addMerit(3, 'Lạy Phật'); petals(14);
     },
     niemphat: { toggle: true, start() {
@@ -257,14 +259,14 @@
 
   function goOutside() {
     stopContinuous(); state.outside = true;
-    Object.assign(cam, { s: 3.2, x: 838, y: 430 }); applyCam();
     $$('#views [data-view]').forEach(b => b.classList.remove('on'));
     $('#exit-label').textContent = 'Vào trong';
-    setTimeout(() => toast('Bạn đang ở sân chùa · đỉnh hương & cổng tam quan'), 900);
+    if (window.Ngoai) { Ngoai.enter('cua'); setTimeout(() => toast('Ra sân chùa · dùng joystick hoặc bấm mũi tên để đi'), 700); }
+    else { Object.assign(cam, { s: 3.2, x: 838, y: 430 }); applyCam(); setTimeout(() => toast('Bạn đang ở sân chùa · đỉnh hương & cổng tam quan'), 900); }
     logIt('Ra sân chùa');
   }
   function goInside() {
-    state.outside = false; $('#exit-label').textContent = 'Ra ngoài'; setView('all'); toast('Trở lại chánh điện');
+    state.outside = false; window.Ngoai && Ngoai.leave(); $('#exit-label').textContent = 'Ra ngoài'; setView('all'); toast('Trở lại chánh điện');
     window.Nguoi && Nguoi.me().standing && Nguoi.me().y < 600 && Nguoi.place(845, 615, 'down');
   }
 
@@ -379,6 +381,15 @@
     }
     requestAnimationFrame(follow);
   })();
+  window.Ngoai && Ngoai.set({
+    exit: goInside, toast,
+    moved: name => { logIt('Đến ' + name); chime(660, .3, .15); },
+    action(kind, pose) {
+      if (kind === 'chuong') { bell(); pose('chao'); floatText('Nguyện tiếng chuông này vang khắp pháp giới'); addMerit(2, 'Thỉnh chuông'); }
+      if (kind === 'trong') { [0, 450, 900].forEach(d => setTimeout(() => chime(82, 1.4, .9), d)); pose('chao'); floatText('Tùng… tùng… tùng…'); addMerit(1, 'Đánh trống'); }
+      if (kind === 'quanam') { chime(880, 3, .3); pose('lay'); floatText('Nam Mô Đại Từ Đại Bi Quán Thế Âm Bồ Tát'); addMerit(3, 'Chiêm bái Quan Âm'); petals(12); }
+    }
+  });
   addEventListener('ban-ra-cua', () => { if (!state.outside) goOutside(); });
 
   applyCam();
