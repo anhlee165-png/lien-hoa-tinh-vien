@@ -90,6 +90,11 @@
       </div>
     </aside>
 
+    <!-- ===== NÚT XOAY · LỐI ĐI · TÀI KHOẢN ===== -->
+    <button id="xoay" class="panel" aria-label="Xoay góc nhìn mặt trước / mặt sau"><span class="ring">⟲</span><span id="xoay-t">Mặt trước</span></button>
+    <nav id="ways" class="panel" aria-label="Đi đến khu khác"></nav>
+    <button id="acct" class="panel" aria-label="Tài khoản">Khách</button>
+
     <!-- ===== TRÒ CHUYỆN ===== -->
     <aside id="chat" class="panel">
       <button class="head" id="chat-toggle"><svg class="ic"><use href="#i-users"/></svg><span>Trò chuyện · <b id="chat-room">Chánh điện</b></span><svg class="ic caret"><use href="#i-caret"/></svg></button>
@@ -147,6 +152,18 @@
       </div>
     </div>
   </div>
+  <div id="login" hidden>
+    <div class="box">
+      <svg class="logo" viewBox="0 0 120 80"><use href="#i-lotus-big"/></svg>
+      <h1>Liên Hoa Tịnh Viện</h1>
+      <p>Mời đạo hữu vào chùa</p>
+      <button data-login="google" class="g"><b>G</b> Đăng nhập bằng Gmail</button>
+      <button data-login="facebook" class="f"><b>f</b> Đăng nhập bằng Facebook</button>
+      <button data-login="guest" class="k">Vào chùa với tư cách khách</button>
+      <button data-login="admin-tam" class="a">Quản trị (tạm thời, khi chưa có máy chủ)</button>
+      <small id="login-note"></small>
+    </div>
+  </div>
   <div id="rotate">Xoay ngang điện thoại để vào chánh điện trọn vẹn 🙏</div>
 </div>
 
@@ -198,6 +215,7 @@
 
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <script src="chua.js"></script>
+<script type="module" src="dien3d.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
