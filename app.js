@@ -79,14 +79,16 @@
   function loop() {
     cancelAnimationFrame(raf);
     const step = () => {
-      if (!dragging && !keys.size) { scene.classList.remove('drag'); return; }
+      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); return; }
       let x = jv.x, y = jv.y;
       if (keys.has('l')) x -= 1; if (keys.has('r')) x += 1; if (keys.has('u')) y -= 1; if (keys.has('d')) y += 1;
-      cam.s *= 1 - y * 0.012;                 // lên = tiến vào, xuống = lùi ra
-      cam.x += x * 9 / cam.s;
-      if (cam.s > 1.05) cam.y += -y * 1.5 / cam.s * (420 - cam.y) / 100;
-      applyCam();
-      $$('#views [data-view]').forEach(b => b.classList.remove('on'));
+      if (window.Nguoi && !state.outside) {     // joystick điều khiển nhân vật "Bạn"
+        const m = Math.hypot(x, y); Nguoi.drive(m > 1 ? x / m : x, m > 1 ? y / m : y);
+      } else {                                 // dự phòng / ngoài sân: di chuyển camera
+        cam.s *= 1 - y * 0.012; cam.x += x * 9 / cam.s;
+        if (cam.s > 1.05) cam.y += -y * 1.5 / cam.s * (420 - cam.y) / 100;
+        applyCam(); $$('#views [data-view]').forEach(b => b.classList.remove('on'));
+      }
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -263,6 +265,7 @@
   }
   function goInside() {
     state.outside = false; $('#exit-label').textContent = 'Ra ngoài'; setView('all'); toast('Trở lại chánh điện');
+    window.Nguoi && Nguoi.me().standing && Nguoi.me().y < 600 && Nguoi.place(845, 615, 'down');
   }
 
   /* ---------- Chánh điện / số người ---------- */
@@ -356,7 +359,7 @@
   $('#gear').addEventListener('click', () => {
     openModal('Cài đặt', `<label><input type="checkbox" id="s-amb" ${state.ambient ? 'checked' : ''}> Chuông chào khi vào điện</label>
       <label><input type="checkbox" id="s-views" ${$('#views').classList.contains('closed') ? '' : 'checked'}> Hiện bảng Điểm nhìn nhanh</label>
-      <p style="opacity:.8;font-size:17px">Điều khiển: joystick hoặc phím mũi tên / WASD (lên = tiến vào, xuống = lùi ra).</p>`,
+      <p style="opacity:.8;font-size:17px">Điều khiển: joystick hoặc phím mũi tên / WASD điều khiển nhân vật “Bạn” đứng dậy, đi lại trong chánh điện; đi ra tới cửa chính để ra sân. Đứng yên tại chỗ ngồi thì tự ngồi xuống.</p>`,
       body => {
         $('#s-amb', body).addEventListener('change', e => { state.ambient = e.target.checked; save(); });
         $('#s-views', body).addEventListener('change', e => $('#views').classList.toggle('closed', !e.target.checked));
@@ -368,6 +371,15 @@
     removeEventListener('pointerdown', first, true);
     audio(); if (state.ambient) setTimeout(bell, 150);
   }, true);
+
+  (function follow() {
+    if (window.Nguoi && !state.outside && cam.s > 1.05 && Nguoi.me().standing) {
+      const m = Nguoi.me(), ty = m.y - 110;
+      cam.x += (m.x - cam.x) * .06; cam.y += (ty - cam.y) * .06; applyCam();
+    }
+    requestAnimationFrame(follow);
+  })();
+  addEventListener('ban-ra-cua', () => { if (!state.outside) goOutside(); });
 
   applyCam();
 })();
