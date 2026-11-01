@@ -1,7 +1,7 @@
 /* Đăng nhập Gmail / Facebook qua Firebase Authentication.
    window.Auth = { ready(), signIn('google'|'facebook') → {name, email, admin}, signOut() } */
 (() => {
-  const ADMIN = ['anhlee165@gmail.com'];                 // tài khoản quản trị (vừa là khách vừa là quản trị)
+  // Quyền quản trị KHÔNG xác định ở đây: máy chủ cấp custom claim (scripts/set-owner.js), web đọc qua Vi.isAdmin().
   const config = {
     apiKey: 'AIzaSyCVrkugcd3NHh2rX37cXYRc4gcIa1CA6LA',
     authDomain: 'lien-hoa-tinh-vien.firebaseapp.com',
@@ -12,10 +12,19 @@
   };
   if (!window.firebase) { window.Auth = { ready: () => false }; return; }
   firebase.initializeApp(config);
+  // App Check (reCAPTCHA v3): điền khoá site khi đã tạo trong Firebase Console › App Check; máy chủ bật ENFORCE_APP_CHECK sau đó
+  const APP_CHECK_SITE_KEY = '';
+  if (APP_CHECK_SITE_KEY && firebase.appCheck) try { firebase.appCheck().activate(APP_CHECK_SITE_KEY, true); } catch {}
   const auth = firebase.auth();
+  // Chỉ khi chạy thử trên máy (localhost?emu=1): nối tới Firebase Emulator, không đụng dữ liệu thật
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu=1/.test(location.search)) {
+    auth.useEmulator('http://127.0.0.1:9099');
+    if (firebase.firestore) firebase.firestore().useEmulator('127.0.0.1', 8080);
+    if (firebase.functions) firebase.app().functions('asia-southeast1').useEmulator('127.0.0.1', 5001);
+    window.__EMU = true;
+  }
   auth.languageCode = 'vi';
-  const info = u => ({ name: u.displayName || (u.email || 'Đạo hữu').split('@')[0], email: u.email || '', photo: u.photoURL || '',
-                      admin: !!u.email && ADMIN.includes(u.email.toLowerCase()) });
+  const info = u => ({ uid: u.uid, name: u.displayName || (u.email || 'Đạo hữu').split('@')[0], email: u.email || '', photo: u.photoURL || '' });
   const MSG = {
     'auth/operation-not-allowed': 'Cách đăng nhập này chưa được bật trong Firebase',
     'auth/unauthorized-domain': 'Tên miền web chưa được cho phép trong Firebase (Authorized domains)',
@@ -30,7 +39,6 @@
     ready: () => true,
     user: () => current,
     settled: () => settled,
-    isAdminEmail: e => !!e && ADMIN.includes(String(e).toLowerCase()),
     async signIn(kind) {
       const p = kind === 'facebook' ? new firebase.auth.FacebookAuthProvider() : new firebase.auth.GoogleAuthProvider();
       if (kind !== 'facebook') p.setCustomParameters({ prompt: 'select_account' });
