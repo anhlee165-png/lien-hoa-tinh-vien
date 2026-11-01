@@ -4,7 +4,7 @@
 (() => {
   const DB = 'https://lien-hoa-tinh-vien-default-rtdb.asia-southeast1.firebasedatabase.app';
   const sheetOf = id => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) | 0; return (h & 1) ? 'nu' : 'nam'; };
-  let mine = { hall: 1, room: 'hall' }, who = null, mode = 'local', all = {}, ref = null;
+  let mine = { hall: 1, room: 'hall' }, nick = null, who = null, mode = 'local', all = {}, ref = null;
   const emit = () => dispatchEvent(new CustomEvent('presence', { detail: Presence.others() }));
 
   /* ---- cùng máy: BroadcastChannel, nhịp 4 giây, quá 12 giây coi như đã ra ---- */
@@ -50,7 +50,7 @@
   function identify(u) {
     const fu = window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser;
     who = u ? { uid: fu ? fu.uid : 'e:' + (u.email || u.name), name: u.name || 'Đạo hữu' } : null;
-    if (who) who.sheet = sheetOf(who.uid);
+    if (who) { who.sheet = nick ? nick.sheet : sheetOf(who.uid); if (nick) who.name = nick.name; }
     if (!who && bc) bc.postMessage({ uid: 'x', bye: true });
     Presence._write && Presence._write(); ping();
   }
@@ -58,6 +58,8 @@
   window.Presence = {
     set(o) { Object.assign(mine, o); if (ref) ref.update({ hall: mine.hall, room: mine.room }).catch(() => {}); ping(); },
     others: () => Object.values(all).filter(p => !who || p.uid !== who.uid),
+    // biệt danh và giới tính do Phật tử tự đặt
+    setMe(name, sheet) { nick = { name, sheet }; if (who) { who.name = name; who.sheet = sheet; } Presence._write && Presence._write(); ping(); },
     me: () => who, mode: () => mode
   };
   addEventListener('auth-user', e => identify(e.detail));
