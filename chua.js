@@ -34,27 +34,28 @@
     hall: { name: 'Chánh điện', img: 'assets/song/nen.jpg', fg: 'assets/song/truoc.png', fgY: 660, hz: 472.4, k: .525,
       floor: [[798, 556], [892, 556], [1430, 648], [1672, 712], [1672, 900], [1388, 900], [1388, 818], [292, 818], [292, 900], [0, 900], [0, 712], [250, 648]],
       block: [[180, 730, 290, 812]],                                         // chỗ thầy ngồi
-      exits: [[[790, 540, 900, 563], 'cua', [836, 900], 'up'], [[0, 690, 14, 900], 'cua-hong', [836, 900], 'up'], [[1658, 690, 1672, 900], 'lau-trong', [836, 900], 'up']],
+      exits: [[[790, 540, 900, 563], 'cua', [836, 900], 'up'],                              // cửa chính
+              [[0, 640, 150, 735], 'lau-chuong', [836, 905], 'up'], [[1522, 640, 1672, 735], 'lau-trong', [836, 905], 'up']],   // cửa trái ra Lầu Chuông, cửa phải ra Lầu Trống
       urn: { stand: [845, 806], face: 'down', plant: [843, 800], len: 58 } },
     'cua': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
-      block: [[238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
+      block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [845, 575], 'down']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
     'cua-hong': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
-      block: [[238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
+      block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [60, 790], 'right']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
     'san': { lu: { src: 'assets/ngoai/lu-san.png', at: [682, 512, 307, 337] }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 822], [1112, 560], [1042, 500], [628, 500], [558, 560], [0, 822]],
-      block: [[702, 782, 968, 852]],
+      block: [[185, 620, 330, 765], [1365, 620, 1510, 765], [350, 600, 462, 670], [1210, 600, 1330, 670], [490, 540, 550, 605], [1125, 540, 1190, 605], [702, 782, 968, 852]],
       exits: [[[600, 490, 1070, 510], 'san-gan', [560, 905], 'up'], [[0, 924, 1672, 941], 'mat-tien', [836, 905], 'up'],
               [[0, 800, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 800, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [836, 905], face: 'up', plant: [836, 588], len: 50 } },
     'san-gan': { lu: { src: 'assets/ngoai/lu-san-gan.png', at: [677, 584, 395, 357] }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 782], [1122, 560], [1000, 528], [700, 528], [560, 560], [0, 782]],
-      block: [[692, 862, 1058, 941]],
+      block: [[205, 600, 335, 785], [1410, 600, 1555, 790], [345, 600, 470, 690], [1295, 600, 1395, 690], [495, 560, 565, 645], [1215, 560, 1290, 650], [1128, 540, 1178, 600], [692, 862, 1058, 941]],
       exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'mat-tien', [836, 905], 'up'], [[1090, 930, 1672, 941], 'mat-tien', [836, 905], 'up'],
               [[0, 760, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 760, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [874, 905], face: 'up', plant: [874, 676], len: 62 } },
@@ -69,18 +70,20 @@
       urn: { stand: [836, 905], face: 'up', plant: [836, 600], len: 46 } },
     'bo-de': { name: 'Gốc Bồ Đề', img: 'assets/ngoai/bo-de.jpg', hz: 520, k: .62,
       floor: [[0, 941], [1672, 941], [1672, 780], [1562, 742], [1452, 562], [1382, 540], [1332, 562], [1332, 742], [0, 742]],
+      block: [[60, 700, 185, 780], [1530, 700, 1660, 785]],
       exits: [[[1330, 530, 1460, 552], 'lau-chuong', [836, 905], 'up'], [[0, 930, 1672, 941], 'san', [836, 905], 'up'], [[1660, 760, 1672, 941], 'san', [90, 880], 'right']] },
     'quan-am': { name: 'Hồ sen · Tượng Quan Âm', img: 'assets/ngoai/quan-am.jpg', hz: 500, k: .62,
       floor: [[0, 941], [1672, 941], [1672, 746], [1012, 746], [982, 602], [748, 602], [720, 746], [0, 746]],
       exits: [[[748, 596, 982, 612], 'lau-trong', [836, 905], 'up'], [[0, 930, 1672, 941], 'san', [836, 905], 'up'], [[0, 746, 12, 941], 'san', [1590, 880], 'left']],
-      act: [[750, 600, 990, 640], 'quanam'] },
+      act: [[1050, 746, 1250, 800], 'quanam'], shrine: { stand: [1110, 772] } },
     'lau-chuong': { tap: [[737, 415, 927, 679], 'chuong'], name: 'Lầu Chuông', img: 'assets/ngoai/lau-chuong.jpg', hz: 560, k: .66,
       floor: [[0, 941], [1672, 941], [1672, 802], [1052, 802], [1042, 722], [648, 722], [640, 802], [0, 802]],
-      exits: [[[0, 802, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 802, 1672, 941], 'hanh-lang', [500, 905], 'up'], [[0, 930, 1672, 941], 'mat-tien', [836, 905], 'up']],
+      block: [[115, 780, 280, 845], [1415, 780, 1585, 845], [420, 795, 640, 840], [1045, 795, 1265, 830]],
+      exits: [[[0, 802, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 802, 1672, 941], 'hanh-lang', [500, 905], 'up'], [[0, 930, 1672, 941], 'hall', [200, 745], 'right']],
       act: [[648, 718, 1042, 740], 'chuong'] },
     'lau-trong': { tap: [[760, 361, 935, 519], 'trong'], name: 'Lầu Trống', img: 'assets/ngoai/lau-trong.jpg', hz: 480, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 846], [1322, 752], [1322, 652], [362, 652], [362, 752], [222, 846]],
-      exits: [[[222, 930, 1450, 941], 'hall', [1610, 790], 'left']],
+      exits: [[[222, 930, 1450, 941], 'hall', [1470, 745], 'left']],
       act: [[700, 648, 990, 670], 'trong'] },
     'hanh-lang': { name: 'Hành lang', img: 'assets/ngoai/hanh-lang.jpg', hz: 470, k: .6,
       floor: [[150, 941], [1262, 941], [1202, 802], [962, 602], [890, 572], [730, 572], [600, 642], [150, 832]],
@@ -233,6 +236,7 @@
     const flip = p.flip && p.mode !== 'walk' && f >= 16;
     ctx.save(); ctx.translate(p.fx, p.fy + 1);
     if (flip) ctx.scale(-1, 1);
+    if (p.squash) ctx.scale(1, p.squash);
     ctx.drawImage(S.img, col * S.cw, row * S.ch, S.cw, S.ch, -dw / 2, -dh, dw, dh);
     ctx.restore();
     if (p.holding) drawHeldSticks(p, h);
@@ -294,7 +298,8 @@
   function walkable(x, y, rm = R()) {
     if (!inPoly(x, y, rm.floor)) return false;
     if (rm.key && rm.key !== 'hall' && chanAt(rm.key, x, y) > 128) return false;   // chân lư, đèn đá, chậu cây… (vật cố định)
-    for (const b of rm.block || []) if (inRect(x, y, b)) return false;
+    const m = rm.key === 'hall' ? 0 : .1 * hAt(y, rm);                     // bề ngang thân người: không lấn vào vật cản
+    for (const b of rm.block || []) if (x >= b[0] - m && x <= b[2] + m && y >= b[1] && y <= b[3]) return false;
     return true;
   }
   const dirOf = (dx, dy) => Math.abs(dx) > Math.abs(dy) * .8 ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
@@ -326,6 +331,17 @@
       if (seated) { p.frame = F.sit; await sleep(450); p.frame = F.sitBow; await sleep(450); p.frame = F.prostrate; await sleep(1100); p.frame = F.sit; await sleep(400); }
       else { p.mode = 'pose'; p.frame = F.stand; await sleep(400); p.frame = F.standBow; await sleep(450); p.frame = F.sit; await sleep(350); p.frame = F.prostrate; await sleep(1100); p.frame = F.sit; await sleep(350); p.frame = F.stand; await sleep(300); }
     }
+  }
+  // Lạy hướng vào tượng (quay lưng về phía người xem): đứng → quỳ → cúi rạp → quỳ → đứng
+  const BACK_SIT = 21;
+  async function prostrateUp(p, n = 3) {
+    const sh = ROOMS[p.room].shrine;
+    if (sh) { if (p.mode === 'seat') await standUp(p); await walkTo(p, sh.stand[0], sh.stand[1]); }
+    p.mode = 'pose'; p.dir = 'up'; p.frame = BACK_SIT; await sleep(500);              // quỳ xuống trước tượng
+    for (let i = 0; i < n; i++) {
+      p.squash = .84; await sleep(160); p.squash = .66; await sleep(1000); p.squash = .84; await sleep(160); p.squash = 0; await sleep(550);
+    }
+    p.squash = 0;
   }
   function bowOnce(p, ms = 900) {
     if (p.busy) return;
@@ -548,7 +564,7 @@
     me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
     room: () => room, roomName: () => R().name,
     exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
-      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[2] < 60 ? 'left' : r[0] > W - 60 ? 'right' : r[1] > H - 40 ? 'down' : 'up' })); },
+      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[2] <= 160 ? 'left' : r[0] >= W - 160 ? 'right' : r[1] > H - 40 ? 'down' : 'up' })); },
     abbotEnter, abbotLeave,
     go: (to, at, face) => go(to, at || (to === 'hall' ? [845, 600] : [836, 900]), face || (to === 'hall' ? 'down' : 'up')),
     bow(key, depth, ms) { if (key === 'ban') { if (!meBusy) bowOnce(me, ms || 900); } },
@@ -557,7 +573,8 @@
     async layPhat(times = 3) {
       if (room === 'hall') hallNpcs().filter(p => !p.busy && p.mode === 'seat').forEach(p => { p.busy = true; setTimeout(() => prostrate(p, times).then(() => p.busy = false), rnd(100, 700)); });
       strollers.forEach(p => p.mode !== 'walk' && prostrate(p, 1));
-      if (meBusy) return; meBusy = true; me.busy = true; await prostrate(me, times); me.busy = false; meBusy = false;
+      if (meBusy) return; meBusy = true; me.busy = true;
+      try { if (R().shrine) await prostrateUp(me, times); else await prostrate(me, times); } finally { me.busy = false; meBusy = false; }
     },
     async incense() {
       if (meBusy) return false;

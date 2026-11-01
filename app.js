@@ -169,6 +169,41 @@
     });
   }
   const bell = () => chime(196, 7, .7);        // chuông lớn
+  // Trống lớn: tiếng "tùng" trầm, dội (sóng sin tụt cao độ + tiếng da trống)
+  function drum(vol = 1) {
+    const a = audio(), t = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(48, t + .45);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.001, t + 1.6);
+    o.connect(g).connect(master); o.start(t); o.stop(t + 1.7);
+    const o2 = a.createOscillator(), g2 = a.createGain();
+    o2.type = 'triangle'; o2.frequency.setValueAtTime(190, t); o2.frequency.exponentialRampToValueAtTime(90, t + .2);
+    g2.gain.setValueAtTime(vol * .35, t); g2.gain.exponentialRampToValueAtTime(.001, t + .35);
+    o2.connect(g2).connect(master); o2.start(t); o2.stop(t + .4);
+    const n = a.createBufferSource(), b = a.createBuffer(1, a.sampleRate * .12, a.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3;
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const gn = a.createGain(); gn.gain.value = vol * .5; n.buffer = b; n.connect(lp).connect(gn).connect(master); n.start(t);
+  }
+  // Chuông đồng lớn: tiếng "boong" ngân dài, có độ rung
+  function bigBell(vol = .75) {
+    const a = audio(), t = a.currentTime;
+    [[1, 1], [2.0, .5], [2.4, .35], [3.0, .25], [4.2, .15], [.5, .4]].forEach(([m, k], i) => {
+      const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = 130 * m * (1 + (i % 2 ? .003 : -.002));
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * k, t + .008);
+      g.gain.exponentialRampToValueAtTime(.0001, t + 9 / (1 + i * .5));
+      o.connect(g).connect(master); o.start(t); o.stop(t + 9.5);
+    });
+  }
+  // Đánh theo nhịp: âm thanh và chữ cùng một nhịp
+  const striking = {};
+  function strike(kind) {
+    if (striking[kind]) return false; striking[kind] = true;
+    const T = kind === 'trong' ? { gap: 850, n: 3, word: 'Tùng!', snd: drum, x: 848, y: 430 } : { gap: 2400, n: 3, word: 'Boong…', snd: bigBell, x: 832, y: 520 };
+    for (let i = 0; i < T.n; i++) setTimeout(() => { T.snd(); floatText(T.word, T.x + (i - 1) * 70, T.y, true); Nguoi.bow('ban', 0, Math.min(700, T.gap - 150)); }, i * T.gap);
+    setTimeout(() => striking[kind] = false, T.n * T.gap);
+    return true;
+  }
   const mo = () => {                            // tiếng mõ
     const a = audio(), t = a.currentTime, o = a.createOscillator(), g = a.createGain();
     o.type = 'triangle'; o.frequency.setValueAtTime(820, t); o.frequency.exponentialRampToValueAtTime(380, t + .08);
@@ -319,13 +354,14 @@
     else setView('all');
     toast(name); logIt('Đến ' + name); chime(660, .3, .15);
     chatRoom(room, room === 'hall' ? 'Chánh điện ' + state.hall : name);
+    if (room === 'lau-trong' || room === 'lau-chuong') setTimeout(() => strike(room === 'lau-trong' ? 'trong' : 'chuong'), 700);   // đến nơi thì nghe trống/chuông
   });
   addEventListener('chua-soon', e => toast(`${e.detail} đang được xây, sắp mở 🙏`));
   addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });
   addEventListener('chua-act', e => {
     const kind = e.detail;
-    if (kind === 'chuong') { bell(); Nguoi.bow('ban'); floatText('Nguyện tiếng chuông này vang khắp pháp giới'); addMerit(2, 'Thỉnh chuông'); }
-    if (kind === 'trong') { [0, 450, 900].forEach(d => setTimeout(() => chime(82, 1.4, .9), d)); Nguoi.bow('ban'); floatText('Tùng… tùng… tùng…'); addMerit(1, 'Đánh trống'); }
+    if (kind === 'chuong' && strike('chuong')) { setTimeout(() => floatText('Nguyện tiếng chuông này vang khắp pháp giới'), 600); addMerit(2, 'Thỉnh chuông'); }
+    if (kind === 'trong' && strike('trong')) addMerit(1, 'Đánh trống');
     if (kind === 'quanam') { chime(880, 3, .3); Nguoi.layPhat(1); floatText('Nam Mô Đại Từ Đại Bi Quán Thế Âm Bồ Tát'); addMerit(3, 'Chiêm bái Quan Âm'); petals(12); }
   });
   addEventListener('chua-count', () => paintHall());
