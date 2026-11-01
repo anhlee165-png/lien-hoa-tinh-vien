@@ -378,3 +378,4 @@ function open() {
 
 window.Urn3D = { draw, open, plant: (n = 3) => stage && stage.incense.add(n, .25), ok: () => !failed, hit: k => !failed && getStage(k).hit(performance.now() / 1000) };
 dispatchEvent(new CustomEvent('urn3d-ready'));
+export { makeMaterials, buildUrn, Incense };

@@ -15,7 +15,8 @@
   /* ---------- Bộ tư thế ---------- */
   const SHEETS = {
     nu: { cw: 161, ch: 246, stand: 242, img: null },
-    nam: { cw: 193, ch: 260, stand: 249, img: null }
+    nam: { cw: 256, ch: 256, stand: 241, img: null },
+    tt: { cw: 256, ch: 256, stand: 241, img: null }                       // trụ trì: cà sa đỏ, đầu cạo
   };
   // 0-3 đi xuống (về phía màn hình) · 4-7 đi lên · 8-11 sang trái · 12-15 sang phải
   // 16 đứng chắp tay · 17 đứng cúi · 18 ngồi chắp tay · 19 lạy sát đất · 22 ngồi cúi đầu · 23 ngồi thiền
@@ -86,6 +87,7 @@
       exits: [[[700, 560, 900, 582], 'soon:Vườn Thiền', null], [[150, 930, 1262, 941], 'lau-chuong', [1590, 880], 'left']] }
   };
 
+  Object.entries(ROOMS).forEach(([k, v]) => v.key = k);
   /* ---------- Chỗ ngồi trong chánh điện ---------- */
   const hallH = y => ROOMS.hall.k * (y - ROOMS.hall.hz);            // chiều cao người đứng
   const carpetX = y => { const t = (y - 548) / (790 - 548); return [806 + (732 - 806) * t, 884 + (958 - 884) * t]; };
@@ -117,7 +119,7 @@
 
   let aoCount = Math.min(MAX_AO, store.get('ao', MAX_AO - 4));
   function syncVirtual() {
-    const npcs = people.filter(p => !p.me && p.room === 'hall');
+    const npcs = people.filter(p => !p.me && !p.abbot && p.room === 'hall');
     while (npcs.length < aoCount) {
       const free = SEATS.filter(s => !s.owner && !s.mine);
       if (!free.length) break;
@@ -148,7 +150,7 @@
   /* ---------- Tải ảnh ---------- */
   const imgs = {}; let monk = null, ready = false;
   Promise.all([
-    load('assets/song/nu.png').then(i => SHEETS.nu.img = i), load('assets/song/nam.png').then(i => SHEETS.nam.img = i),
+    load('assets/song/nu.png').then(i => SHEETS.nu.img = i), load('assets/song/nam.png').then(i => SHEETS.nam.img = i), load('assets/song/tru-tri.png').then(i => SHEETS.tt.img = i),
     load('assets/song/monk.png').then(i => monk = i), load(ROOMS.hall.img).then(i => imgs.hall = i), load(ROOMS.hall.fg).then(i => imgs.hallFg = i)
   ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); syncVirtual();
     Object.keys(ROOMS).forEach(k => { if (k !== 'hall') load(ROOMS[k].img).then(i => imgs[k] = i); if (ROOMS[k].lu) load(ROOMS[k].lu.src).then(i => imgs['lu-' + k] = i); }); });
@@ -260,8 +262,8 @@
       const k = age / f.life, sc = f.sc;
       const x = f.x + Math.sin(age * 1.4 + f.ph) * 6 * sc * k + wind * 34 * sc * age * age * .5,
             y = f.y - (26 + age * 6) * sc * age,
-            r = (6 + age * 11) * sc,
-            a = Math.min(1, age * 2.5) * (1 - k) * .55;
+            r = (4 + age * 8) * sc,
+            a = Math.min(1, age * 2.5) * (1 - k) * .38;
       const [dx, dy] = shiftAt(f.x, f.y + 60);
       const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
       g.addColorStop(0, `rgba(235,232,228,${a})`); g.addColorStop(1, 'rgba(235,232,228,0)');
@@ -288,8 +290,10 @@
   }
 
   /* ---------- Chuyển động ---------- */
+  const chanAt = (k, x, y) => { const d = depth[k]; if (!d) return 0; const ix = Math.max(0, Math.min(d.w - 1, x * d.w / W | 0)), iy = Math.max(0, Math.min(d.h - 1, y * d.h / H | 0)); return d.data[(iy * d.w + ix) * 4 + 2]; };
   function walkable(x, y, rm = R()) {
     if (!inPoly(x, y, rm.floor)) return false;
+    if (rm.key && rm.key !== 'hall' && chanAt(rm.key, x, y) > 128) return false;   // chân lư, đèn đá, chậu cây… (vật cố định)
     for (const b of rm.block || []) if (inRect(x, y, b)) return false;
     return true;
   }
@@ -474,7 +478,7 @@
         if (nextTrip <= 0) {
           nextTrip = rnd(3, 7);
           const busy = people.filter(p => p.busy && !p.me && p.room === 'hall').length;
-          const free = people.filter(p => !p.me && !p.busy && p.mode === 'seat' && p.room === 'hall');
+          const free = people.filter(p => !p.me && !p.abbot && !p.busy && p.mode === 'seat' && p.room === 'hall');
           if (free.length && busy < 4) { const r = Math.random(); outing(pick(free), r < .22 ? 'door' : r < .44 ? 'huong' : r < .62 ? 'lay' : r < .74 ? 'left' : r < .86 ? 'right' : 'wander'); }
         }
       }
@@ -492,7 +496,6 @@
       const items = vis.map(p => ({ y: p.fy, draw: at(p.fx, p.fy, () => drawPerson(p)) }));
       if (room === 'hall') {
         SEATS.forEach(s => items.push({ y: s.y - .5, draw: at(s.x, s.y, () => drawCushion(s.x, s.y, hallH(s.y))) }));
-        if (monk) items.push({ y: 802, draw: at(235, 802, () => { const b = 1 + Math.sin(t * 1.2) * .006; ctx.drawImage(monk, 198, 693 + 106 * (1 - b), 75, 106 * b); }) });
       }
       const lu = R().lu;                                                  // lư hương vẽ: tách lớp để người đi sau lư bị lư che
       if (lu && imgs['lu-' + room]) { const [x, y, w, h] = lu.at; items.push({ y: y + h - 6, draw: at(x + w / 2, y + h - 6, () => ctx.drawImage(imgs['lu-' + room], x, y, w, h)) }); }
@@ -521,12 +524,32 @@
   });
   cv.addEventListener('mousemove', e => { const tp = R().tap; if (!tp) { cv.style.cursor = ''; return; } const [x, y] = toStage(e); cv.style.cursor = inRect(x, y, tp[0]) ? 'pointer' : ''; });
 
+  /* ---------- Trụ trì: chỉ xuất hiện khi quản trị vào điện, đi từ sân vào ngồi chỗ của thầy ---------- */
+  let abbot = null;
+  const ABBOT_SEAT = { x: 235, y: 802 };
+  async function abbotEnter() {
+    if (abbot) return;
+    abbot = makePerson({ sheet: 'tt', name: 'Thầy Trụ trì', flip: false, room: 'hall', fx: 836, fy: 562, mode: 'pose', frame: F.down, busy: true, abbot: true });
+    people.push(abbot);
+    await walkTo(abbot, 836, 640); await walkTo(abbot, 560, 812); await walkTo(abbot, ABBOT_SEAT.x, ABBOT_SEAT.y);
+    abbot.dir = 'down'; abbot.frame = F.stand; await sleep(250); abbot.frame = F.standBow; await sleep(700);
+    abbot.frame = F.stand; await sleep(250); abbot.frame = F.sit; abbot.mode = 'seat'; abbot.busy = false;
+    dispatchEvent(new CustomEvent('chua-count', { detail: count() }));
+  }
+  function abbotLeave() {
+    if (!abbot) return; const i = people.indexOf(abbot); if (i >= 0) people.splice(i, 1);
+    if (tags[abbot.id]) { tags[abbot.id].remove(); delete tags[abbot.id]; } abbot = null;
+  }
+
   /* ---------- Giao tiếp với app.js ---------- */
-  const hallNpcs = () => people.filter(p => !p.me && p.room === 'hall');
+  const hallNpcs = () => people.filter(p => !p.me && !p.abbot && p.room === 'hall');
   window.Nguoi = {
     drive(x, y) { input = { x, y }; },
     me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
     room: () => room, roomName: () => R().name,
+    exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
+      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[2] < 60 ? 'left' : r[0] > W - 60 ? 'right' : r[1] > H - 40 ? 'down' : 'up' })); },
+    abbotEnter, abbotLeave,
     go: (to, at, face) => go(to, at || (to === 'hall' ? [845, 600] : [836, 900]), face || (to === 'hall' ? 'down' : 'up')),
     bow(key, depth, ms) { if (key === 'ban') { if (!meBusy) bowOnce(me, ms || 900); } },
     bowAll(depth, ms) { hallNpcs().forEach(p => setTimeout(() => bowOnce(p, ms || 1200), rnd(100, 700))); if (!meBusy) bowOnce(me, ms || 1200); },

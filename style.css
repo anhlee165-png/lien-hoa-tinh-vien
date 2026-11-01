@@ -227,3 +227,55 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #chat-in{flex:1;min-width:0;padding:6px 8px;border-radius:7px;border:1px solid rgba(232,181,74,.4);background:rgba(0,0,0,.35);color:#fff;font:400 14px var(--sans)}
 #chat-form button{padding:0 9px;border-radius:7px;background:linear-gradient(#e8b54a,#a86d1c);color:#3a1800;font:700 14px var(--sans)}
 .sheet .note{opacity:.7;font-size:15px;margin-top:10px}
+
+/* thanh trên: chỉ còn chuông thông báo */
+#topbar{background:none!important;box-shadow:none!important;border:0!important;pointer-events:none}
+#topbar>*:not(#bell-btn){display:none!important}
+#topbar #bell-btn{pointer-events:auto}
+#views{display:none!important}
+#info{top:14px}
+/* nút xoay mặt trước / mặt sau */
+#xoay{left:1463px;top:84px;width:203px;height:52px;display:flex;align-items:center;gap:10px;padding:0 14px;font:700 18px var(--sans);color:var(--cream);cursor:pointer}
+#xoay .ring{font-size:28px;line-height:1;color:var(--gold-hi);transition:transform .5s}
+#xoay.back .ring{transform:rotate(180deg)}
+#xoay:hover{background:rgba(90,30,10,.92)}
+#chat{top:146px;height:560px}
+/* lối đi */
+#ways{left:10px;top:180px;width:182px;padding:6px;display:flex;flex-direction:column;gap:4px}
+#ways b{font:700 15px var(--sans);color:var(--gold-hi);padding:2px 6px}
+#ways button{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;font:500 15px var(--sans);color:var(--cream);text-align:left;background:rgba(232,181,74,.08)}
+#ways button:hover{background:rgba(232,181,74,.25)}
+#ways i{font-style:normal;color:var(--gold-hi);width:14px;flex:none}
+/* tài khoản */
+#acct{left:1463px;top:14px;width:130px;height:52px;font:700 16px var(--sans);color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px}
+/* đăng nhập */
+#login{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(60,18,6,.82),rgba(20,4,2,.95))}
+#login[hidden]{display:none}
+#login .box{width:460px;padding:30px 34px;border-radius:16px;background:rgba(58,18,8,.95);border:1px solid rgba(232,181,74,.6);text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#login .logo{width:110px;height:74px;margin:0 auto}
+#login h1{margin:0;font:700 34px var(--serif,serif);color:var(--gold-hi)}
+#login p{margin:0 0 6px;color:var(--cream);font-size:18px}
+#login button{display:flex;align-items:center;justify-content:center;gap:10px;height:50px;border-radius:10px;font:700 18px var(--sans)}
+#login button b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#fff;font:700 18px Arial}
+#login .g{background:#fff;color:#333}#login .g b{color:#ea4335;background:none}
+#login .f{background:#1877f2;color:#fff}#login .f b{color:#1877f2}
+#login .k{background:linear-gradient(#e8b54a,#a86d1c);color:#3a1800}
+#login .a{background:none;border:1px dashed rgba(232,181,74,.5);color:rgba(255,236,200,.75);font-size:14px;height:36px}
+#login small{color:rgba(255,236,200,.65);font-size:14px}
+.admin-only{display:none}
+.is-admin .admin-only{display:block}
+.sheet .tabs{display:flex;gap:6px;margin-bottom:12px}
+.sheet .tabs button{flex:1}
+.sheet .tabs button.on{background:rgba(232,181,74,.35)}
+.sheet img.qr{display:block;max-width:260px;max-height:260px;margin:10px auto;border-radius:8px;background:#fff}
+.sheet label.file{display:inline-block;padding:10px 16px;border-radius:9px;background:linear-gradient(#e8b54a,#a86d1c);color:#3a1800;font-weight:700;cursor:pointer}
+.sheet textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(232,181,74,.4);background:rgba(0,0,0,.3);color:#fff;font:16px var(--sans);margin-bottom:8px}
+.sheet .big-inline{font-size:24px;color:var(--gold-hi)}
+#bell-menu #note-new{width:100%;margin-top:6px;padding:8px;border-radius:8px;background:rgba(232,181,74,.25);font:600 16px var(--sans)}
+
+/* góc nhìn mặt sau: điện Phật 3D */
+#dien3d{position:absolute;left:0;top:0;width:1672px;height:941px;display:none;cursor:grab;touch-action:none}
+#dien3d.on{display:block}
+#dien3d:active{cursor:grabbing}
+#dien3d-tag{position:absolute;left:50%;top:20px;transform:translateX(-50%);display:none;padding:6px 18px;border-radius:20px;background:rgba(40,14,6,.72);border:1px solid rgba(232,181,74,.6);color:#ffe7b0;font:600 17px/1.3 system-ui,sans-serif;pointer-events:none}
+#dien3d-tag.on{display:block}
