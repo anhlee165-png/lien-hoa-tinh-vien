@@ -119,7 +119,7 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #views .list button.on{color:var(--gold-hi);background:rgba(232,181,74,.2)}
 
 /* ---------- Joystick ---------- */
-#joy{position:absolute;left:24px;top:621px;width:182px;height:182px;border-radius:50%;touch-action:none;
+#joy{position:absolute;left:24px;top:621px;width:182px;height:182px;border-radius:50%;touch-action:none;transform:scale(.6);transform-origin:0 100%;
   background:radial-gradient(circle,rgba(255,255,255,.28),rgba(225,225,230,.38));border:3px solid rgba(255,255,255,.75);
   box-shadow:0 4px 18px rgba(0,0,0,.35),inset 0 0 18px rgba(255,255,255,.35);backdrop-filter:blur(4px)}
 #knob{position:absolute;left:50%;top:50%;width:88px;height:88px;margin:-44px 0 0 -44px;border-radius:50%;
@@ -279,3 +279,12 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #dien3d:active{cursor:grabbing}
 #dien3d-tag{position:absolute;left:50%;top:20px;transform:translateX(-50%);display:none;padding:6px 18px;border-radius:20px;background:rgba(40,14,6,.72);border:1px solid rgba(232,181,74,.6);color:#ffe7b0;font:600 17px/1.3 system-ui,sans-serif;pointer-events:none}
 #dien3d-tag.on{display:block}
+
+/* ẩn / hiện khung trò chuyện */
+#chat .x{flex:none;margin-left:2px;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font:700 15px var(--sans);color:var(--cream);background:rgba(0,0,0,.25)}
+#chat .x:hover{background:rgba(232,181,74,.3)}
+#chat.gone{display:none}
+#chat-show{position:absolute;left:1606px;top:146px;width:56px;height:52px;display:none;place-items:center;font-size:24px;cursor:pointer}
+#chat-show.on{display:grid}
+#chat-show i{position:absolute;right:6px;top:6px;width:10px;height:10px;border-radius:50%;background:#e33;display:none}
+#chat-show.new i{display:block}

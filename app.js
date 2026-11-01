@@ -80,6 +80,7 @@
   function chatAdd(m, broadcast = true) {
     const k = m.key || chatKey(); const list = store.get(k, []); list.push({ who: m.who, text: m.text, me: m.me, sys: m.sys, t: Date.now() });
     store.set(k, list.slice(-60)); if (k === chatKey()) chatPaint();
+    if (state.chatHidden && !m.me && !m.sys) { const b = document.getElementById('chat-show'); b && b.classList.add('new'); }
     if (broadcast && chat.bc) chat.bc.postMessage({ key: k, who: m.who, text: m.text });
   }
   if (chat.bc) chat.bc.onmessage = e => chatAdd({ ...e.data, me: false }, false);
@@ -98,6 +99,11 @@
     if (Math.random() < .7) setTimeout(() => botTalk(true), 2500 + Math.random() * 4000);
   });
   $('#chat-toggle').addEventListener('click', () => $('#chat').classList.toggle('closed'));
+  // ẩn hẳn khung trò chuyện cho ai không muốn thấy; nút 💬 để hiện lại (có chấm đỏ khi có tin mới)
+  function paintChatVis() { $('#chat').classList.toggle('gone', !!state.chatHidden); $('#chat-show').classList.toggle('on', !!state.chatHidden); if (!state.chatHidden) $('#chat-show').classList.remove('new'); }
+  $('#chat-hide').addEventListener('click', () => { state.chatHidden = true; save(); paintChatVis(); });
+  $('#chat-show').addEventListener('click', () => { state.chatHidden = false; save(); paintChatVis(); });
+  paintChatVis();
   function chatRoom(room, name) { chat.room = room; $('#chat-room').textContent = name; chatPaint(); }
   chatRoom('hall', 'Chánh điện ' + state.hall);
 
@@ -200,7 +206,8 @@
   function strike(kind) {
     if (striking[kind]) return false; striking[kind] = true;
     const T = kind === 'trong' ? { gap: 850, n: 3, word: 'Tùng!', snd: drum, x: 848, y: 430 } : { gap: 2400, n: 3, word: 'Boong…', snd: bigBell, x: 832, y: 520 };
-    for (let i = 0; i < T.n; i++) setTimeout(() => { T.snd(); floatText(T.word, T.x + (i - 1) * 70, T.y, true); Nguoi.bow('ban', 0, Math.min(700, T.gap - 150)); }, i * T.gap);
+    Nguoi.faceUp(T.n * T.gap + 800);
+    for (let i = 0; i < T.n; i++) setTimeout(() => { T.snd(); floatText(T.word, T.x + (i - 1) * 70, T.y, true); }, i * T.gap);
     setTimeout(() => striking[kind] = false, T.n * T.gap);
     return true;
   }
@@ -354,7 +361,6 @@
     else setView('all');
     toast(name); logIt('Đến ' + name); chime(660, .3, .15);
     chatRoom(room, room === 'hall' ? 'Chánh điện ' + state.hall : name);
-    if (room === 'lau-trong' || room === 'lau-chuong') setTimeout(() => strike(room === 'lau-trong' ? 'trong' : 'chuong'), 700);   // đến nơi thì nghe trống/chuông
   });
   addEventListener('chua-soon', e => toast(`${e.detail} đang được xây, sắp mở 🙏`));
   addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });

@@ -96,8 +96,9 @@
     <button id="acct" class="panel" aria-label="Tài khoản">Khách</button>
 
     <!-- ===== TRÒ CHUYỆN ===== -->
+    <button id="chat-show" class="panel" title="Hiện khung trò chuyện" aria-label="Hiện khung trò chuyện">💬<i></i></button>
     <aside id="chat" class="panel">
-      <button class="head" id="chat-toggle"><svg class="ic"><use href="#i-users"/></svg><span>Trò chuyện · <b id="chat-room">Chánh điện</b></span><svg class="ic caret"><use href="#i-caret"/></svg></button>
+      <div class="head-wrap" style="display:flex;align-items:center"><button class="head" id="chat-toggle" style="flex:1;min-width:0"><svg class="ic"><use href="#i-users"/></svg><span>Trò chuyện · <b id="chat-room">Chánh điện</b></span><svg class="ic caret"><use href="#i-caret"/></svg></button><button class="x" id="chat-hide" title="Ẩn trò chuyện" aria-label="Ẩn trò chuyện" style="margin-right:6px">✕</button></div>
       <div id="chat-log" aria-live="polite"></div>
       <form id="chat-form" autocomplete="off">
         <input id="chat-in" maxlength="200" placeholder="Nhắn với đạo hữu cùng phòng…" aria-label="Tin nhắn">
