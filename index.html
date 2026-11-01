@@ -54,7 +54,7 @@
       </div>
       <div class="pill" style="left:1082px;width:280px">
         <svg class="ic wallet"><use href="#i-wallet"/></svg>
-        <span>Ví: <b id="wallet">1.250.000</b> đ</span>
+        <span>Xu: <b id="wallet">0</b></span>
         <button class="plus" id="topup" aria-label="Nạp tiền"><svg><use href="#i-plus"/></svg></button>
       </div>
       <button class="pill" id="merit-btn" style="left:1384px;width:196px">
@@ -82,11 +82,22 @@
       <button class="head" id="views-toggle"><svg class="ic"><use href="#i-camera"/></svg><span>Điểm nhìn nhanh</span><svg class="ic caret"><use href="#i-caret"/></svg></button>
       <div class="list">
         <button data-view="all" class="on"><svg class="ic"><use href="#i-image"/></svg>Toàn cảnh</button>
+        <button data-view="mattien"><svg class="ic"><use href="#i-temple"/></svg>Mặt trước chùa</button>
         <button data-view="buddha"><svg class="ic"><use href="#i-buddha"/></svg>Góc Phật</button>
         <button data-view="left"><svg class="ic"><use href="#i-left"/></svg>Tường trái</button>
         <button data-view="right"><svg class="ic"><use href="#i-right"/></svg>Tường phải</button>
         <button data-view="door"><svg class="ic"><use href="#i-gate"/></svg>Cửa chính</button>
       </div>
+    </aside>
+
+    <!-- ===== TRÒ CHUYỆN ===== -->
+    <aside id="chat" class="panel">
+      <button class="head" id="chat-toggle"><svg class="ic"><use href="#i-users"/></svg><span>Trò chuyện · <b id="chat-room">Chánh điện</b></span><svg class="ic caret"><use href="#i-caret"/></svg></button>
+      <div id="chat-log" aria-live="polite"></div>
+      <form id="chat-form" autocomplete="off">
+        <input id="chat-in" maxlength="200" placeholder="Nhắn với đạo hữu cùng phòng…" aria-label="Tin nhắn">
+        <button type="submit" aria-label="Gửi">Gửi</button>
+      </form>
     </aside>
 
     <!-- ===== JOYSTICK ===== -->
@@ -187,7 +198,6 @@
 
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <script src="chua.js"></script>
-<script type="module" src="urn3d.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
