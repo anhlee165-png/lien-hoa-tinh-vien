@@ -172,8 +172,11 @@
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     const prog = gl.createProgram();
     gl.attachShader(prog, sh(gl.VERTEX_SHADER, 'attribute vec2 a;varying vec2 v;void main(){v=vec2(a.x*.5+.5,.5-a.y*.5);gl_Position=vec4(a,0.,1.);}'));
-    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, `precision highp float;varying vec2 v;uniform sampler2D img,dep;uniform vec2 off;uniform float focus;
-      void main(){vec2 q=v;for(int i=0;i<5;i++){float d=texture2D(dep,q).r;q=v-off*(d-focus);}
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, `precision highp float;varying vec2 v;uniform sampler2D img,dep;uniform vec2 off;uniform float focus,t;
+      void main(){
+        float w=texture2D(dep,v).g, g=.65+.35*sin(t*.37)+.15*sin(t*1.13);   // kênh G: cây lá, đung đưa theo gió (gió từng đợt)
+        vec2 s=w*g*vec2(.0019*sin(t*1.25+v.y*7.+v.x*3.)+.00055*sin(t*3.3+v.x*41.+v.y*29.),.0006*sin(t*1.6+v.x*13.)+.0003*sin(t*3.9+v.y*37.));
+        vec2 b=v-s,q=b;for(int i=0;i<5;i++){float d=texture2D(dep,q).r;q=b-off*(d-focus);}
       gl_FragColor=texture2D(img,clamp(q,vec2(.001),vec2(.999)));}`));
     gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
     gl.useProgram(prog);
@@ -186,12 +189,12 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, im); return tx; };
     const cache = new Map();
-    return { canvas: c, draw(im, dk, ox, oy, focus) {
+    return { canvas: c, draw(im, dk, ox, oy, focus, t = 0) {
       if (!cache.has(im)) cache.set(im, texOf(im));
       if (!dk.tex) dk.tex = texOf(dk.img);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cache.get(im));
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, dk.tex);
-      gl.uniform2f(U('off'), ox / W, oy / H); gl.uniform1f(U('focus'), focus);
+      gl.uniform2f(U('off'), ox / W, oy / H); gl.uniform1f(U('focus'), focus); gl.uniform1f(U('t'), t);
       gl.viewport(0, 0, W, H); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return c;
     } };
   })();
@@ -228,6 +231,8 @@
     const el = tagFor(p);
     if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); el.style.left = (p.fx + dx).toFixed(1) + 'px'; el.style.top = (top - 10 + dy).toFixed(1) + 'px'; }
   }
+  // Gió: mạnh yếu từng đợt (dùng chung cho lá cây trong nền và khói hương)
+  window.GIO = t => .65 + .35 * Math.sin(t * .37) + .15 * Math.sin(t * 1.13);
   // Hương: que đỏ, đầu đỏ lửa, khói mỏng
   const sticks = [], flying = [];
   function stick(x, y, len, t, a = 1) {
@@ -237,7 +242,7 @@
     g.addColorStop(0, `rgba(255,236,170,${a})`); g.addColorStop(.35, `rgba(255,120,40,${.9 * a})`); g.addColorStop(1, 'rgba(255,90,30,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - len, r * 2.6, 0, 7); ctx.fill();
     for (let i = 0; i < 4; i++) {                                           // khói
-      const k = ((t * .35 + i * .25) % 1), sy = y - len - k * len * 1.6, sx = x + Math.sin(t * 1.3 + i * 2 + x) * len * .12 * k;
+      const k = ((t * .35 + i * .25) % 1), sy = y - len - k * len * 1.6, sx = x + Math.sin(t * 1.3 + i * 2 + x) * len * .12 * k + (room === 'hall' ? 0 : GIO(t) * k * k * len * .9);
       ctx.fillStyle = `rgba(235,235,235,${.16 * (1 - k) * a})`; ctx.beginPath(); ctx.arc(sx, sy, len * (.05 + k * .12), 0, 7); ctx.fill();
     }
   }
@@ -445,7 +450,7 @@
       const ty = -(me.fy - 760) / 300 * 6 - (pointer.y - .5) * 8 + Math.cos(t * .23) * 2.5;
       cam3.x += (tx - cam3.x) * Math.min(1, dt * 2.5); cam3.y += (ty - cam3.y) * Math.min(1, dt * 2.5);
       const dk = depth[room];
-      if (bg && PX && dk) ctx.drawImage(PX.draw(bg, dk, cam3.x, cam3.y, FOCUS), 0, 0);
+      if (bg && PX && dk) ctx.drawImage(PX.draw(bg, dk, cam3.x, cam3.y, FOCUS, t), 0, 0);
       else if (bg) ctx.drawImage(bg, 0, 0); else { ctx.fillStyle = '#2a1408'; ctx.fillRect(0, 0, W, H); }
       const vis = people.filter(p => p.room === room);
       const at = (x, y, fn) => () => { const [dx, dy] = shiftAt(x, y); ctx.save(); ctx.translate(dx, dy); fn(); ctx.restore(); };
