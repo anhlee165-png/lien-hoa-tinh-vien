@@ -151,8 +151,55 @@
     load('assets/song/monk.png').then(i => monk = i), load(ROOMS.hall.img).then(i => imgs.hall = i), load(ROOMS.hall.fg).then(i => imgs.hallFg = i)
   ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); syncVirtual();
     Object.keys(ROOMS).forEach(k => k !== 'hall' && load(ROOMS[k].img).then(i => imgs[k] = i)); });
+  Object.keys(ROOMS).forEach(loadDepth);
 
   /* ---------- Vẽ ---------- */
+  /* ---------- Nền có chiều sâu (bản đồ độ sâu + WebGL) ----------
+     Mỗi điểm ảnh dịch đi off·(độ sâu − focus): gần dịch nhiều, xa dịch ít → cảm giác nhìn bằng mắt thật.
+     Người, thảm, lư hương dịch theo độ sâu tại chân để luôn đứng đúng chỗ trên nền. */
+  const depth = {};                                                       // room → {img, data}
+  function loadDepth(k) {
+    return load(`assets/sau/${k}.png`).then(i => {
+      if (!i) return; const c = document.createElement('canvas'); c.width = i.width; c.height = i.height;
+      const g = c.getContext('2d'); g.drawImage(i, 0, 0); depth[k] = { img: i, w: i.width, h: i.height, data: g.getImageData(0, 0, i.width, i.height).data, tex: null };
+    });
+  }
+  const dAt = (k, x, y) => { const d = depth[k]; if (!d) return 0; const ix = Math.max(0, Math.min(d.w - 1, x * d.w / W | 0)), iy = Math.max(0, Math.min(d.h - 1, y * d.h / H | 0)); return d.data[(iy * d.w + ix) * 4] / 255; };
+  const PX = (() => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const gl = c.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+    if (!gl) return null;
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, 'attribute vec2 a;varying vec2 v;void main(){v=vec2(a.x*.5+.5,.5-a.y*.5);gl_Position=vec4(a,0.,1.);}'));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, `precision highp float;varying vec2 v;uniform sampler2D img,dep;uniform vec2 off;uniform float focus;
+      void main(){vec2 q=v;for(int i=0;i<5;i++){float d=texture2D(dep,q).r;q=v-off*(d-focus);}
+      gl_FragColor=texture2D(img,clamp(q,vec2(.001),vec2(.999)));}`));
+    gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+    gl.useProgram(prog);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const U = n => gl.getUniformLocation(prog, n);
+    gl.uniform1i(U('img'), 0); gl.uniform1i(U('dep'), 1);
+    const texOf = (im) => { const tx = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tx);
+      [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, im); return tx; };
+    const cache = new Map();
+    return { canvas: c, draw(im, dk, ox, oy, focus) {
+      if (!cache.has(im)) cache.set(im, texOf(im));
+      if (!dk.tex) dk.tex = texOf(dk.img);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cache.get(im));
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, dk.tex);
+      gl.uniform2f(U('off'), ox / W, oy / H); gl.uniform1f(U('focus'), focus);
+      gl.viewport(0, 0, W, H); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return c;
+    } };
+  })();
+  const cam3 = { x: 0, y: 0 }, FOCUS = .35;
+  let pointer = { x: .5, y: .5 };
+  addEventListener('pointermove', e => { pointer = { x: e.clientX / innerWidth, y: e.clientY / innerHeight }; });
+  const shiftAt = (x, y) => { const d = dAt(room, x, y) - FOCUS; return [cam3.x * d, cam3.y * d]; };
+
   let room = 'hall';
   const R = () => ROOMS[room];
   const hAt = (y, rm = R()) => Math.max(26, rm.k * (y - rm.hz));
@@ -179,7 +226,7 @@
     ctx.restore();
     if (p.holding) drawHeldSticks(p, h);
     const el = tagFor(p);
-    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); el.style.left = p.fx.toFixed(1) + 'px'; el.style.top = (top - 10).toFixed(1) + 'px'; }
+    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); el.style.left = (p.fx + dx).toFixed(1) + 'px'; el.style.top = (top - 10 + dy).toFixed(1) + 'px'; }
   }
   // Hương: que đỏ, đầu đỏ lửa, khói mỏng
   const sticks = [], flying = [];
@@ -393,18 +440,25 @@
       }
       // vẽ
       const bg = room === 'hall' ? imgs.hall : imgs[room];
-      if (bg) ctx.drawImage(bg, 0, 0); else { ctx.fillStyle = '#2a1408'; ctx.fillRect(0, 0, W, H); }
+      // máy quay khẽ theo Bạn + con trỏ + nhịp thở → nền dịch theo chiều sâu
+      const tx = -(me.fx - 836) / 836 * 22 - (pointer.x - .5) * 16 + Math.sin(t * .31) * 4;
+      const ty = -(me.fy - 760) / 300 * 6 - (pointer.y - .5) * 8 + Math.cos(t * .23) * 2.5;
+      cam3.x += (tx - cam3.x) * Math.min(1, dt * 2.5); cam3.y += (ty - cam3.y) * Math.min(1, dt * 2.5);
+      const dk = depth[room];
+      if (bg && PX && dk) ctx.drawImage(PX.draw(bg, dk, cam3.x, cam3.y, FOCUS), 0, 0);
+      else if (bg) ctx.drawImage(bg, 0, 0); else { ctx.fillStyle = '#2a1408'; ctx.fillRect(0, 0, W, H); }
       const vis = people.filter(p => p.room === room);
-      const items = vis.map(p => ({ y: p.fy, draw: () => drawPerson(p) }));
+      const at = (x, y, fn) => () => { const [dx, dy] = shiftAt(x, y); ctx.save(); ctx.translate(dx, dy); fn(); ctx.restore(); };
+      const items = vis.map(p => ({ y: p.fy, draw: at(p.fx, p.fy, () => drawPerson(p)) }));
       if (room === 'hall') {
-        SEATS.forEach(s => items.push({ y: s.y - .5, draw: () => drawCushion(s.x, s.y, hallH(s.y)) }));
-        if (monk) items.push({ y: 802, draw: () => { const b = 1 + Math.sin(t * 1.2) * .006; ctx.drawImage(monk, 198, 693 + 106 * (1 - b), 75, 106 * b); } });
+        SEATS.forEach(s => items.push({ y: s.y - .5, draw: at(s.x, s.y, () => drawCushion(s.x, s.y, hallH(s.y))) }));
+        if (monk) items.push({ y: 802, draw: at(235, 802, () => { const b = 1 + Math.sin(t * 1.2) * .006; ctx.drawImage(monk, 198, 693 + 106 * (1 - b), 75, 106 * b); }) });
       }
       const u3 = R().urn3d;
-      if (u3 && window.Urn3D && Urn3D.ok()) items.push({ y: u3.bb[3], draw: () => Urn3D.draw(ctx, u3, t) });
+      if (u3 && window.Urn3D && Urn3D.ok()) items.push({ y: u3.bb[3], draw: at((u3.bb[0] + u3.bb[2]) / 2, u3.bb[3] - 4, () => Urn3D.draw(ctx, u3, t)) });
       items.sort((a, b) => a.y - b.y).forEach(i => i.draw());
-      if (room === 'hall' && imgs.hallFg) ctx.drawImage(imgs.hallFg, 0, ROOMS.hall.fgY);
-      sticks.forEach(s => { if (s.room !== room) return; const age = (now - s.t0) / 1000, a = age > 80 ? Math.max(0, 1 - (age - 80) / 10) : 1; if (a > 0) stick(s.x, s.y, s.len * (1 - Math.min(.5, age / 200)), t, a); });
+      if (room === 'hall' && imgs.hallFg) { const [dx, dy] = shiftAt(843, 870); ctx.drawImage(imgs.hallFg, dx, ROOMS.hall.fgY + dy); }
+      sticks.forEach(s => { if (s.room !== room) return; const age = (now - s.t0) / 1000, a = age > 80 ? Math.max(0, 1 - (age - 80) / 10) : 1; if (a > 0) { const [dx, dy] = shiftAt(s.x, s.y + 40); stick(s.x + dx, s.y + dy, s.len * (1 - Math.min(.5, age / 200)), t, a); } });
       for (let i = flying.length - 1; i >= 0; i--) {
         const f = flying[i], k = (now - f.t0) / 600; if (k >= 1) { flying.splice(i, 1); continue; }
         if (f.room !== room) continue;
