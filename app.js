@@ -286,6 +286,7 @@
     state.log.unshift({ t: Date.now(), text, merit }); state.log = state.log.slice(0, 60); save();
   }
   const isAdmin = () => state.role === 'admin';
+  const GIA_HUONG = 50;                                                   // xu mỗi lần thắp hương
   const xuText = () => isAdmin() ? '∞' : fmt(state.xu);
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
   paintWallet();
@@ -330,12 +331,23 @@
       save();
     },
     thaphuong() {
+      // mỗi lần thắp hương cúng dường 50 xu (quản trị không mất xu); thắp không thành thì hoàn lại
+      const pay = () => {
+        if (isAdmin()) return true;
+        if (state.xu < GIA_HUONG) { toast(`Mỗi lần thắp hương cúng dường ${GIA_HUONG} xu. Đạo hữu còn ${fmt(state.xu)} xu, mời nạp thêm 🙏`); PANELS.wallet(true); return false; }
+        state.xu -= GIA_HUONG; save(); paintWallet(); return true;
+      };
+      const refund = () => { if (!isAdmin()) { state.xu += GIA_HUONG; save(); paintWallet(); } };
+      const book = () => { const L = store.get('ledger', []); L.unshift({ who: state.user ? state.user.name : 'Khách', xu: isAdmin() ? 0 : GIA_HUONG, kind: 'cung', what: 'Thắp hương', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500)); };
       if (window.Dien3D && Dien3D.active()) {
+        if (!pay()) return; book();
         Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
       } else if (window.Nguoi && Nguoi.abbotHere && Nguoi.abbotHere()) {
         toast('Thầy trụ trì đang ngồi giữa điện, xin thắp hương sau khi thầy rời điện 🙏'); return;
       } else if (window.Nguoi) {
-        Nguoi.incense().then(ok => { if (ok === false && !busyIncense()) toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); });
+        const ci = Nguoi.canIncense(); if (ci !== true) { if (ci === 'nourn') toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); return; }
+        if (!pay()) return;
+        Nguoi.incense().then(ok => { if (ok === false || ok === 'abbot') { refund(); if (ok === false && !busyIncense()) toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); } else { book(); if (!isAdmin()) toast(`Đã cúng dường ${GIA_HUONG} xu thắp hương 🙏`); } });
         floatText('Thắp nén tâm hương', 843, 520, true);
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
       chime(1040, 2.5, .2);
@@ -454,21 +466,24 @@
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) { joinHall(+b.dataset.h); closeModal(); } }));
     },
     hall() { closeModal(); setView('all'); if (state.outside) goInside(); },
-    wallet() {
+    wallet(open) {
       // Nạp xu: giá tiền (đồng) → số xu nhận được. Khách quét QR của chùa, quản trị xác nhận rồi xu mới vào ví.
       const PACKS = [[18990, 1680], [48990, 5099], [99000, 10900], [199000, 21900]];
       const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
       openModal('Ví xu', `<p>Số dư</p><p class="big">${xuText()} xu</p>
-        ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p>Chọn gói nạp:</p>
-        <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div>
+        ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p class="note">Mỗi lần thắp hương cúng dường ${GIA_HUONG} xu.</p>
+        <button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>
+        <div id="packs"${open ? '' : ' hidden'}><p>Chọn gói nạp:</p>
+        <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div></div>
         <div id="pay" hidden></div>`}`,
         body => body.addEventListener('click', e => {
+          if (e.target.closest('#nap-btn')) { $('#nap-btn', body).hidden = true; $('#packs', body).hidden = false; return; }
           const b = e.target.closest('[data-x]');
           if (b) {
             const x = +b.dataset.x, d = +b.dataset.d, code = 'LHTV' + Date.now().toString(36).toUpperCase().slice(-6);
             const pay = $('#pay', body); pay.hidden = false;
             pay.innerHTML = qr ? `<p>Quét mã để chuyển <b>${fmt(d)} đ</b>, nội dung: <b>${code}</b></p><img class="qr" src="${qr}" alt="Mã QR thanh toán của chùa">
-              <button id="paid" data-x="${x}" data-d="${d}" data-c="${code}">Tôi đã chuyển khoản</button>`
+              <button class="btn nap" id="paid" data-x="${x}" data-d="${d}" data-c="${code}">Tôi đã chuyển khoản</button>`
               : '<p class="note">Chùa chưa cài mã QR thanh toán. Vui lòng quay lại sau.</p>';
             return;
           }
@@ -485,7 +500,7 @@
         <p>Cúng dường bằng xu (đang có ${xuText()} xu):</p>
         <div class="grid">${opts.map(([v, t]) => `<button data-v="${v}" data-t="${t}">${t}<small>${fmt(v)} xu</small></button>`).join('')}</div>`,
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return;
-          const v = +b.dataset.v; if (!isAdmin() && state.xu < v) { toast('Không đủ xu, hãy nạp thêm'); PANELS.wallet(); return; }
+          const v = +b.dataset.v; if (!isAdmin() && state.xu < v) { toast('Không đủ xu, hãy nạp thêm'); PANELS.wallet(true); return; }
           if (!isAdmin()) state.xu -= v;
           const L = store.get('ledger', []); L.unshift({ who: state.user ? state.user.name : 'Khách', xu: v, kind: 'cung', what: b.dataset.t, status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500));
           save(); paintWallet(); addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
@@ -500,6 +515,7 @@
     if (b.closest('#nav')) { $$('#nav button').forEach(x => x.classList.toggle('on', x === b)); }
     PANELS[b.dataset.open]();
   }));
+  $('#topup') && $('#topup').addEventListener('click', () => { if (!isAdmin()) PANELS.wallet(true); });
   modal.addEventListener('transitionend', () => {});
   const navReset = new MutationObserver(() => { if (modal.hidden) $$('#nav button').forEach(x => x.classList.toggle('on', x.dataset.open === 'hall')); });
   navReset.observe(modal, { attributes: true, attributeFilter: ['hidden'] });

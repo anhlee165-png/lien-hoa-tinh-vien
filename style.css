@@ -289,3 +289,7 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #chat-show.on{display:grid}
 #chat-show i{position:absolute;right:6px;top:6px;width:10px;height:10px;border-radius:50%;background:#e33;display:none}
 #chat-show.new i{display:block}
+
+#modal .btn.nap:not([hidden]){display:block;width:100%;margin:6px 0 10px;font-size:21px}
+.is-admin #topup{display:none}
+#nav button[data-open="merit"]{font-size:17px;white-space:nowrap;letter-spacing:-.2px}
