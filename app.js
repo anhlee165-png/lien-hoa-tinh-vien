@@ -602,7 +602,15 @@
     const inHall = !window.Nguoi || Nguoi.room() === 'hall';
     if (musicOk && inHall && !state.muted) music.play().catch(() => {}); else music.pause();
   }
-  addEventListener('pointerdown', () => { musicOk = true; syncMusic(); }, { once: true, capture: true });
+  // Trình duyệt chỉ cho phát tiếng sau một lần chạm/bấm thật (điện thoại cần pointerup/touchend):
+  // thử mở khoá ở mọi kiểu tương tác cho tới khi nhạc thực sự chạy.
+  const unlock = () => {
+    musicOk = true; try { audio(); } catch {}
+    syncMusic();
+    const inHall = !window.Nguoi || Nguoi.room() === 'hall';
+    if (!inHall || state.muted || !music.paused) ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev => removeEventListener(ev, unlock, true));
+  };
+  ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev => addEventListener(ev, unlock, true));
   volEl.addEventListener('input', syncMusic); $('#mute').addEventListener('click', () => setTimeout(syncMusic, 0));
 
   /* ---------- Nút xoay: mặt trước (nhìn ra phía Phật tử) / mặt sau (sau lưng Phật tử, nhìn lên Phật) ---------- */
