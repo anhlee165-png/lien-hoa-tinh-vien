@@ -95,7 +95,7 @@
   (function ambient() { chat.timer = setTimeout(() => { if (Math.random() < .6) botTalk(false); ambient(); }, 35000 + Math.random() * 50000); })();
   $('#chat-form').addEventListener('submit', e => {
     e.preventDefault(); const inp = $('#chat-in'), text = inp.value.trim(); if (!text) return;
-    chatAdd({ who: 'Bạn', text, me: true }); inp.value = ''; inp.blur();
+    chatAdd({ who: myName(), text, me: true }); inp.value = ''; inp.blur();
     if (Math.random() < .7) setTimeout(() => botTalk(true), 2500 + Math.random() * 4000);
   });
   $('#chat-toggle').addEventListener('click', () => $('#chat').classList.toggle('closed'));
@@ -338,7 +338,7 @@
         state.xu -= GIA_HUONG; save(); paintWallet(); return true;
       };
       const refund = () => { if (!isAdmin()) { state.xu += GIA_HUONG; save(); paintWallet(); } };
-      const book = () => { const L = store.get('ledger', []); L.unshift({ who: state.user ? state.user.name : 'Khách', xu: isAdmin() ? 0 : GIA_HUONG, kind: 'cung', what: 'Thắp hương', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500)); };
+      const book = () => { const L = store.get('ledger', []); L.unshift({ who: myName(), xu: isAdmin() ? 0 : GIA_HUONG, kind: 'cung', what: 'Thắp hương', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500)); };
       if (window.Dien3D && Dien3D.active()) {
         if (!pay()) return; book();
         Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
@@ -458,7 +458,7 @@
     $('#modal-title').textContent = title; $('#modal-body').innerHTML = html; modal.hidden = false; bind && bind($('#modal-body'));
   }
   function closeModal() { modal.hidden = true; }
-  modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('.close')) closeModal(); });
+  modal.addEventListener('click', e => { if (nickRequired) return; if (e.target === modal || e.target.closest('.close')) closeModal(); });
 
   const PANELS = {
     rooms() {
@@ -489,7 +489,7 @@
           }
           const pd = e.target.closest('#paid'); if (!pd) return;
           const L = store.get('ledger', []);
-          L.unshift({ id: pd.dataset.c, who: state.user ? state.user.name : 'Khách', xu: +pd.dataset.x, d: +pd.dataset.d, kind: 'nap', status: 'cho', t: Date.now() });
+          L.unshift({ id: pd.dataset.c, who: myName(), xu: +pd.dataset.x, d: +pd.dataset.d, kind: 'nap', status: 'cho', t: Date.now() });
           store.set('ledger', L.slice(0, 500)); closeModal();
           toast('Đã gửi yêu cầu nạp xu. Xu sẽ vào ví khi chùa xác nhận 🙏'); logIt(`Yêu cầu nạp ${fmt(+pd.dataset.x)} xu`);
         }));
@@ -502,7 +502,7 @@
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return;
           const v = +b.dataset.v; if (!isAdmin() && state.xu < v) { toast('Không đủ xu, hãy nạp thêm'); PANELS.wallet(true); return; }
           if (!isAdmin()) state.xu -= v;
-          const L = store.get('ledger', []); L.unshift({ who: state.user ? state.user.name : 'Khách', xu: v, kind: 'cung', what: b.dataset.t, status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500));
+          const L = store.get('ledger', []); L.unshift({ who: myName(), xu: v, kind: 'cung', what: b.dataset.t, status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500));
           save(); paintWallet(); addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
           $('#m-pt', body).textContent = fmt(state.merit); closeModal(); toast(`Tùy hỷ công đức: ${b.dataset.t} 🙏`); }));
     },
@@ -595,11 +595,58 @@
     state.role = role; state.user = user || null; save(); login.hidden = true; paintWallet(); paintRole();
     if (role === 'admin' && window.Nguoi && Nguoi.room() === 'hall') Nguoi.abbotEnter();
     if (role !== 'admin' && window.Nguoi) Nguoi.abbotLeave();
-    toast(role === 'admin' ? 'Chào Thầy, đã vào vai Quản trị 🙏' : `Chào ${user ? user.name : 'đạo hữu'} 🙏`);
+    state.nick = store.get(nickKey(), null); applyNick();
+    if (role !== 'admin' && !state.nick) return nickModal(true);
+    toast(role === 'admin' ? 'Chào Thầy, đã vào vai Quản trị 🙏' : `Chào ${myName()} 🙏`);
+  }
+  /* ---------- Biệt danh + giới tính: đặt khi mới vào; đổi mất 20 xu hoặc chờ 24 giờ ---------- */
+  const GIA_DOI_TEN = 20, CHO_DOI = 24 * 3600e3;
+  const RESERVED = /^(thầy|trụ trì|admin|quản trị|bạn)\b/i;
+  const nickKey = () => 'nick:' + (state.user && state.user.email ? state.user.email.toLowerCase() : 'khach');
+  let nickRequired = false;
+  state.nick = store.get(nickKey(), null);                                   // { name, sex: 'nu'|'nam', t }
+  const myName = () => state.nick ? state.nick.name : state.user ? state.user.name : 'Khách';
+  function applyNick() {
+    if (!state.nick) return;
+    window.Nguoi && Nguoi.setMe && Nguoi.setMe({ name: state.nick.name, sheet: state.nick.sex });
+    window.Presence && Presence.setMe && Presence.setMe(state.nick.name, state.nick.sex);
+    paintRole();
+  }
+  function nickModal(first) {
+    const n = state.nick, wait = n ? n.t + CHO_DOI - Date.now() : 0, free = first || !n || wait <= 0 || isAdmin();
+    const mins = Math.ceil(wait / 60e3), left = wait > 0 ? (mins >= 60 ? `${mins / 60 | 0} giờ ` : '') + `${mins % 60} phút` : '';
+    openModal(first ? 'Đặt biệt danh' : 'Đổi biệt danh', `
+      ${first ? '<p>Mời đạo hữu đặt biệt danh và chọn giới tính để vào chùa.</p>' : ''}
+      <label class="nick-l">Biệt danh<input id="nick-in" maxlength="20" placeholder="Ví dụ: Diệu Hạnh" value="${n ? esc(n.name) : ''}"></label>
+      <p style="margin:10px 0 6px">Giới tính</p>
+      <div class="grid sex" style="grid-template-columns:1fr 1fr">
+        <button data-sex="nu" class="${n && n.sex === 'nu' ? 'on' : ''}">Nữ</button><button data-sex="nam" class="${n && n.sex === 'nam' ? 'on' : ''}">Nam</button></div>
+      <p class="note" id="nick-msg">${free ? (first ? '' : 'Lần đổi này miễn phí.') : `Mỗi lần đổi biệt danh cúng dường ${GIA_DOI_TEN} xu, hoặc chờ ${left} nữa để đổi miễn phí.`}</p>
+      <button class="btn nap" id="nick-ok">${free ? 'Xác nhận' : `Đổi ngay (${GIA_DOI_TEN} xu)`}</button>`,
+      body => {
+        let sex = n ? n.sex : null;
+        if (first) { nickRequired = true; const x = $('#modal .close'); if (x) x.hidden = true; }
+        $$('[data-sex]', body).forEach(b => b.addEventListener('click', () => { sex = b.dataset.sex; $$('[data-sex]', body).forEach(x => x.classList.toggle('on', x === b)); }));
+        $('#nick-ok', body).addEventListener('click', () => {
+          const name = $('#nick-in', body).value.trim().replace(/\s+/g, ' '), msg = $('#nick-msg', body);
+          if (name.length < 2) { msg.textContent = 'Biệt danh cần ít nhất 2 chữ.'; return; }
+          if (RESERVED.test(name) && !isAdmin()) { msg.textContent = 'Biệt danh này dành riêng cho nhà chùa, mời chọn tên khác.'; return; }
+          if (!sex) { msg.textContent = 'Mời chọn giới tính Nữ hoặc Nam.'; return; }
+          if (n && n.name === name && n.sex === sex) { closeModal(); return; }
+          if (!free) {
+            if (state.xu < GIA_DOI_TEN) { msg.textContent = `Đạo hữu còn ${fmt(state.xu)} xu, chưa đủ ${GIA_DOI_TEN} xu. Hãy nạp thêm hoặc chờ ${left} nữa để đổi miễn phí.`; return; }
+            state.xu -= GIA_DOI_TEN; paintWallet();
+            const L = store.get('ledger', []); L.unshift({ who: name, xu: GIA_DOI_TEN, kind: 'cung', what: 'Đổi biệt danh', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500));
+          }
+          state.nick = { name, sex, t: Date.now() }; store.set(nickKey(), state.nick); save(); nickRequired = false;
+          const x = $('#modal .close'); if (x) x.hidden = false;
+          closeModal(); applyNick(); toast(first ? `Chào ${name} 🙏` : `Đã đổi biệt danh thành ${name}`);
+        });
+      });
   }
   function paintRole() {
     document.documentElement.classList.toggle('is-admin', isAdmin());
-    $('#acct').textContent = state.user ? state.user.name : (isAdmin() ? 'Quản trị' : 'Khách');
+    $('#acct').textContent = isAdmin() ? 'Quản trị' : myName();
   }
   $$('[data-login]', login).forEach(b => b.addEventListener('click', async () => {
     const k = b.dataset.login;
@@ -610,9 +657,11 @@
   }));
   $('#acct').addEventListener('click', () => {
     openModal('Tài khoản', `<p>Đang vào chùa với vai <b>${isAdmin() ? 'Quản trị' : 'Khách'}</b>${state.user ? ' · ' + esc(state.user.name) : ''}.</p>
-      <div class="grid" style="grid-template-columns:1fr 1fr">${isAdmin() ? '<button id="go-admin">Mở trang quản trị</button>' : ''}${window.__roleSwitch ? __roleSwitch() : ''}<button id="logout">Đăng xuất</button></div>`,
+      ${state.nick ? `<p>Biệt danh: <b>${esc(state.nick.name)}</b> · ${state.nick.sex === 'nu' ? 'Nữ' : 'Nam'}</p>` : ''}
+      <div class="grid" style="grid-template-columns:1fr 1fr"><button id="nick-ch">${state.nick ? 'Đổi biệt danh' : 'Đặt biệt danh'}</button>${isAdmin() ? '<button id="go-admin">Mở trang quản trị</button>' : ''}${window.__roleSwitch ? __roleSwitch() : ''}<button id="logout">Đăng xuất</button></div>`,
       body => {
         const sw = $('#sw-role', body); if (sw) sw.addEventListener('click', () => { closeModal(); setRole(isAdmin() ? 'guest' : 'admin', state.user); });
+        $('#nick-ch', body).addEventListener('click', () => nickModal(!state.nick));
         const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => adminPanel('so'));
         $('#logout', body).addEventListener('click', () => { closeModal(); window.Auth && Auth.ready() && Auth.signOut(); state.role = ''; state.user = null; save(); window.Nguoi && Nguoi.abbotLeave(); paintRole(); paintWallet(); showLogin(); });
       });
@@ -627,6 +676,8 @@
   window.__roleSwitch = roleSwitch;
   paintRole();
   if (!state.role) showLogin();
+  else if (!isAdmin() && !state.nick) setTimeout(() => nickModal(true), 300);
+  applyNick(); addEventListener('auth-user', applyNick);
   addEventListener('chua-ready', () => { if (isAdmin() && Nguoi.room() === 'hall') Nguoi.abbotEnter(); });
   setTimeout(() => { if (isAdmin() && window.Nguoi && Nguoi.room() === 'hall') Nguoi.abbotEnter(); }, 1500);
 
