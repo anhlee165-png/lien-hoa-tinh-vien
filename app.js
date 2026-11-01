@@ -11,7 +11,7 @@
     set(k, v) { try { localStorage.setItem('lhtv:' + k, JSON.stringify(v)); } catch {} }
   };
   const state = {
-    wallet: store.get('wallet', 1250000),
+    xu: store.get('xu', 0),
     merit: store.get('merit', 0),
     beads: store.get('beads', 0),
     hall: store.get('hall', 1),
@@ -21,7 +21,7 @@
     log: store.get('log', []),
     outside: false
   };
-  const save = () => ['wallet', 'merit', 'beads', 'hall', 'volume', 'muted', 'ambient', 'log'].forEach(k => store.set(k, state[k]));
+  const save = () => ['xu', 'merit', 'beads', 'hall', 'volume', 'muted', 'ambient', 'log'].forEach(k => store.set(k, state[k]));
   const fmt = n => n.toLocaleString('vi-VN');
 
   /* ---------- Co giãn sân khấu ---------- */
@@ -53,10 +53,51 @@
     $$('#views [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
   }
   $$('#views [data-view]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.view === 'mattien') {                 // toàn cảnh mặt trước chánh điện
+      window.Nguoi && Nguoi.go('mat-tien', [836, 905], 'up'); chime(660, .15);
+      $$('#views [data-view]').forEach(x => x.classList.toggle('on', x === b)); return;
+    }
     if (state.outside) goInside();
     setView(b.dataset.view); chime(660, .15);
   }));
   $('#views-toggle').addEventListener('click', () => $('#views').classList.toggle('closed'));
+
+  /* ---------- Trò chuyện trong cùng phòng ----------
+     Tin nhắn theo phòng (chánh điện số mấy + đang đứng ở cảnh nào). Hiện chưa có máy chủ:
+     tin được lưu trên máy và chuyển giữa các tab cùng trình duyệt; đạo hữu ảo thỉnh thoảng chào hỏi. */
+  const chat = { room: 'hall', bc: null, timer: 0 };
+  try { chat.bc = new BroadcastChannel('lhtv-chat'); } catch {}
+  const chatKey = () => `chat:${state.hall}:${chat.room}`;
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function chatPaint() {
+    const list = store.get(chatKey(), []), log = $('#chat-log');
+    log.innerHTML = list.length ? list.map(m => `<div class="m ${m.me ? 'me' : ''} ${m.sys ? 'sys' : ''}">${m.sys ? '' : `<b>${esc(m.who)}</b>`}${esc(m.text)}</div>`).join('')
+      : '<div class="m sys">Chưa có tin nhắn. Hãy chào đại chúng 🙏</div>';
+    log.scrollTop = log.scrollHeight;
+  }
+  function chatAdd(m, broadcast = true) {
+    const k = m.key || chatKey(); const list = store.get(k, []); list.push({ who: m.who, text: m.text, me: m.me, sys: m.sys, t: Date.now() });
+    store.set(k, list.slice(-60)); if (k === chatKey()) chatPaint();
+    if (broadcast && chat.bc) chat.bc.postMessage({ key: k, who: m.who, text: m.text });
+  }
+  if (chat.bc) chat.bc.onmessage = e => chatAdd({ ...e.data, me: false }, false);
+  const BOT = ['Minh Tâm', 'Quang Huy', 'Liên Hoa', 'An Nhiên', 'Từ Hạnh', 'Nhật Minh', 'Diệu Âm', 'Thiện Tâm'];
+  const BOT_SAY = ['A Di Đà Phật 🙏', 'Chúc đạo hữu một ngày an lạc', 'Hôm nay chùa thanh tịnh quá', 'Nam Mô Bổn Sư Thích Ca Mâu Ni Phật',
+    'Mọi người cùng niệm Phật nhé', 'Hương trầm thơm quá', 'Tùy hỷ công đức đạo hữu 🙏', 'Nguyện cho tất cả chúng sinh được bình an'];
+  const pick = a => a[Math.random() * a.length | 0];
+  function botTalk(reply) {
+    if (!window.Nguoi || Nguoi.count() < 2) return;
+    chatAdd({ who: pick(BOT), text: reply ? pick(['A Di Đà Phật 🙏', 'Chào đạo hữu 🙏', 'Tùy hỷ, tùy hỷ', 'Cảm ơn đạo hữu, chúc an lạc']) : pick(BOT_SAY), me: false }, false);
+  }
+  (function ambient() { chat.timer = setTimeout(() => { if (Math.random() < .6) botTalk(false); ambient(); }, 35000 + Math.random() * 50000); })();
+  $('#chat-form').addEventListener('submit', e => {
+    e.preventDefault(); const inp = $('#chat-in'), text = inp.value.trim(); if (!text) return;
+    chatAdd({ who: 'Bạn', text, me: true }); inp.value = ''; inp.blur();
+    if (Math.random() < .7) setTimeout(() => botTalk(true), 2500 + Math.random() * 4000);
+  });
+  $('#chat-toggle').addEventListener('click', () => $('#chat').classList.toggle('closed'));
+  function chatRoom(room, name) { chat.room = room; $('#chat-room').textContent = name; chatPaint(); }
+  chatRoom('hall', 'Chánh điện ' + state.hall);
 
   /* ---------- Joystick + bàn phím ---------- */
   const joy = $('#joy'), knob = $('#knob');
@@ -198,7 +239,7 @@
   function logIt(text, merit = 0) {
     state.log.unshift({ t: Date.now(), text, merit }); state.log = state.log.slice(0, 60); save();
   }
-  const paintWallet = () => { $('#wallet').textContent = fmt(state.wallet); };
+  const paintWallet = () => { $('#wallet').textContent = fmt(state.xu); };
   paintWallet();
 
   /* ---------- Hành động ---------- */
@@ -268,6 +309,7 @@
     if (state.outside) { Object.assign(cam, VIEWS.all); applyCam(); $$('#views [data-view]').forEach(b => b.classList.remove('on')); }
     else setView('all');
     toast(name); logIt('Đến ' + name); chime(660, .3, .15);
+    chatRoom(room, room === 'hall' ? 'Chánh điện ' + state.hall : name);
   });
   addEventListener('chua-soon', e => toast(`${e.detail} đang được xây, sắp mở 🙏`));
   addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });
@@ -304,7 +346,7 @@
   });
   function joinHall(id) {
     state.hall = id; save(); paintHall(); setView('all'); chime(523, 2.5, .3);
-    toast(`Đã vào Chánh điện ${id}`);
+    toast(`Đã vào Chánh điện ${id}`); chatRoom(chat.room, chat.room === 'hall' ? 'Chánh điện ' + id : $('#chat-room').textContent);
   }
   const notes = [
     ['Lễ cầu an tối nay lúc 19:30', 'Chánh điện 1'],
@@ -338,20 +380,24 @@
     },
     hall() { closeModal(); setView('all'); if (state.outside) goInside(); },
     wallet() {
-      openModal('Ví công đức', `<p>Số dư</p><p class="big">${fmt(state.wallet)} đ</p>
-        <p>Nạp thêm (mô phỏng):</p>
-        <div class="grid">${[50000, 100000, 200000, 500000].map(v => `<button data-v="${v}">+${fmt(v)}</button>`).join('')}</div>`,
-        body => body.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return;
-          state.wallet += +b.dataset.v; save(); paintWallet(); chime(988, 1.5, .25); $('.big', body).textContent = fmt(state.wallet) + ' đ'; }));
+      // Nạp xu: giá tiền (đồng) → số xu nhận được
+      const PACKS = [[18990, 1680], [48990, 5099], [99000, 10900], [199000, 21900]];
+      openModal('Nạp xu', `<p>Số dư</p><p class="big">${fmt(state.xu)} xu</p>
+        <p>Chọn gói nạp:</p>
+        <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div>
+        <p class="note">Bản thử nghiệm: bấm gói là cộng xu ngay, chưa kết nối cổng thanh toán.</p>`,
+        body => body.addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (!b) return;
+          state.xu += +b.dataset.x; save(); paintWallet(); chime(988, 1.5, .25); logIt(`Nạp ${fmt(+b.dataset.x)} xu (${fmt(+b.dataset.d)} đ)`);
+          $('.big', body).textContent = fmt(state.xu) + ' xu'; toast(`Đã nạp ${fmt(+b.dataset.x)} xu`); }));
     },
     merit() {
-      const opts = [[20000, 'Cúng hoa sen'], [50000, 'Cúng đèn'], [100000, 'Cúng dường Tam Bảo'], [200000, 'Ấn tống kinh']];
+      const opts = [[200, 'Cúng hoa sen'], [500, 'Cúng đèn'], [1000, 'Cúng dường Tam Bảo'], [2000, 'Ấn tống kinh']];
       openModal('Công đức', `<p>Công đức tích lũy</p><p class="big" id="m-pt">${fmt(state.merit)}</p>
-        <p>Cúng dường từ ví (${fmt(state.wallet)} đ):</p>
-        <div class="grid">${opts.map(([v, t]) => `<button data-v="${v}" data-t="${t}">${t}<small>${fmt(v)} đ</small></button>`).join('')}</div>`,
+        <p>Cúng dường bằng xu (đang có ${fmt(state.xu)} xu):</p>
+        <div class="grid">${opts.map(([v, t]) => `<button data-v="${v}" data-t="${t}">${t}<small>${fmt(v)} xu</small></button>`).join('')}</div>`,
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return;
-          const v = +b.dataset.v; if (state.wallet < v) { toast('Ví không đủ, hãy nạp thêm'); return; }
-          state.wallet -= v; paintWallet(); addMerit(Math.round(v / 10000), b.dataset.t); bell(); petals(20);
+          const v = +b.dataset.v; if (state.xu < v) { toast('Không đủ xu, hãy nạp thêm'); PANELS.wallet(); return; }
+          state.xu -= v; save(); paintWallet(); addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
           $('#m-pt', body).textContent = fmt(state.merit); closeModal(); toast(`Tùy hỷ công đức: ${b.dataset.t} 🙏`); }));
     },
     book() {

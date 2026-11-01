@@ -35,31 +35,32 @@
       block: [[180, 730, 290, 812]],                                         // chỗ thầy ngồi
       exits: [[[790, 540, 900, 563], 'cua', [836, 900], 'up'], [[0, 690, 14, 900], 'cua-hong', [836, 900], 'up'], [[1658, 690, 1672, 900], 'lau-trong', [836, 900], 'up']],
       urn: { stand: [845, 806], face: 'down', plant: [843, 800], len: 58 } },
-    'cua': { urn3d: { bb: [755, 423, 917, 606], elev: 12 }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
+    'cua': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [845, 575], 'down']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
-    'cua-hong': { urn3d: { bb: [754, 422, 918, 606], elev: 12 }, name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
+    'cua-hong': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [60, 790], 'right']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
-    'san': { urn3d: { bb: [682, 511, 988, 847], elev: 8 }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
+    'san': { lu: { src: 'assets/ngoai/lu-san.png', at: [682, 512, 307, 337] }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 822], [1112, 560], [1042, 500], [628, 500], [558, 560], [0, 822]],
       block: [[702, 782, 968, 852]],
       exits: [[[600, 490, 1070, 510], 'san-gan', [560, 905], 'up'], [[0, 924, 1672, 941], 'mat-tien', [836, 905], 'up'],
               [[0, 800, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 800, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [836, 905], face: 'up', plant: [836, 588], len: 50 } },
-    'san-gan': { urn3d: { bb: [677, 584, 1071, 940], elev: 6 }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
+    'san-gan': { lu: { src: 'assets/ngoai/lu-san-gan.png', at: [677, 584, 395, 357] }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 782], [1122, 560], [1000, 528], [700, 528], [560, 560], [0, 782]],
       block: [[692, 862, 1058, 941]],
       exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'mat-tien', [836, 905], 'up'], [[1090, 930, 1672, 941], 'mat-tien', [836, 905], 'up'],
-              [[0, 760, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 760, 1672, 941], 'quan-am', [90, 880], 'right']] },
+              [[0, 760, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 760, 1672, 941], 'quan-am', [90, 880], 'right']],
+      urn: { stand: [874, 905], face: 'up', plant: [874, 676], len: 62 } },
     'tam-quan': { name: 'Cổng Tam Quan', img: 'assets/ngoai/tam-quan.jpg', hz: 520, k: .62,
       floor: [[300, 941], [1380, 941], [1380, 702], [1230, 672], [440, 672], [300, 702]],
       exits: [[[300, 930, 1380, 941], 'mat-tien', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
-    'mat-tien': { urn3d: { bb: [699, 518, 970, 829], elev: 8 }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
+    'mat-tien': { lu: { src: 'assets/ngoai/lu-mat-tien.png', at: [699, 529, 272, 301] }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
       floor: [[332, 941], [1338, 941], [1338, 642], [1098, 626], [1090, 522], [580, 522], [572, 626], [332, 642]],
       block: [[716, 766, 954, 836]],
       exits: [[[640, 505, 1030, 530], 'hall', [845, 575], 'down'], [[332, 930, 1338, 941], 'san', [836, 905], 'up'],
@@ -72,11 +73,11 @@
       floor: [[0, 941], [1672, 941], [1672, 746], [1012, 746], [982, 602], [748, 602], [720, 746], [0, 746]],
       exits: [[[748, 596, 982, 612], 'lau-trong', [836, 905], 'up'], [[0, 930, 1672, 941], 'san', [836, 905], 'up'], [[0, 746, 12, 941], 'san', [1590, 880], 'left']],
       act: [[750, 600, 990, 640], 'quanam'] },
-    'lau-chuong': { urn3d: { kind: 'bell', bb: [737, 415, 927, 679], elev: -4 }, name: 'Lầu Chuông', img: 'assets/ngoai/lau-chuong.jpg', hz: 560, k: .66,
+    'lau-chuong': { tap: [[737, 415, 927, 679], 'chuong'], name: 'Lầu Chuông', img: 'assets/ngoai/lau-chuong.jpg', hz: 560, k: .66,
       floor: [[0, 941], [1672, 941], [1672, 802], [1052, 802], [1042, 722], [648, 722], [640, 802], [0, 802]],
       exits: [[[0, 802, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 802, 1672, 941], 'hanh-lang', [500, 905], 'up'], [[0, 930, 1672, 941], 'mat-tien', [836, 905], 'up']],
       act: [[648, 718, 1042, 740], 'chuong'] },
-    'lau-trong': { urn3d: { kind: 'drum', bb: [760, 361, 935, 519], elev: 3 }, name: 'Lầu Trống', img: 'assets/ngoai/lau-trong.jpg', hz: 480, k: .6,
+    'lau-trong': { tap: [[760, 361, 935, 519], 'trong'], name: 'Lầu Trống', img: 'assets/ngoai/lau-trong.jpg', hz: 480, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 846], [1322, 752], [1322, 652], [362, 652], [362, 752], [222, 846]],
       exits: [[[222, 930, 1450, 941], 'hall', [1610, 790], 'left']],
       act: [[700, 648, 990, 670], 'trong'] },
@@ -150,7 +151,7 @@
     load('assets/song/nu.png').then(i => SHEETS.nu.img = i), load('assets/song/nam.png').then(i => SHEETS.nam.img = i),
     load('assets/song/monk.png').then(i => monk = i), load(ROOMS.hall.img).then(i => imgs.hall = i), load(ROOMS.hall.fg).then(i => imgs.hallFg = i)
   ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); syncVirtual();
-    Object.keys(ROOMS).forEach(k => k !== 'hall' && load(ROOMS[k].img).then(i => imgs[k] = i)); });
+    Object.keys(ROOMS).forEach(k => { if (k !== 'hall') load(ROOMS[k].img).then(i => imgs[k] = i); if (ROOMS[k].lu) load(ROOMS[k].lu.src).then(i => imgs['lu-' + k] = i); }); });
   Object.keys(ROOMS).forEach(loadDepth);
 
   /* ---------- Vẽ ---------- */
@@ -205,7 +206,12 @@
 
   let room = 'hall';
   const R = () => ROOMS[room];
-  const hAt = (y, rm = R()) => Math.max(26, rm.k * (y - rm.hz));
+  // Ngoài sân: giảm bớt độ thu nhỏ theo xa gần để người ở xa không bé quá (gần như cũ ở sát màn hình)
+  const hWalk = (y, rm = R()) => Math.max(26, rm.k * (y - rm.hz));          // tốc độ đi theo phối cảnh thật
+  const hAt = (y, rm = R()) => {
+    const d = Math.max(4, y - rm.hz); if (rm === ROOMS.hall) return Math.max(26, rm.k * d);
+    const d0 = 900 - rm.hz; return Math.max(40, rm.k * d0 * Math.pow(d / d0, .55));
+  };
   function drawCushion(x, y, h) {
     const rx = .36 * h, ry = .095 * h;
     ctx.save(); ctx.translate(x, y - ry * .55);
@@ -233,22 +239,52 @@
   }
   // Gió: mạnh yếu từng đợt (dùng chung cho lá cây trong nền và khói hương)
   window.GIO = t => .65 + .35 * Math.sin(t * .37) + .15 * Math.sin(t * 1.13);
+  /* Khói hương động: bốc lên từ đầu các nén hương đang cháy trong lư, gió thổi nghiêng (thay khói vẽ tĩnh) */
+  const puffs = [];
+  let puffRoom = null;
+  function smoke(rm, t, dt) {
+    if (puffRoom !== rm) { puffs.length = 0; puffRoom = rm; }
+    const R0 = ROOMS[rm], src = [];
+    if (R0.lu) { const [x, y, w, h] = R0.lu.at; src.push([x + w / 2, y + h * .05, w * .13, h / 300]); }
+    sticks.forEach(s => { if (s.room === rm) src.push([s.x, s.y - s.len, 3, s.len / 60]); });
+    if (!src.length) return;
+    const rate = 14 + Math.min(20, src.length);
+    for (let n = Math.random() < (rate * dt) % 1 ? 1 : 0, k = Math.floor(rate * dt) + n; k > 0; k--) {
+      const s = src[Math.random() * src.length | 0];
+      puffs.push({ x: s[0] + (Math.random() - .5) * 2 * s[2], y: s[1], sc: s[3], t0: t, ph: Math.random() * 6, life: 4 + Math.random() * 2.5 });
+    }
+    const wind = rm === 'hall' ? 0 : GIO(t);
+    ctx.save(); ctx.globalCompositeOperation = 'screen';
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const f = puffs[i], age = t - f.t0; if (age > f.life) { puffs.splice(i, 1); continue; }
+      const k = age / f.life, sc = f.sc;
+      const x = f.x + Math.sin(age * 1.4 + f.ph) * 6 * sc * k + wind * 34 * sc * age * age * .5,
+            y = f.y - (26 + age * 6) * sc * age,
+            r = (6 + age * 11) * sc,
+            a = Math.min(1, age * 2.5) * (1 - k) * .55;
+      const [dx, dy] = shiftAt(f.x, f.y + 60);
+      const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+      g.addColorStop(0, `rgba(235,232,228,${a})`); g.addColorStop(1, 'rgba(235,232,228,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x + dx, y + dy, r, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
   // Hương: que đỏ, đầu đỏ lửa, khói mỏng
   const sticks = [], flying = [];
-  function stick(x, y, len, t, a = 1) {
+  function stick(x, y, len, t, a = 1, puff = false) {
     ctx.strokeStyle = `rgba(178,34,40,${a})`; ctx.lineWidth = Math.max(1.4, len * .045); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - len); ctx.stroke();
     const r = Math.max(2, len * .07), g = ctx.createRadialGradient(x, y - len, 0, x, y - len, r * 2.6);
     g.addColorStop(0, `rgba(255,236,170,${a})`); g.addColorStop(.35, `rgba(255,120,40,${.9 * a})`); g.addColorStop(1, 'rgba(255,90,30,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - len, r * 2.6, 0, 7); ctx.fill();
-    for (let i = 0; i < 4; i++) {                                           // khói
+    if (puff) for (let i = 0; i < 4; i++) {                                 // khói (hương cầm tay)
       const k = ((t * .35 + i * .25) % 1), sy = y - len - k * len * 1.6, sx = x + Math.sin(t * 1.3 + i * 2 + x) * len * .12 * k + (room === 'hall' ? 0 : GIO(t) * k * k * len * .9);
       ctx.fillStyle = `rgba(235,235,235,${.16 * (1 - k) * a})`; ctx.beginPath(); ctx.arc(sx, sy, len * (.05 + k * .12), 0, 7); ctx.fill();
     }
   }
   function drawHeldSticks(p, h) {
     const t = performance.now() / 1000, len = h * .2, hy = p.fy - h * (p.dir === 'up' && p.frame < 16 ? .56 : .5);
-    for (const dx of [-.025, 0, .025]) stick(p.fx + dx * h, hy, len, t);
+    for (const dx of [-.025, 0, .025]) stick(p.fx + dx * h, hy, len, t, 1, true);
   }
 
   /* ---------- Chuyển động ---------- */
@@ -263,7 +299,7 @@
   function stepWalker(p, dt) {
     if (p.mode !== 'walk' || !p.target) return;
     const [tx, ty] = p.target, dx = tx - p.fx, dy = ty - p.fy, d = Math.hypot(dx, dy);
-    const v = .78 * hAt(p.fy, ROOMS[p.room]) * dt;
+    const v = .78 * hWalk(p.fy, ROOMS[p.room]) * dt;
     p.dir = dirOf(dx, dy); p.walkT += dt;
     if (d <= v) { p.fx = tx; p.fy = ty; p.target = null; p.mode = 'pose'; p.frame = F.stand; const a = p.arrive; p.arrive = null; a && a(); }
     else { p.fx += dx / d * v; p.fy += dy / d * v; }
@@ -308,8 +344,7 @@
     flying.push({ room: p.room, from, to, len: u.len, t0: performance.now() });
     if (u.face !== 'up') p.frame = F.standBow;
     await sleep(650); p.frame = u.face === 'up' ? F.up : F.stand;
-    if (ROOMS[p.room].urn3d && window.Urn3D && Urn3D.ok()) Urn3D.plant(3);
-    else for (const dx of [-.12, 0, .12]) sticks.push({ room: p.room, x: to[0] + dx * u.len, y: to[1] + Math.abs(dx) * 4, len: u.len * rnd(.9, 1.05), t0: performance.now() });
+    for (const dx of [-.12, 0, .12]) sticks.push({ room: p.room, x: to[0] + dx * u.len, y: to[1] + Math.abs(dx) * 4, len: u.len * rnd(.9, 1.05), t0: performance.now() });
     while (sticks.length > 60) sticks.shift();
     dispatchEvent(new CustomEvent('chua-huong', { detail: { me: !!p.me } }));
     await sleep(500);
@@ -367,7 +402,7 @@
       if (me.mode === 'seat') { meBusy = true; if (me.seat) { me.seat.owner = null; } await standUp(me); me.mode = 'pose'; meBusy = false; return; }
       if (me.target) return;
       me.mode = 'walk';
-      const h = hAt(me.fy), v = .9 * h * Math.min(1, mag) * dt;
+      const h = hWalk(me.fy), v = .9 * h * Math.min(1, mag) * dt;
       const nx = me.fx + input.x / mag * v, ny = me.fy + input.y / mag * v * .8;
       // ra khỏi cảnh?
       for (const [r, to, at, face] of R().exits) {
@@ -459,9 +494,10 @@
         SEATS.forEach(s => items.push({ y: s.y - .5, draw: at(s.x, s.y, () => drawCushion(s.x, s.y, hallH(s.y))) }));
         if (monk) items.push({ y: 802, draw: at(235, 802, () => { const b = 1 + Math.sin(t * 1.2) * .006; ctx.drawImage(monk, 198, 693 + 106 * (1 - b), 75, 106 * b); }) });
       }
-      const u3 = R().urn3d;
-      if (u3 && window.Urn3D && Urn3D.ok()) items.push({ y: u3.bb[3], draw: at((u3.bb[0] + u3.bb[2]) / 2, u3.bb[3] - 4, () => Urn3D.draw(ctx, u3, t)) });
+      const lu = R().lu;                                                  // lư hương vẽ: tách lớp để người đi sau lư bị lư che
+      if (lu && imgs['lu-' + room]) { const [x, y, w, h] = lu.at; items.push({ y: y + h - 6, draw: at(x + w / 2, y + h - 6, () => ctx.drawImage(imgs['lu-' + room], x, y, w, h)) }); }
       items.sort((a, b) => a.y - b.y).forEach(i => i.draw());
+      smoke(room, t, dt);
       if (room === 'hall' && imgs.hallFg) { const [dx, dy] = shiftAt(843, 870); ctx.drawImage(imgs.hallFg, dx, ROOMS.hall.fgY + dy); }
       sticks.forEach(s => { if (s.room !== room) return; const age = (now - s.t0) / 1000, a = age > 80 ? Math.max(0, 1 - (age - 80) / 10) : 1; if (a > 0) { const [dx, dy] = shiftAt(s.x, s.y + 40); stick(s.x + dx, s.y + dy, s.len * (1 - Math.min(.5, age / 200)), t, a); } });
       for (let i = flying.length - 1; i >= 0; i--) {
@@ -478,19 +514,12 @@
   }
   requestAnimationFrame(frame);
 
+  const toStage = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
   cv.addEventListener('click', e => {
-    const u3 = R().urn3d; if (!u3 || !window.Urn3D) return;
-    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
-    if (!inRect(x, y, u3.bb)) return;
-    if (u3.kind === 'bell') dispatchEvent(new CustomEvent('chua-act', { detail: 'chuong' }));
-    else if (u3.kind === 'drum') dispatchEvent(new CustomEvent('chua-act', { detail: 'trong' }));
-    else Urn3D.open();
+    const tp = R().tap; if (!tp) return;
+    const [x, y] = toStage(e); if (inRect(x, y, tp[0])) dispatchEvent(new CustomEvent('chua-act', { detail: tp[1] }));
   });
-  cv.addEventListener('mousemove', e => {
-    const u3 = R().urn3d; if (!u3) { cv.style.cursor = ''; return; }
-    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
-    cv.style.cursor = inRect(x, y, u3.bb) ? 'pointer' : '';
-  });
+  cv.addEventListener('mousemove', e => { const tp = R().tap; if (!tp) { cv.style.cursor = ''; return; } const [x, y] = toStage(e); cv.style.cursor = inRect(x, y, tp[0]) ? 'pointer' : ''; });
 
   /* ---------- Giao tiếp với app.js ---------- */
   const hallNpcs = () => people.filter(p => !p.me && p.room === 'hall');
