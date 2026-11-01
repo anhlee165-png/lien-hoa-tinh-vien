@@ -127,7 +127,7 @@ const tex = {
   }),
 
   tableFront: () => ctex(1024, 256, (g, w, h) => {
-    g.fillStyle = '#8f1418'; g.fillRect(0, 0, w, h);
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#7a2516'); gr.addColorStop(1, '#4e140c'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
     g.strokeStyle = GOLD; g.lineWidth = 6; g.strokeRect(14, 14, w - 28, h - 28);
     g.lineWidth = 3; g.strokeRect(30, 30, w - 60, h - 60);
     for (let x = 0; x < 4; x++) { const cx = 128 + x * 256; g.strokeRect(cx - 100, 50, 200, h - 100); lotusMotif(g, cx, h / 2 + 26, 54); for (const d of [-1, 1]) cloud(g, cx + d * 66, h / 2 - 10, 18); }
@@ -339,21 +339,22 @@ function buildHall(renderer) {
 
   // bàn thờ phía trước
   const table = new THREE.Group(); table.position.set(0, .66, -6.25); scene.add(table);
+  const tableLamps = [];
   const tf = tex.tableFront();
-  const tm = [M.lacquer, M.lacquer, M.lacquer, M.lacquer, new THREE.MeshStandardMaterial({ map: tf, roughness: .4, metalness: .2 }), M.lacquer];
+  const woodL = new THREE.MeshPhysicalMaterial({ color: 0x6e2214, roughness: .3, metalness: .05, clearcoat: .9, clearcoatRoughness: .15 });
+  const tm = [woodL, woodL, woodL, woodL, new THREE.MeshStandardMaterial({ map: tf, roughness: .4, metalness: .2 }), woodL];
   add(new THREE.BoxGeometry(4.4, .92, 1.0), tm, 0, .46, 0, table);
-  add(new THREE.BoxGeometry(4.6, .07, 1.12), M.gold, 0, .95, 0, table);
-  const UM = makeMaterials(), urn = buildUrn(UM); urn.scale.setScalar(.27); urn.position.set(0, .985, 0); table.add(urn);
-  const incense = new Incense(urn, UM); incense.add(9, .34);
+  add(new THREE.BoxGeometry(4.6, .07, 1.12), M.gold, 0, .93, 0, table);
+  add(new THREE.BoxGeometry(4.5, .03, 1.06), woodL, 0, .97, 0, table);
+  // đồng bộ với bàn thờ ở góc nhìn trước (ảnh vẽ): 2 đèn sen trên bàn, bát hương tròn bằng đồng ở giữa
+  const UM = makeMaterials(), urn = new THREE.Group(); urn.scale.setScalar(.27); urn.position.set(0, .985 - .83 * .27, .05); table.add(urn);
+  const bowl = new THREE.Mesh(new THREE.LatheGeometry([V(0, 0), V(1.25, 0), V(1.3, .1), V(1.45, .18), V(1.5, .45), V(1.58, .62), V(1.62, .9), V(1.52, 1.02), V(1.4, 1.0), V(0, .98)], 48), M.goldHi);
+  bowl.position.y = .83; urn.add(bowl);
+  const ash = new THREE.Mesh(new THREE.CircleGeometry(1.42, 40), new THREE.MeshStandardMaterial({ color: 0xd8cbb0, roughness: .95 }));
+  ash.rotation.x = -PI / 2; ash.position.y = .83 + .97; urn.add(ash);
+  const incense = new Incense(urn, UM); incense.add(9, 1.0);
   for (const s of [-1, 1]) {
-    const cs = new THREE.Group(); cs.position.set(s * 1.6, .985, 0); table.add(cs);
-    cs.add(new THREE.Mesh(new THREE.LatheGeometry([V(0, 0), V(.12, 0), V(.06, .05), V(.035, .4), V(.09, .44), V(0, .45)], 20), M.gold));
-    const c = add(new THREE.CylinderGeometry(.04, .04, .22, 12), M.candle, 0, .56, 0, cs);
-    const f = new THREE.Sprite(flameMat); f.scale.set(.08, .16, 1); f.position.y = .74; cs.add(f);
-    const v = vase(M); v.position.set(s * .9, .985, .05); v.scale.setScalar(1.3); table.add(v);
-    const fr = new THREE.Group(); fr.position.set(s * .5, .985, .25); table.add(fr);
-    fr.add(new THREE.Mesh(new THREE.CylinderGeometry(.16, .1, .06, 20), M.gold));
-    for (let i = 0; i < 5; i++) { const o = add(new THREE.SphereGeometry(.06, 12, 10), new THREE.MeshStandardMaterial({ color: [0xf2a23a, 0xe0c040, 0xd9652a][i % 3], roughness: .5 }), Math.cos(i * 1.3) * .07, .08 + (i > 3 ? .08 : 0), Math.sin(i * 1.3) * .07, fr); }
+    const L = lotusLamp(M, flameMat, glowMat, .9); L.scale.setScalar(.8); L.position.set(s * 1.07, .985, -.05); table.add(L); tableLamps.push(L);
   }
 
   // cột sơn son
@@ -383,8 +384,8 @@ function buildHall(renderer) {
   }
 
   // đèn sen đứng hai bên
-  const lamps = [];
-  for (const [x, z, h] of [[-4.6, -4.9, 2.3], [4.6, -4.9, 2.3], [-6.6, -2.4, 1.8], [6.6, -2.4, 1.8], [-2.2, -6.7, 1.3], [2.2, -6.7, 1.3]]) {
+  const lamps = [...tableLamps];
+  for (const [x, z, h] of [[-4.6, -4.9, 2.3], [4.6, -4.9, 2.3], [-6.6, -2.4, 1.8], [6.6, -2.4, 1.8]]) {
     const L = lotusLamp(M, flameMat, glowMat, h); L.position.set(x, z < -6 ? .66 : 0, z); scene.add(L); lamps.push(L);
   }
 
