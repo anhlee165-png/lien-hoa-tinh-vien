@@ -208,16 +208,16 @@
     $$('#actions button').forEach(b => b.classList.remove('on')); current = null;
   }
   const ACTIONS = {
-    chaptay() { chime(880, 2, .25); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
-    cuichao() { chime(740, 2, .25); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
+    chaptay() { chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
+    cuichao() { chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
     layphat() {
-      bell(); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 4000);
+      bell(); window.Nguoi && Nguoi.layPhat(3); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
       floatText('Kính lạy Bổn Sư Thích Ca Mâu Ni Phật'); addMerit(3, 'Lạy Phật'); petals(14);
     },
     niemphat: { toggle: true, start() {
       let i = 0; const words = ['Nam Mô', 'A Di Đà', 'Phật'];
       aura.classList.add('on'); status('Đang niệm Phật · Nam Mô A Di Đà Phật');
-      const tick = () => { mo(); floatText(words[i % 3], 843 + (i % 3 - 1) * 90, 545, true); if (i % 3 === 2) addMerit(1, 'Niệm Phật'); i++; };
+      const tick = () => { mo(); window.Nguoi && Nguoi.beat(); floatText(words[i % 3], 843 + (i % 3 - 1) * 90, 545, true); if (i % 3 === 2) addMerit(1, 'Niệm Phật'); i++; };
       tick(); chantTimer = setInterval(tick, 900);
     } },
     thien: { toggle: true, start() {
@@ -232,12 +232,13 @@
       tick(); chantTimer = setInterval(tick, 3200);
     } },
     chuoihat() {
-      state.beads = (state.beads % 108) + 1; mo();
+      state.beads = (state.beads % 108) + 1; mo(); window.Nguoi && Nguoi.bow('ban', .22, 300);
       floatText(`📿 ${state.beads} / 108`, 843, 540, true);
       if (state.beads === 108) { bell(); petals(24); addMerit(10, 'Tròn một chuỗi 108 hạt'); toast('Viên mãn một chuỗi 108 hạt 🙏'); }
       save();
     },
     thaphuong() {
+      window.Nguoi && Nguoi.bow('ban', .5, 900);
       incenseBoost = 18; chime(1040, 2.5, .2); floatText('Thắp nén tâm hương', 843, 690, true); addMerit(2, 'Thắp hương');
       if (!state.outside) { Object.assign(cam, { s: 1.6, x: 843, y: 640 }); applyCam(); $$('#views [data-view]').forEach(b => b.classList.remove('on')); }
     },
