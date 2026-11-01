@@ -160,7 +160,6 @@
       <button data-login="google" class="g"><b>G</b> Đăng nhập bằng Gmail</button>
       <button data-login="facebook" class="f"><b>f</b> Đăng nhập bằng Facebook</button>
       <button data-login="guest" class="k">Vào chùa với tư cách khách</button>
-      <button data-login="admin-tam" class="a">Quản trị (tạm thời, khi chưa có máy chủ)</button>
       <small id="login-note"></small>
     </div>
   </div>
@@ -214,6 +213,9 @@
 </svg>
 
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="auth.js"></script>
 <script src="chua.js"></script>
 <script type="module" src="dien3d.js"></script>
 <script src="app.js"></script>
