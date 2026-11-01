@@ -79,13 +79,11 @@
   function loop() {
     cancelAnimationFrame(raf);
     const step = () => {
-      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); window.Ngoai && Ngoai.drive(0, 0); return; }
+      if (!dragging && !keys.size) { scene.classList.remove('drag'); window.Nguoi && Nguoi.drive(0, 0); return; }
       let x = jv.x, y = jv.y;
       if (keys.has('l')) x -= 1; if (keys.has('r')) x += 1; if (keys.has('u')) y -= 1; if (keys.has('d')) y += 1;
-      if (window.Nguoi && !state.outside) {     // joystick điều khiển nhân vật "Bạn"
+      if (window.Nguoi) {                      // joystick điều khiển nhân vật "Bạn" đi khắp chùa
         const m = Math.hypot(x, y); Nguoi.drive(m > 1 ? x / m : x, m > 1 ? y / m : y);
-      } else if (window.Ngoai && state.outside) { // ngoài sân: đi qua các cảnh
-        Ngoai.drive(x, y);
       } else {                                 // dự phòng: di chuyển camera
         cam.s *= 1 - y * 0.012; cam.x += x * 9 / cam.s;
         if (cam.s > 1.05) cam.y += -y * 1.5 / cam.s * (420 - cam.y) / 100;
@@ -208,14 +206,14 @@
   let current = null, thienTimer = 0, thienStart = 0;
   function stopContinuous() {
     clearInterval(chantTimer); chantTimer = 0; clearInterval(thienTimer); thienTimer = 0;
-    drone(false); $('#vignette').classList.remove('on'); aura.classList.remove('on'); status('');
+    drone(false); window.Nguoi && Nguoi.meditate(false); $('#vignette').classList.remove('on'); aura.classList.remove('on'); status('');
     $$('#actions button').forEach(b => b.classList.remove('on')); current = null;
   }
   const ACTIONS = {
-    chaptay() { state.outside && window.Ngoai && Ngoai.pose('chao'); chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
-    cuichao() { state.outside && window.Ngoai && Ngoai.pose('chao'); chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
+    chaptay() { chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
+    cuichao() { chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
     layphat() {
-      bell(); state.outside && window.Ngoai ? Ngoai.pose('lay') : window.Nguoi && Nguoi.layPhat(3); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
+      bell(); window.Nguoi && Nguoi.layPhat(3); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
       floatText('Kính lạy Bổn Sư Thích Ca Mâu Ni Phật'); addMerit(3, 'Lạy Phật'); petals(14);
     },
     niemphat: { toggle: true, start() {
@@ -225,7 +223,7 @@
       tick(); chantTimer = setInterval(tick, 900);
     } },
     thien: { toggle: true, start() {
-      $('#vignette').classList.add('on'); aura.classList.add('on'); bell(); thienStart = Date.now();
+      $('#vignette').classList.add('on'); aura.classList.add('on'); bell(); thienStart = Date.now(); window.Nguoi && Nguoi.meditate(true);
       const upd = () => { const s = Math.floor((Date.now() - thienStart) / 1000); status(`Đang thiền · ${String(s / 60 | 0).padStart(2, '0')}:${String(s % 60).padStart(2, '0')} · hít thở nhẹ nhàng`); if (s && s % 60 === 0) addMerit(5, 'Thiền 1 phút'); };
       upd(); thienTimer = setInterval(upd, 1000);
     } },
@@ -242,9 +240,11 @@
       save();
     },
     thaphuong() {
-      window.Nguoi && Nguoi.bow('ban', .5, 900);
-      incenseBoost = 18; chime(1040, 2.5, .2); floatText('Thắp nén tâm hương', 843, 690, true); addMerit(2, 'Thắp hương');
-      if (!state.outside) { Object.assign(cam, { s: 1.6, x: 843, y: 640 }); applyCam(); $$('#views [data-view]').forEach(b => b.classList.remove('on')); }
+      if (window.Nguoi) {
+        Nguoi.incense().then(ok => { if (ok === false && !busyIncense()) toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); });
+        floatText('Thắp nén tâm hương', 843, 520, true);
+      } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
+      chime(1040, 2.5, .2);
     },
     rangoai() { state.outside ? goInside() : goOutside(); }
   };
@@ -257,29 +257,39 @@
     } else a();
   }));
 
-  function goOutside() {
-    stopContinuous(); state.outside = true;
-    $$('#views [data-view]').forEach(b => b.classList.remove('on'));
-    $('#exit-label').textContent = 'Vào trong';
-    if (window.Ngoai) { Ngoai.enter('cua'); setTimeout(() => toast('Ra sân chùa · dùng joystick hoặc bấm mũi tên để đi'), 700); }
-    else { Object.assign(cam, { s: 3.2, x: 838, y: 430 }); applyCam(); setTimeout(() => toast('Bạn đang ở sân chùa · đỉnh hương & cổng tam quan'), 900); }
-    logIt('Ra sân chùa');
-  }
-  function goInside() {
-    state.outside = false; window.Ngoai && Ngoai.leave(); $('#exit-label').textContent = 'Ra ngoài'; setView('all'); toast('Trở lại chánh điện');
-    window.Nguoi && Nguoi.me().standing && Nguoi.me().y < 600 && Nguoi.place(845, 615, 'down');
-  }
+  const busyIncense = () => false;
+  function goOutside() { stopContinuous(); window.Nguoi && Nguoi.go('cua'); }
+  function goInside() { window.Nguoi && Nguoi.go('hall'); }
+  addEventListener('chua-room', e => {
+    const { room, name } = e.detail;
+    state.outside = room !== 'hall';
+    scene.classList.toggle('outside', state.outside);
+    $('#exit-label').textContent = state.outside ? 'Vào trong' : 'Ra ngoài';
+    if (state.outside) { Object.assign(cam, VIEWS.all); applyCam(); $$('#views [data-view]').forEach(b => b.classList.remove('on')); }
+    else setView('all');
+    toast(name); logIt('Đến ' + name); chime(660, .3, .15);
+  });
+  addEventListener('chua-soon', e => toast(`${e.detail} đang được xây, sắp mở 🙏`));
+  addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });
+  addEventListener('chua-act', e => {
+    const kind = e.detail;
+    if (kind === 'chuong') { bell(); Nguoi.bow('ban'); floatText('Nguyện tiếng chuông này vang khắp pháp giới'); addMerit(2, 'Thỉnh chuông'); }
+    if (kind === 'trong') { [0, 450, 900].forEach(d => setTimeout(() => chime(82, 1.4, .9), d)); Nguoi.bow('ban'); floatText('Tùng… tùng… tùng…'); addMerit(1, 'Đánh trống'); }
+    if (kind === 'quanam') { chime(880, 3, .3); Nguoi.layPhat(1); floatText('Nam Mô Đại Từ Đại Bi Quán Thế Âm Bồ Tát'); addMerit(3, 'Chiêm bái Quan Âm'); petals(12); }
+  });
+  addEventListener('chua-count', () => paintHall());
 
   /* ---------- Chánh điện / số người ---------- */
   const halls = Array.from({ length: 20 }, (_, i) => ({ id: i + 1, n: i === 0 ? 37 : 8 + ((i * 37) % 85) }));
   function paintHall() {
     const h = halls[state.hall - 1];
+    if (window.Nguoi && Nguoi.count) h.n = Nguoi.count();
     $('#hall-name').textContent = `Chánh điện ${h.id}`; $('#info-hall').textContent = `Chánh điện ${h.id}`;
     $('#online').textContent = h.n; $('#info-online').textContent = h.n;
   }
   paintHall();
   setInterval(() => {
-    halls.forEach(h => { h.n = Math.max(3, Math.min(100, h.n + Math.round(Math.random() * 2 - 1))); });
+    halls.forEach(h => { if (window.Nguoi && h.id === state.hall) return; h.n = Math.max(3, Math.min(100, h.n + Math.round(Math.random() * 2 - 1))); });
     paintHall();
   }, 7000);
   const hallMenu = $('#hall-menu'), bellMenu = $('#bell-menu');
@@ -361,10 +371,20 @@
   $('#gear').addEventListener('click', () => {
     openModal('Cài đặt', `<label><input type="checkbox" id="s-amb" ${state.ambient ? 'checked' : ''}> Chuông chào khi vào điện</label>
       <label><input type="checkbox" id="s-views" ${$('#views').classList.contains('closed') ? '' : 'checked'}> Hiện bảng Điểm nhìn nhanh</label>
-      <p style="opacity:.8;font-size:17px">Điều khiển: joystick hoặc phím mũi tên / WASD điều khiển nhân vật “Bạn” đứng dậy, đi lại trong chánh điện; đi ra tới cửa chính để ra sân. Đứng yên tại chỗ ngồi thì tự ngồi xuống.</p>`,
+      <p style="opacity:.8;font-size:17px">Điều khiển: joystick hoặc phím mũi tên / WASD đưa nhân vật “Bạn” đi khắp chùa. Đi qua cửa chính, cửa hông hay ra mép cảnh là sang khu kế bên. Đứng yên trên một thảm trống thì Bạn tự ngồi xuống.</p>
+      <h3 style="margin:14px 0 6px">Quản trị · Phật tử ảo</h3>
+      <p style="margin:0 0 8px">Đang có <b id="a-n">${window.Nguoi ? Nguoi.ao() : 0}</b> / ${window.Nguoi ? Nguoi.maxAo() : 0} Phật tử ảo trong chánh điện. Họ vẫn đứng dậy, đi lại, thắp hương và quỳ lạy như mọi người.</p>
+      <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+        <button data-ao="-10">− 10</button><button data-ao="-1">− 1</button><button data-ao="1">+ 1</button><button data-ao="10">+ 10</button>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><button id="a-lay">Mời đại chúng lạy Phật</button><button id="a-full">Đầy chánh điện</button></div>`,
       body => {
         $('#s-amb', body).addEventListener('change', e => { state.ambient = e.target.checked; save(); });
         $('#s-views', body).addEventListener('change', e => $('#views').classList.toggle('closed', !e.target.checked));
+        const upd = n => { $('#a-n', body).textContent = n; paintHall(); };
+        $$('[data-ao]', body).forEach(b => b.addEventListener('click', () => upd(Nguoi.setAo(Nguoi.ao() + +b.dataset.ao))));
+        $('#a-full', body).addEventListener('click', () => upd(Nguoi.setAo(Nguoi.maxAo())));
+        $('#a-lay', body).addEventListener('click', () => { closeModal(); bell(); Nguoi.allLay(); floatText('Đại chúng đồng lạy Phật'); });
       });
   });
 
@@ -375,22 +395,11 @@
   }, true);
 
   (function follow() {
-    if (window.Nguoi && !state.outside && cam.s > 1.05 && Nguoi.me().standing) {
+    if (window.Nguoi && !state.outside && cam.s > 1.05 && Nguoi.me().standing && Nguoi.room() === 'hall') {
       const m = Nguoi.me(), ty = m.y - 110;
       cam.x += (m.x - cam.x) * .06; cam.y += (ty - cam.y) * .06; applyCam();
     }
     requestAnimationFrame(follow);
   })();
-  window.Ngoai && Ngoai.set({
-    exit: goInside, toast,
-    moved: name => { logIt('Đến ' + name); chime(660, .3, .15); },
-    action(kind, pose) {
-      if (kind === 'chuong') { bell(); pose('chao'); floatText('Nguyện tiếng chuông này vang khắp pháp giới'); addMerit(2, 'Thỉnh chuông'); }
-      if (kind === 'trong') { [0, 450, 900].forEach(d => setTimeout(() => chime(82, 1.4, .9), d)); pose('chao'); floatText('Tùng… tùng… tùng…'); addMerit(1, 'Đánh trống'); }
-      if (kind === 'quanam') { chime(880, 3, .3); pose('lay'); floatText('Nam Mô Đại Từ Đại Bi Quán Thế Âm Bồ Tát'); addMerit(3, 'Chiêm bái Quan Âm'); petals(12); }
-    }
-  });
-  addEventListener('ban-ra-cua', () => { if (!state.outside) goOutside(); });
-
   applyCam();
 })();
