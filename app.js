@@ -457,7 +457,7 @@
     wallet() {
       // Nạp xu: giá tiền (đồng) → số xu nhận được. Khách quét QR của chùa, quản trị xác nhận rồi xu mới vào ví.
       const PACKS = [[18990, 1680], [48990, 5099], [99000, 10900], [199000, 21900]];
-      const qr = store.get('qr', null);
+      const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
       openModal('Ví xu', `<p>Số dư</p><p class="big">${xuText()} xu</p>
         ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p>Chọn gói nạp:</p>
         <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div>
@@ -531,7 +531,7 @@
     const nap = L.filter(x => x.kind === 'nap'), cung = L.filter(x => x.kind === 'cung');
     const tong = nap.filter(x => x.status === 'ok').reduce((a, x) => a + x.d, 0);
     const cho = nap.filter(x => x.status === 'cho');
-    const qr = store.get('qr', null);
+    const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
     const tabs = { so: 'Sổ công đức', qr: 'Mã QR', notes: 'Thông báo' };
     openModal('Quản trị', `<div class="tabs">${Object.entries(tabs).map(([k, v]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${v}</button>`).join('')}</div>
       ${tab === 'so' ? `<p>Đã nhận: <b class="big-inline">${fmt(tong)} đ</b> · ${nap.filter(x => x.status === 'ok').length} lượt nạp · ${cung.length} lượt cúng dường (${fmt(cung.reduce((a, x) => a + x.xu, 0))} xu)</p>
@@ -542,7 +542,7 @@
       : tab === 'qr' ? `<p>Mã QR chuyển khoản hiện ra khi Phật tử nạp xu.</p>
         ${qr ? `<img class="qr" src="${qr}" alt="Mã QR hiện tại">` : '<p class="note">Chưa có mã QR.</p>'}
         <label class="file">${qr ? 'Đổi mã QR' : 'Thêm mã QR'}<input type="file" id="qr-in" accept="image/*" hidden></label>
-        ${qr ? '<button id="qr-del">Xoá mã QR</button>' : ''}`
+        ${store.get('qr', null) ? '<button id="qr-del">Về mã QR mặc định</button>' : ''}`
       : `<textarea id="note-in" rows="3" maxlength="300" placeholder="Nội dung thông báo cho Phật tử…"></textarea><button id="note-post">Đăng thông báo</button>
         <ul>${getNotes().map((n, i) => `<li><span>${esc(n.text)}</span><button data-del="${i}">Xoá</button></li>`).join('')}</ul>`}`,
       body => {
