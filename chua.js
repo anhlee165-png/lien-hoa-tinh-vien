@@ -72,11 +72,11 @@
       floor: [[0, 941], [1672, 941], [1672, 746], [1012, 746], [982, 602], [748, 602], [720, 746], [0, 746]],
       exits: [[[748, 596, 982, 612], 'lau-trong', [836, 905], 'up'], [[0, 930, 1672, 941], 'san', [836, 905], 'up'], [[0, 746, 12, 941], 'san', [1590, 880], 'left']],
       act: [[750, 600, 990, 640], 'quanam'] },
-    'lau-chuong': { name: 'Lầu Chuông', img: 'assets/ngoai/lau-chuong.jpg', hz: 560, k: .66,
+    'lau-chuong': { urn3d: { kind: 'bell', bb: [737, 415, 927, 679], elev: -4 }, name: 'Lầu Chuông', img: 'assets/ngoai/lau-chuong.jpg', hz: 560, k: .66,
       floor: [[0, 941], [1672, 941], [1672, 802], [1052, 802], [1042, 722], [648, 722], [640, 802], [0, 802]],
       exits: [[[0, 802, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 802, 1672, 941], 'hanh-lang', [500, 905], 'up'], [[0, 930, 1672, 941], 'mat-tien', [836, 905], 'up']],
       act: [[648, 718, 1042, 740], 'chuong'] },
-    'lau-trong': { name: 'Lầu Trống', img: 'assets/ngoai/lau-trong.jpg', hz: 480, k: .6,
+    'lau-trong': { urn3d: { kind: 'drum', bb: [760, 361, 935, 519], elev: 3 }, name: 'Lầu Trống', img: 'assets/ngoai/lau-trong.jpg', hz: 480, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 846], [1322, 752], [1322, 652], [362, 652], [362, 752], [222, 846]],
       exits: [[[222, 930, 1450, 941], 'hall', [1610, 790], 'left']],
       act: [[700, 648, 990, 670], 'trong'] },
@@ -476,7 +476,10 @@
   cv.addEventListener('click', e => {
     const u3 = R().urn3d; if (!u3 || !window.Urn3D) return;
     const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
-    if (inRect(x, y, u3.bb)) Urn3D.open();
+    if (!inRect(x, y, u3.bb)) return;
+    if (u3.kind === 'bell') dispatchEvent(new CustomEvent('chua-act', { detail: 'chuong' }));
+    else if (u3.kind === 'drum') dispatchEvent(new CustomEvent('chua-act', { detail: 'trong' }));
+    else Urn3D.open();
   });
   cv.addEventListener('mousemove', e => {
     const u3 = R().urn3d; if (!u3) { cv.style.cursor = ''; return; }

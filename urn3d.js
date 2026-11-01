@@ -175,50 +175,168 @@ function makeStage(renderer, withGround) {
 }
 
 /* ---------- 1. Lư hương trong cảnh sân ---------- */
+/* ---------- Chuông đồng (miệng chuông bán kính 1, đáy miệng y = 0) ---------- */
+function bellTexture() {                                    // hoa văn chìm trên thân chuông
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#7a7a7a'; g.fillRect(0, 0, 512, 256); g.strokeStyle = '#b8b8b8'; g.lineWidth = 3;
+  for (let i = 0; i < 4; i++) {                              // 4 ô chữ nhật dọc, mỗi ô một bông sen
+    const x = i * 128 + 14; g.strokeRect(x, 40, 100, 150);
+    const cx = x + 50, cy = 115; g.beginPath();
+    for (let k = -2; k <= 2; k++) { g.moveTo(cx, cy + 22); g.quadraticCurveTo(cx + k * 14 + 12, cy - 5, cx + k * 9, cy - 28 + Math.abs(k) * 7); g.quadraticCurveTo(cx + k * 14 - 12, cy - 5, cx, cy + 22); }
+    g.stroke(); g.beginPath(); g.moveTo(cx - 30, cy + 26); g.quadraticCurveTo(cx, cy + 40, cx + 30, cy + 26); g.stroke();
+  }
+  for (let y of [18, 214, 236]) { g.beginPath(); g.moveTo(0, y); g.lineTo(512, y); g.stroke(); }
+  const tx = new THREE.CanvasTexture(c); tx.wrapS = THREE.RepeatWrapping; return tx;
+}
+function makeBellStage(renderer) {
+  const scene = new THREE.Scene();
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), .04).texture;
+  const M = makeMaterials();
+  const bronze = new THREE.MeshStandardMaterial({ color: 0x9a7a3c, metalness: .88, roughness: .46, bumpMap: bellTexture(), bumpScale: 5 });
+  const swing = new THREE.Group(); swing.position.y = 2.95; scene.add(swing);    // điểm treo
+  const bell = new THREE.Group(); bell.position.y = -2.95; swing.add(bell);
+  const prof = [V(0, .12), V(.9, .1), V(1.0, .02), V(1.02, 0), V(.98, .06), V(.9, .2), V(.86, .6), V(.84, 1.2), V(.8, 1.62), V(.7, 1.9), V(.45, 2.06), V(0, 2.1)];
+  bell.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 96), bronze));
+  const ring = (r, y, tb) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, tb, 10, 96), M.bronzeHi); m.rotation.x = Math.PI / 2; m.position.y = y; bell.add(m); };
+  ring(.985, .1, .035); ring(.885, .32, .025); ring(.862, .6, .02); ring(.83, 1.42, .02); ring(.76, 1.78, .025);
+  // núm gõ (hình hoa sen tròn) ở phía trước và hai bên
+  for (const a of [0, Math.PI / 2, -Math.PI / 2, Math.PI]) {
+    const boss = new THREE.Mesh(new THREE.CylinderGeometry(.17, .19, .06, 32), M.bronzeHi);
+    boss.rotation.x = Math.PI / 2; boss.position.set(Math.sin(a) * .89, .45, Math.cos(a) * .89); boss.lookAt(Math.sin(a) * 3, .45, Math.cos(a) * 3); boss.rotateX(Math.PI / 2); bell.add(boss);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(.07, 14, 10), M.bronze); dot.position.set(Math.sin(a) * .95, .45, Math.cos(a) * .95); bell.add(dot);
+  }
+  // quai treo bồ lao
+  const loop = new THREE.Mesh(new THREE.TorusGeometry(.26, .08, 14, 32), M.bronze); loop.position.y = 2.38; bell.add(loop);
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V3(s * .5, 2.02, 0), V3(s * .55, 2.25, 0), V3(s * .38, 2.45, 0), V3(s * .2, 2.42, 0)]), 30, .07, 10), M.bronze); bell.add(arm);
+    const curl = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 10), M.bronzeHi); curl.position.set(s * .2, 2.42, 0); bell.add(curl);
+  }
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .5, 10), M.bronzeDark); rod.position.y = 2.75; bell.add(rod);
+  // chày gỗ treo bằng hai dây
+  const logMat = new THREE.MeshStandardMaterial({ color: 0x9b3a1c, roughness: .55, metalness: .05 });
+  const logPivot = new THREE.Group(); logPivot.position.set(1.5, 2.78, 0); scene.add(logPivot);
+  const log = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, 1.42, 24), logMat); log.rotation.z = Math.PI / 2; log.position.set(.04, -1.98, 0); logPivot.add(log);
+  for (const x of [-.55, .5]) { const band = new THREE.Mesh(new THREE.CylinderGeometry(.235, .235, .08, 24), M.bronzeHi); band.rotation.z = Math.PI / 2; band.position.set(x + .04, -1.98, 0); logPivot.add(band); }
+  const ropeMat = new THREE.MeshStandardMaterial({ color: 0xb08850, roughness: .9 });
+  for (const x of [-.42, .42]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 1.85, 6), ropeMat); r.position.set(x, -.95, 0); logPivot.add(r); }
+  const sun = new THREE.DirectionalLight(0xffdcaa, 3); sun.position.set(4, 4, 4); scene.add(sun);
+  const back = new THREE.DirectionalLight(0xffb070, 1.4); back.position.set(-3, 2, -3); scene.add(back);
+  scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x8a4a2a, 1.0));
+  let hitT = -99;
+  return { scene, kind: 'bell', hit(t) { hitT = t; },
+    update(t) {
+      const a = t - hitT;
+      // chày lùi ra rồi phóng vào; chuông lắc tắt dần
+      logPivot.rotation.z = a < .45 ? -.45 * Math.sin(a / .45 * Math.PI / 2) : a < .62 ? -.45 * (1 - (a - .45) / .17) : .04 * Math.exp(-(a - .62) * 3) * Math.sin((a - .62) * 9);
+      swing.rotation.z = a > .62 ? .05 * Math.exp(-(a - .62) / 2.2) * Math.sin((a - .62) * 4.2) : 0;
+      swing.rotation.x = a > .62 ? .015 * Math.exp(-(a - .62) / 2) * Math.sin((a - .62) * 3.1) : 0;
+    },
+    pts: [V3(-1.02, 0, 0), V3(1.02, 0, 0), V3(0, 0, 1.02), V3(0, 2.9, 0)], wRef: [V3(-1.02, 0, 0), V3(1.02, 0, 0)], target: V3(.5, 1.3, 0), lift: 1.3 };
+}
+
+/* ---------- Trống da ---------- */
+function drumHeadTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  const r = g.createRadialGradient(256, 256, 20, 256, 256, 256); r.addColorStop(0, '#f4e3bd'); r.addColorStop(.8, '#e6cd98'); r.addColorStop(1, '#b98a4a');
+  g.fillStyle = r; g.fillRect(0, 0, 512, 512); g.strokeStyle = '#94601e'; g.lineWidth = 6;
+  for (const rr of [235, 200, 120]) { g.beginPath(); g.arc(256, 256, rr, 0, 7); g.stroke(); }
+  for (let i = 0; i < 12; i++) {                                    // hoa sen giữa mặt trống
+    g.save(); g.translate(256, 256); g.rotate(i / 12 * Math.PI * 2);
+    g.beginPath(); g.moveTo(0, -30); g.quadraticCurveTo(26, -70, 0, -112); g.quadraticCurveTo(-26, -70, 0, -30); g.stroke();
+    g.beginPath(); g.moveTo(0, -125); g.quadraticCurveTo(14, -160, 0, -192); g.quadraticCurveTo(-14, -160, 0, -125); g.stroke(); g.restore();
+  }
+  g.beginPath(); g.arc(256, 256, 26, 0, 7); g.stroke();
+  return new THREE.CanvasTexture(c);
+}
+function makeDrumStage(renderer) {
+  const scene = new THREE.Scene();
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), .04).texture;
+  const M = makeMaterials();
+  const drum = new THREE.Group(); drum.rotation.y = .5; scene.add(drum);
+  const lacquer = new THREE.MeshStandardMaterial({ color: 0x8e1d18, roughness: .32, metalness: .15 });
+  // thân trống phình giữa, trục quay theo z
+  const prof = []; for (let i = 0; i <= 20; i++) { const z = -.5 + i / 20; prof.push(V(1 + .16 * Math.cos(z * Math.PI), z)); }
+  const body = new THREE.Mesh(new THREE.LatheGeometry(prof, 64), lacquer); body.rotation.x = Math.PI / 2; drum.add(body);
+  const headMat = new THREE.MeshStandardMaterial({ map: drumHeadTexture(), color: 0xcdb487, roughness: .85 });
+  const heads = [];
+  for (const s of [1, -1]) {
+    const h = new THREE.Mesh(new THREE.CircleGeometry(1.0, 64), headMat); h.position.z = s * .5; if (s < 0) h.rotation.y = Math.PI; drum.add(h); heads.push(h);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.0, .045, 10, 64), M.bronzeHi); rim.position.z = s * .5; drum.add(rim);
+    for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2; const st = new THREE.Mesh(new THREE.SphereGeometry(.035, 8, 6), M.bronzeHi); st.position.set(Math.cos(a) * 1.04, Math.sin(a) * 1.04, s * .44); drum.add(st); }
+  }
+  for (const z of [-.18, .18]) { const b = new THREE.Mesh(new THREE.TorusGeometry(1.15, .03, 8, 64), M.bronzeHi); b.position.z = z; drum.add(b); }
+  for (let i = 0; i < 4; i++) {                                      // khoen đồng hai bên
+    const a = i / 4 * Math.PI * 2 + Math.PI / 4; const k = new THREE.Mesh(new THREE.TorusGeometry(.09, .025, 8, 16), M.bronzeHi);
+    k.position.set(Math.cos(a) * 1.16, Math.sin(a) * 1.16, 0); k.rotation.y = Math.PI / 2; drum.add(k);
+  }
+  const sun = new THREE.DirectionalLight(0xffdcaa, 2.6); sun.position.set(3, 4, 5); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xfff0dd, 0x6a2a1a, 1.1));
+  let hitT = -99;
+  return { scene, kind: 'drum', hit(t) { hitT = t; },
+    update(t) {
+      const a = t - hitT, k = a >= 0 && a < 1.2 ? Math.exp(-a * 4) * Math.sin(a * 60) : 0;
+      heads[0].position.z = .5 + .03 * k; drum.position.x = .01 * k; drum.scale.setScalar(1 + .012 * Math.abs(k));
+    },
+    pts: (() => { const a = []; for (let i = 0; i < 24; i++) { const q = i / 24 * Math.PI * 2; for (const z of [-.5, .5, 0]) a.push(V3(Math.cos(q) * (z ? 1.05 : 1.16), Math.sin(q) * (z ? 1.05 : 1.16), z)); } return a.map(v => v.applyEuler(new THREE.Euler(0, .5, 0))); })(),
+    target: V3(0, 0, 0), lift: 0 };
+}
+
+/* ---------- 1. Vẽ đồ vật 3D vào cảnh ---------- */
 const S = 640;
 const canvas = document.createElement('canvas'); canvas.width = canvas.height = S;
 let renderer, stage, cam, fitCache = {}, lastT = 0, lastRender = -1, lastSpot = null, failed = false;
+const stages = {};
 try {
   renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(1); renderer.setSize(S, S, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3;
   renderer.setClearColor(0x000000, 0);
   stage = makeStage(renderer, false);
+  stage.kind = 'urn'; stage.update = (t, dt) => stage.incense.update(t, dt);
+  stage.pts = [V3(-1.3, 2.05, 0), V3(1.3, 2.05, 0), ...[0, 2.09, -2.09].map(a => V3(Math.sin(a) * .9, 0, Math.cos(a) * .9))];
+  stage.wRef = [V3(-1.3, 2.05, 0), V3(1.3, 2.05, 0)]; stage.target = V3(0, 1.75, 0); stage.lift = 1.45;
+  stages.urn = stage;
   cam = new THREE.PerspectiveCamera(20, 1, .1, 50);
-} catch (e) { failed = true; console.warn('Không tạo được WebGL cho lư hương 3D', e); }
+} catch (e) { failed = true; console.warn('Không tạo được WebGL cho đồ vật 3D', e); }
+const getStage = k => stages[k] || (stages[k] = k === 'bell' ? makeBellStage(renderer) : makeDrumStage(renderer));
 
-// đặt máy quay theo góc nhìn của từng ảnh; tính lư hương chiếm bao nhiêu điểm ảnh trong khung
-function setCam(elev) {
-  const d = 10, a = elev * Math.PI / 180;
-  cam.position.set(0, 1.45 + Math.sin(a) * d, Math.cos(a) * d); cam.lookAt(0, 1.75, 0); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+// đặt máy quay theo góc nhìn của từng ảnh
+function setCam(st, elev) {
+  const d = 10, a = elev * Math.PI / 180, T = st.target;
+  cam.position.set(T.x, T.y + Math.sin(a) * d, T.z + Math.cos(a) * d); cam.lookAt(T); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
 }
-function fit(elev) {
-  if (fitCache[elev]) return fitCache[elev];
-  setCam(elev);
+// vật chiếm bao nhiêu điểm ảnh trong khung render: bề ngang (wRef hoặc toàn bộ) và đáy
+function fit(st, elev) {
+  const key = st.kind + elev; if (fitCache[key]) return fitCache[key];
+  setCam(st, elev);
   const px = v => { const p = v.clone().project(cam); return [(p.x + 1) / 2 * S, (1 - p.y) / 2 * S]; };
-  const L = px(V3(-1.3, 2.05, 0)), Rt = px(V3(1.3, 2.05, 0));
-  let bottom = 0; for (const a of [0, 2.09, -2.09]) bottom = Math.max(bottom, px(V3(Math.sin(a) * .9, 0, Math.cos(a) * .9))[1]);
-  return (fitCache[elev] = { w: Rt[0] - L[0], cx: (L[0] + Rt[0]) / 2, bottom });
+  const P = st.pts.map(px), Wp = (st.wRef || st.pts).map(px);
+  const x0 = Math.min(...Wp.map(p => p[0])), x1 = Math.max(...Wp.map(p => p[0])), bottom = Math.max(...P.map(p => p[1]));
+  return (fitCache[key] = { w: x1 - x0, cx: (x0 + x1) / 2, bottom });
 }
-// vẽ lư hương vào canvas 2D của cảnh: bb = [x0, y0, x1, y1] khung lư (quai tới quai, đáy chân)
+// spot = { kind, bb: [x0, y0, x1, y1], elev } — bb: bề ngang và đáy của vật trên ảnh
 function draw(ctx, spot, t) {
   if (failed || !renderer) return false;
-  const dt = Math.min(.05, Math.max(0, t - lastT)); lastT = t;
+  const st = getStage(spot.kind || 'urn');
+  lastT = t;
   if (t - lastRender > 1 / 30 || spot !== lastSpot) {                // tối đa 30 khung/giây cho nhẹ máy
-    stage.incense.update(t, t - lastRender > .2 ? .05 : t - lastRender);
-    setCam(spot.elev); stage.urn.rotation.y = spot.rot || 0;
-    renderer.render(stage.scene, cam); lastRender = t; lastSpot = spot;
+    st.update(t, t - lastRender > .2 ? .05 : t - lastRender);
+    setCam(st, spot.elev);
+    renderer.render(st.scene, cam); lastRender = t; lastSpot = spot;
   }
-  const f = fit(spot.elev), k = (spot.bb[2] - spot.bb[0]) / f.w;
+  const f = fit(st, spot.elev), k = (spot.bb[2] - spot.bb[0]) / f.w;
   const dx = (spot.bb[0] + spot.bb[2]) / 2 - f.cx * k, dy = spot.bb[3] - f.bottom * k;
-  const w = spot.bb[2] - spot.bb[0], cx = (spot.bb[0] + spot.bb[2]) / 2, by = spot.bb[3];
-  const sh = ctx.createRadialGradient(cx, by, 0, cx, by, w * .5);
-  sh.addColorStop(0, 'rgba(40,14,6,.45)'); sh.addColorStop(1, 'rgba(40,14,6,0)');
-  ctx.save(); ctx.translate(cx, by - w * .02); ctx.scale(1, .16); ctx.translate(-cx, -by);
-  ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, by, w * .5, 0, 7); ctx.fill(); ctx.restore();
+  if (st.kind === 'urn') {                                            // bóng đổ dưới lư
+    const w = spot.bb[2] - spot.bb[0], cx = (spot.bb[0] + spot.bb[2]) / 2, by = spot.bb[3];
+    const sh = ctx.createRadialGradient(cx, by, 0, cx, by, w * .5);
+    sh.addColorStop(0, 'rgba(40,14,6,.45)'); sh.addColorStop(1, 'rgba(40,14,6,0)');
+    ctx.save(); ctx.translate(cx, by - w * .02); ctx.scale(1, .16); ctx.translate(-cx, -by);
+    ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, by, w * .5, 0, 7); ctx.fill(); ctx.restore();
+  }
   ctx.drawImage(canvas, dx, dy, S * k, S * k);
   return true;
 }
+addEventListener('chua-act', e => { const k = { chuong: 'bell', trong: 'drum' }[e.detail]; if (k && !failed) getStage(k).hit(performance.now() / 1000); });
 
 /* ---------- 2. Xem cận cảnh, kéo để xoay ---------- */
 let viewer = null;
@@ -257,5 +375,5 @@ function open() {
   viewer = { el, run }; run();
 }
 
-window.Urn3D = { draw, open, plant: (n = 3) => stage && stage.incense.add(n, .25), ok: () => !failed };
+window.Urn3D = { draw, open, plant: (n = 3) => stage && stage.incense.add(n, .25), ok: () => !failed, hit: k => !failed && getStage(k).hit(performance.now() / 1000) };
 dispatchEvent(new CustomEvent('urn3d-ready'));
