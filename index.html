@@ -50,7 +50,7 @@
       </button>
       <div class="pill" style="left:880px;width:168px">
         <svg class="ic"><use href="#i-users"/></svg>
-        <span><b id="online">37</b> / 100</span>
+        <span><b id="online">37</b> / <span class="cap">86</span></span>
       </div>
       <div class="pill" style="left:1082px;width:280px">
         <svg class="ic wallet"><use href="#i-wallet"/></svg>
@@ -72,7 +72,7 @@
 
     <!-- ===== PANEL TRÁI ===== -->
     <aside id="info" class="panel">
-      <div class="row big"><svg class="ic"><use href="#i-users"/></svg><div><b id="info-hall">Chánh điện 1</b><small><span id="info-online">37</span> / 100 người</small></div></div>
+      <div class="row big"><svg class="ic"><use href="#i-users"/></svg><div><b id="info-hall">Chánh điện 1</b><small><span id="info-online">37</span> / <span class="cap">86</span> người</small></div></div>
       <button class="row" data-open="rooms"><svg class="ic"><use href="#i-list"/></svg><span>20 chánh điện</span></button>
       <button class="row" id="niem-room"><svg class="ic"><use href="#i-lotus"/></svg><span>Phòng niệm Phật</span></button>
     </aside>
@@ -216,7 +216,9 @@
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-database-compat.js"></script>
 <script src="auth.js"></script>
+<script src="presence.js"></script>
 <script src="chua.js"></script>
 <script type="module" src="dien3d.js"></script>
 <script src="app.js"></script>
