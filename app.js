@@ -302,6 +302,7 @@
     chaptay() { chime(880, 2, .25); window.Nguoi && Nguoi.bow('ban', .3, 700); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 2200); floatText('🙏 A Di Đà Phật'); addMerit(1, 'Chắp tay'); },
     cuichao() { chime(740, 2, .25); window.Nguoi && Nguoi.bow('ban', .8, 1300); floatText('Cúi chào đại chúng'); addMerit(1, 'Cúi chào'); },
     layphat() {
+      if (window.Nguoi && Nguoi.abbotHere && Nguoi.abbotHere()) { Nguoi.layPhat(); chime(740, 2, .25); toast('Thầy trụ trì đang ngồi giữa điện, đại chúng ngồi yên chắp tay cúi đầu 🙏'); floatText('🙏 Nam Mô A Di Đà Phật'); return; }
       bell(); window.Nguoi && Nguoi.layPhat(3); window.Dien3D && Dien3D.bow(); aura.classList.add('on'); setTimeout(() => current || aura.classList.remove('on'), 7000);
       floatText('Kính lạy Bổn Sư Thích Ca Mâu Ni Phật'); addMerit(3, 'Lạy Phật'); petals(14);
     },
@@ -331,6 +332,8 @@
     thaphuong() {
       if (window.Dien3D && Dien3D.active()) {
         Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
+      } else if (window.Nguoi && Nguoi.abbotHere && Nguoi.abbotHere()) {
+        toast('Thầy trụ trì đang ngồi giữa điện, xin thắp hương sau khi thầy rời điện 🙏'); return;
       } else if (window.Nguoi) {
         Nguoi.incense().then(ok => { if (ok === false && !busyIncense()) toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); });
         floatText('Thắp nén tâm hương', 843, 520, true);
