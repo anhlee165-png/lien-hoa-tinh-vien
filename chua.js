@@ -232,6 +232,7 @@
     const rm = ROOMS[p.room], h = hAt(p.fy, rm), s = h / S.stand;
     let f = p.frame;
     if (p.mode === 'walk') f = F[p.dir] + ((p.walkT * 8) | 0) % 4;
+    if (p.faceUntil > performance.now() && !(p.me && p.mode === 'walk')) f = F.up;                        // đang hướng về trống/chuông
     const col = f % 4, row = (f / 4) | 0, dw = S.cw * s, dh = S.ch * s;
     const flip = p.flip && p.mode !== 'walk' && f >= 16;
     ctx.save(); ctx.translate(p.fx, p.fy + 1);
@@ -307,6 +308,7 @@
   async function walkPath(p, pts) { for (const [x, y] of pts) { if (p.room !== room && p.room === 'gone') return; await walkTo(p, x, y); } }
   function stepWalker(p, dt) {
     if (p.mode !== 'walk' || !p.target) return;
+    if (p.faceUntil > performance.now()) return;                          // dừng lại, quay mặt về trống/chuông
     const [tx, ty] = p.target, dx = tx - p.fx, dy = ty - p.fy, d = Math.hypot(dx, dy);
     const v = .78 * hWalk(p.fy, ROOMS[p.room]) * dt;
     p.dir = dirOf(dx, dy); p.walkT += dt;
@@ -534,11 +536,23 @@
   requestAnimationFrame(frame);
 
   const toStage = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
-  cv.addEventListener('click', e => {
+  const scn = document.getElementById('scene') || cv;           // #cv không nhận chuột (pointer-events:none)
+  scn.addEventListener('click', e => {
     const tp = R().tap; if (!tp) return;
-    const [x, y] = toStage(e); if (inRect(x, y, tp[0])) dispatchEvent(new CustomEvent('chua-act', { detail: tp[1] }));
+    const [x, y] = toStage(e); if (!inRect(x, y, tp[0]) || meBusy) return;
+    const a = R().act;                                                      // ở xa thì đi lại gần trước rồi mới đánh
+    if (a && !inRect(me.fx, me.fy, [a[0][0] - 40, a[0][1] - 40, a[0][2] + 40, a[0][3] + 60])) {
+      meBusy = true; me.actDone = true; const r0 = room;
+      if (me.mode === 'seat') me.mode = 'pose';
+      walkTo(me, Math.max(a[0][0] + 20, Math.min(a[0][2] - 20, me.fx)), (a[0][1] + a[0][3]) / 2).then(() => {
+        meBusy = false; me.mode = 'pose'; me.dir = 'up'; me.frame = F.up; setTimeout(() => me.actDone = false, 5000);
+        if (room === r0) dispatchEvent(new CustomEvent('chua-act', { detail: tp[1] }));
+      });
+      return;
+    }
+    dispatchEvent(new CustomEvent('chua-act', { detail: tp[1] }));
   });
-  cv.addEventListener('mousemove', e => { const tp = R().tap; if (!tp) { cv.style.cursor = ''; return; } const [x, y] = toStage(e); cv.style.cursor = inRect(x, y, tp[0]) ? 'pointer' : ''; });
+  scn.addEventListener('mousemove', e => { const tp = R().tap; if (!tp) { scn.style.cursor = ''; return; } const [x, y] = toStage(e); scn.style.cursor = inRect(x, y, tp[0]) ? 'pointer' : ''; });
 
   /* ---------- Trụ trì: chỉ xuất hiện khi quản trị vào điện, đi từ sân vào ngồi chỗ của thầy ---------- */
   let abbot = null;
@@ -566,6 +580,8 @@
     exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
       .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[2] <= 160 ? 'left' : r[0] >= W - 160 ? 'right' : r[1] > H - 40 ? 'down' : 'up' })); },
     abbotEnter, abbotLeave,
+    // mọi người trong cảnh dừng lại, quay mặt vào trống / chuông
+    faceUp(ms = 3000) { const until = performance.now() + ms; people.filter(p => p.room === room && !p.abbot).forEach(p => { p.faceUntil = until; if (p.mode !== 'walk' && !p.busy) p.frame = F.up; }); me.dir = 'up'; },
     go: (to, at, face) => go(to, at || (to === 'hall' ? [845, 600] : [836, 900]), face || (to === 'hall' ? 'down' : 'up')),
     bow(key, depth, ms) { if (key === 'ban') { if (!meBusy) bowOnce(me, ms || 900); } },
     bowAll(depth, ms) { hallNpcs().forEach(p => setTimeout(() => bowOnce(p, ms || 1200), rnd(100, 700))); if (!meBusy) bowOnce(me, ms || 1200); },
