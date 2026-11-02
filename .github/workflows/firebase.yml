@@ -11,13 +11,27 @@ on:
       owner_email:
         description: 'Cấp quyền chủ chùa cho Gmail này (để trống nếu chỉ triển khai)'
         required: false
+      logs:
+        description: 'Chỉ đọc nhật ký lỗi Cloud Functions 2 giờ gần nhất (không triển khai)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
   group: firebase-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  logs:
+    if: github.event_name == 'workflow_dispatch' && inputs.logs
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: google-github-actions/auth@v2
+        with: { credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' }
+      - run: |
+          gcloud logging read 'resource.type="cloud_run_revision" AND severity>=WARNING' --project lien-hoa-tinh-vien --freshness=2h --limit 40 --format='value(timestamp,resource.labels.service_name,textPayload,jsonPayload.message,jsonPayload.err)' || echo "không đọc được log"
   test:
+    if: github.event_name != 'workflow_dispatch' || !inputs.logs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
