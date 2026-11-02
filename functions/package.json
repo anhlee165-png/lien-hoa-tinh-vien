@@ -4,7 +4,7 @@
   "description": "Máy chủ Liên Hoa Tịnh Viện: ví xu, đơn nạp, webhook thanh toán, quản trị",
   "main": "src/index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "test": "firebase emulators:exec --project demo-lhtv --only auth,firestore,functions \"node --test test/payment.test.js\""
