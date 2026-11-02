@@ -542,13 +542,9 @@
               const pay = $('#pay', body); pay.hidden = false; pay.innerHTML = '<p class="note">Đang tạo đơn nạp…</p>';
               let o; try { o = await Vi.createTopup(b.dataset.pack); } catch (err) { pay.innerHTML = `<p class="note">${esc(err.message)}</p>`; return; }
               $('#packs', body).hidden = true; clean();
-              pay.innerHTML = `<p>Quét mã bằng ứng dụng ngân hàng để chuyển <b>${fmt(o.vnd)} đ</b> (nhận ${fmt(o.xu)} xu)</p>
-                <img class="qr" src="${esc(o.qrUrl)}" alt="Mã VietQR của đơn ${esc(o.code)}">
-                <p class="note">Nội dung chuyển khoản phải giữ đúng: <b>${esc(o.code)}</b><br>${esc(o.bank.code)} · ${esc(o.bank.account)} · ${esc(o.bank.holder)}</p>
-                ${/^https:\/\/pay\.payos\.vn\//.test(o.checkoutUrl || '') ? `<p><a class="btn nap" href="${esc(o.checkoutUrl)}" target="_blank" rel="noopener">Mở trang thanh toán payOS</a></p>` : ''}
-                <p id="o-st">Đang chờ ngân hàng báo có… <span id="o-left"></span></p>
-                <p class="note">Xu tự vào ví khi ngân hàng báo có, có thể đóng cửa sổ này. Chuyển thiếu, thừa hay sai nội dung sẽ được nhà chùa đối soát.</p>
-                <button class="btn nap" id="o-cancel">Huỷ đơn</button>`;
+              // chỉ hiện mã QR của đơn (mỗi đơn một mã riêng của payOS, đúng số tiền); dòng trạng thái chỉ hiện khi có kết quả
+              pay.innerHTML = `<img class="qr" src="${esc(o.qrUrl)}" alt="Mã QR chuyển khoản">
+                <p id="o-st"></p><span id="o-left" hidden></span><button class="btn nap" id="o-cancel" hidden>Huỷ đơn</button>`;
               timer = setInterval(() => { const l = o.expiresAt - Date.now(), el = $('#o-left', body); if (el) el.textContent = l > 0 ? `(còn ${Math.floor(l / 60e3)}:${String(Math.floor(l % 60e3 / 1e3)).padStart(2, '0')})` : '(đơn đã hết hạn)'; }, 1000);
               stop = Vi.watchOrder(o.orderId, d => {
                 const st = $('#o-st', body); if (!st) return;
