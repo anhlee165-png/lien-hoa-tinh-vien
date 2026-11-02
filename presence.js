@@ -1,10 +1,14 @@
 /* Phật tử thật đang có mặt (đăng nhập Gmail / Facebook).
    Có Firebase Realtime Database thì dùng nó (mọi máy thấy nhau); chưa có thì dùng BroadcastChannel (các tab cùng máy).
-   window.Presence = { set({hall, room}), others(), mode(), me() }; mỗi lần đổi phát sự kiện 'presence'. */
+   window.Presence = { set({hall, room}), others(), countIn(hall), refreshCounts(), mode(), me() }; mỗi lần đổi phát sự kiện 'presence'.
+   Chống quá tải (20 điện × 100 người = 2.000 người): mỗi máy chỉ nghe danh sách người trong ĐIỆN CỦA MÌNH
+   (presence/h{số điện}), không nghe cả chùa. Số người các điện khác chỉ đọc một lần khi mở danh sách điện
+   (đọc nông: chỉ lấy mã người, không lấy dữ liệu). Không có nhịp "còn sống" mỗi phút: rời trang hay mất mạng
+   thì máy chủ tự xoá nhờ onDisconnect, nên lượng tin gửi đi không tăng theo bình phương số người. */
 (() => {
   const DB = 'https://lien-hoa-tinh-vien-default-rtdb.asia-southeast1.firebasedatabase.app';
   const sheetOf = id => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) | 0; return (h & 1) ? 'nu' : 'nam'; };
-  let mine = { hall: 1, room: 'hall' }, nick = null, who = null, mode = 'local', all = {}, ref = null;
+  let mine = { hall: 1, room: 'hall' }, nick = null, who = null, mode = 'local', all = {}, ref = null, db = null, sub = null, counts = {};
   const emit = () => dispatchEvent(new CustomEvent('presence', { detail: Presence.others() }));
 
   /* ---- cùng máy: BroadcastChannel, nhịp 4 giây, quá 12 giây coi như đã ra ---- */
@@ -27,24 +31,42 @@
   async function tryFirebase() {
     if (!window.firebase || !firebase.database) return;
     try {
-      const r = await fetch(DB + '/presence.json?shallow=true', { cache: 'no-store' });
+      const r = await fetch(DB + '/presence/h1.json?shallow=true', { cache: 'no-store' });
       if (!r.ok) return;                                                   // chưa tạo cơ sở dữ liệu → dùng cục bộ
     } catch { return; }
-    const db = firebase.app().database(DB);
-    db.ref('presence').on('value', s => {
-      const v = s.val() || {}, now = Date.now(); all = {};
-      for (const k in v) if (v[k] && now - (v[k].t || 0) < 5 * 60e3) all[k] = Object.assign({ uid: k }, v[k]);
+    db = firebase.app().database(DB);
+    listen(); Presence._write = write; write(); refreshCounts();
+  }
+  // chỉ nghe điện của mình; đổi điện thì bỏ nghe điện cũ
+  function listen() {
+    if (!db) return;
+    if (sub) sub.off();
+    const hall = mine.hall;
+    sub = db.ref('presence/h' + hall);
+    sub.on('value', s => {
+      const v = s.val() || {}; all = {};
+      for (const k in v) if (v[k]) all[k] = Object.assign({ uid: k, hall }, v[k]);
+      counts[hall] = Object.keys(all).length;
       mode = 'firebase'; emit();
     }, () => { mode = 'local'; all = seen; emit(); });
-    const write = () => {
-      const u = firebase.auth().currentUser;
-      if (ref) { ref.remove(); ref = null; }
-      if (!u || !who) return;
-      ref = db.ref('presence/' + u.uid); ref.onDisconnect().remove();
-      ref.set({ name: who.name.slice(0, 40), sheet: who.sheet, hall: mine.hall, room: mine.room, t: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
-    };
-    Presence._write = write; write();
-    setInterval(() => ref && ref.update({ t: firebase.database.ServerValue.TIMESTAMP }).catch(() => {}), 60e3);
+  }
+  function write() {
+    if (!db) return;
+    const u = firebase.auth().currentUser;
+    if (ref) { ref.onDisconnect().cancel(); ref.remove(); ref = null; }
+    if (!u || !who) return;
+    ref = db.ref(`presence/h${mine.hall}/${u.uid}`); ref.onDisconnect().remove();
+    ref.set({ name: who.name.slice(0, 40), sheet: who.sheet, room: mine.room, t: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+  }
+  // số người thật ở từng điện: đọc nông 20 điện một lượt, tối đa 1 lần mỗi 30 giây
+  let lastCounts = 0;
+  async function refreshCounts() {
+    if (!db || Date.now() - lastCounts < 30e3) return; lastCounts = Date.now();
+    await Promise.all(Array.from({ length: 20 }, async (_, i) => {
+      const h = i + 1; if (h === mine.hall) return;
+      try { const r = await fetch(`${DB}/presence/h${h}.json?shallow=true`, { cache: 'no-store' }); if (r.ok) counts[h] = Object.keys((await r.json()) || {}).length; } catch {}
+    }));
+    emit();
   }
 
   function identify(u) {
@@ -56,7 +78,14 @@
   }
 
   window.Presence = {
-    set(o) { Object.assign(mine, o); if (ref) ref.update({ hall: mine.hall, room: mine.room }).catch(() => {}); ping(); },
+    set(o) {
+      const moved = o.hall && o.hall !== mine.hall; Object.assign(mine, o);
+      if (moved && db) { write(); listen(); } else if (ref) ref.update({ room: mine.room }).catch(() => {});
+      ping();
+    },
+    // số Phật tử thật đang ở một điện (điện của mình: đếm trực tiếp; điện khác: số đọc gần nhất)
+    countIn: h => mode === 'firebase' ? (h === mine.hall ? Object.keys(all).length : counts[h] || 0) : Object.values(all).filter(p => (p.hall | 0) === h).length,
+    refreshCounts,
     others: () => Object.values(all).filter(p => !who || p.uid !== who.uid),
     // biệt danh và giới tính do Phật tử tự đặt
     setMe(name, sheet) { nick = { name, sheet }; if (who) { who.name = name; who.sheet = sheet; } Presence._write && Presence._write(); ping(); },

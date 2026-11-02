@@ -26,10 +26,18 @@
   const fmt = n => n.toLocaleString('vi-VN');
 
   /* ---------- Co giãn sân khấu ---------- */
+  /* Chế độ phát live TikTok: ?live=doc (khung dọc 9:16, máy quay theo nhân vật) · ?live=ngang (khung ngang) */
+  const LIVE = (() => { const v = (new URLSearchParams(location.search).get('live') || '').toLowerCase();
+    return !v ? '' : /^(ngang|16:?9|h)$/.test(v) ? 'ngang' : 'doc'; })();
+  if (LIVE) document.body.classList.add('live', 'live-' + LIVE);
+  const vp = $('#viewport');
   function fit() {
-    const s = Math.min(innerWidth / W, innerHeight / H);
+    const r = LIVE ? vp.getBoundingClientRect() : { width: innerWidth, height: innerHeight };
+    // live dọc: phủ kín khung (cắt hai bên); bình thường: vừa khít cả cảnh
+    const s = LIVE === 'doc' && !fit.modal ? Math.max(r.width / W, r.height / H) : Math.min(r.width / W, r.height / H);
     stage.style.transform = `translate(${-W * s / 2}px, ${-H * s / 2}px) scale(${s})`;
-    stage.dataset.scale = s;
+    stage.dataset.scale = s; fit.visW = Math.min(W, r.width / s); fit.visH = Math.min(H, r.height / s);
+    if (typeof applyCam === 'function' && window.LiveHook) applyCam();
   }
   addEventListener('resize', fit); fit();
 
@@ -44,11 +52,12 @@
   const cam = { ...VIEWS.all };
   function applyCam() {
     cam.s = Math.max(1, Math.min(3.2, cam.s));
-    const hw = W / 2 / cam.s, hh = H / 2 / cam.s;
+    const hw = (fit.visW || W) / 2 / cam.s, hh = (fit.visH || H) / 2 / cam.s;
     cam.x = Math.max(hw, Math.min(W - hw, cam.x));
     cam.y = Math.max(hh, Math.min(H - hh, cam.y));
     scene.style.transform = `translate(${W / 2 - cam.x * cam.s}px, ${H / 2 - cam.y * cam.s}px) scale(${cam.s})`;
   }
+  window.LiveHook = { mode: LIVE, cam, applyCam: () => applyCam(), W, H, setModal: on => { if (fit.modal !== on) { fit.modal = on; fit(); } } };
   function setView(name) {
     Object.assign(cam, VIEWS[name]); applyCam();
     $$('#views [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
@@ -78,7 +87,7 @@
   }
   function chatAdd(m, broadcast = true) {
     const k = m.key || chatKey(); const list = store.get(k, []); list.push({ who: m.who, text: m.text, me: m.me, sys: m.sys, t: Date.now() });
-    store.set(k, list.slice(-60)); if (k === chatKey()) chatPaint();
+    store.set(k, list.slice(-60)); if (k === chatKey()) { chatPaint(); dispatchEvent(new CustomEvent('chua-chat', { detail: { who: m.who, text: m.text, sys: !!m.sys } })); }
     if (state.chatHidden && !m.me && !m.sys) { const b = document.getElementById('chat-show'); b && b.classList.add('new'); }
     if (broadcast && chat.bc) chat.bc.postMessage({ key: k, who: m.who, text: m.text });
   }
@@ -272,6 +281,7 @@
   let toastT;
   function toast(msg, ms = 2400) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    dispatchEvent(new CustomEvent('chua-toast', { detail: msg }));
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
   }
   const status = (msg) => { const s = $('#status'); if (msg) { s.textContent = msg; s.hidden = false; } else s.hidden = true; };
@@ -287,7 +297,7 @@
   // Quyền quản trị = custom claim đã ký trong ID token (máy chủ cấp), KHÔNG dựa vào localStorage hay email
   const isAdmin = () => state.role === 'admin' && !!window.Vi && Vi.isAdmin();
   const xu = () => window.Vi ? Vi.balance() : 0;
-  const GIA = () => (window.Vi && Vi.prices()) || { incense: 50, rename: 20 };
+  const GIA = () => Object.assign({ incense: 50, flower: 150, rename: 20 }, window.Vi && Vi.prices());
   const GIA_HUONG = 50;                                                   // chỉ để hiển thị khi chưa tải giá từ máy chủ
   const xuText = () => isAdmin() ? '∞' : fmt(xu());
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
@@ -363,6 +373,30 @@
       if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu thắp hương 🙏`);
       chime(1040, 2.5, .2);
     },
+    async danghoa() {
+      // mỗi bông hoa cúng dường theo giá máy chủ (mặc định 150 xu); trừ xu ở máy chủ, dâng không thành thì máy chủ hoàn lại
+      if (window.Nguoi && !(window.Dien3D && Dien3D.active())) {
+        const ok = Nguoi.canFlower();
+        if (ok === 'abbot') { toast('Thầy trụ trì đang ngồi giữa điện, xin dâng hoa sau khi thầy rời điện 🙏'); return; }
+        if (ok === 'novase') { toast('Hãy vào chánh điện để dâng hoa lên bàn thờ Phật'); return; }
+        if (ok !== true) return;
+      }
+      if (!window.Vi || !Vi.signedIn()) return needLogin('dâng hoa');
+      if (thapBusy) return; thapBusy = true;
+      let paid;
+      try { paid = await Vi.spend('flower'); }
+      catch (err) { thapBusy = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; }
+      thapBusy = false;
+      if (window.Dien3D && Dien3D.active()) { Dien3D.flower(); floatText('Nguyện hoa tâm thanh tịnh dâng lên chư Phật', 843, 560, true); }
+      else if (window.Nguoi) {
+        floatText('Dâng hoa cúng Phật', 843, 520, true);
+        const r = await Nguoi.flower();
+        if (!r) { Vi.refund(paid.opId).then(() => toast('Chưa dâng được hoa, đã hoàn xu')).catch(() => {}); return; }
+      }
+      addMerit(3, 'Dâng hoa');
+      if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu dâng hoa 🙏`);
+      chime(1180, 2.5, .2);
+    },
     rangoai() { state.outside ? goInside() : goOutside(); }
   };
   $$('#actions button').forEach(b => b.addEventListener('click', () => {
@@ -389,7 +423,17 @@
     toast(name); logIt('Đến ' + name); chime(660, .3, .15);
     chatRoom(room, room === 'hall' ? 'Chánh điện ' + state.hall : name);
   });
-  addEventListener('chua-soon', e => toast(`${e.detail} đang được xây, sắp mở 🙏`));
+  // lối chưa mở (Đường làng, Vườn Thiền…): báo đang xây, mời góp ý; chỉ hiện bảng một lần mỗi lối, lần sau nhắc ngắn
+  const soonSeen = new Set();
+  addEventListener('chua-soon', e => {
+    const name = e.detail;
+    if (soonSeen.has(name) || !modal.hidden) { toast(`${name}: khu vực đang được xây dựng 🙏`); return; }
+    soonSeen.add(name);
+    openModal('Khu vực đang được xây dựng', `<p><b>${esc(name)}</b> đang được xây dựng.</p>
+      <p>Vui lòng góp ý cho nhà chùa để khu vực này sớm hoàn thiện 🙏</p>
+      <p class="note">Đạo hữu có thể nhắn góp ý trong khung Trò chuyện.</p>
+      <button class="btn" id="soon-ok">Quay lại</button>`, body => $('#soon-ok', body).addEventListener('click', closeModal));
+  });
   addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });
   addEventListener('chua-act', e => {
     const kind = e.detail;
@@ -423,6 +467,7 @@
   const emptiest = except => halls.filter(h => h.id !== except && !fullOf(h.id)).sort((a, b) => a.n - b.n)[0];
   const hallMenu = $('#hall-menu'), bellMenu = $('#bell-menu');
   function openHallMenu() {
+    window.Presence && Presence.refreshCounts && Presence.refreshCounts();
     hallMenu.innerHTML = halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Chánh điện ${h.id}<small>${hallLabel(h)}</small></button>`).join('');
     hallMenu.style.left = '622px'; hallMenu.hidden = false; bellMenu.hidden = true;
   }
@@ -459,10 +504,6 @@
     paintBellDot();
   });
   document.addEventListener('click', e => { if (!e.target.closest('.dropdown')) { hallMenu.hidden = true; bellMenu.hidden = true; } });
-  $('#niem-room').addEventListener('click', () => {
-    const b = $('[data-act="niemphat"]'); if (current !== 'niemphat') b.click();
-    Object.assign(cam, VIEWS.buddha); applyCam(); toast('Vào Phòng niệm Phật');
-  });
 
   /* ---------- Modal ---------- */
   const modal = $('#modal');
@@ -474,6 +515,7 @@
 
   const PANELS = {
     rooms() {
+      window.Presence && Presence.refreshCounts && Presence.refreshCounts();
       openModal(N_HALLS + ' chánh điện', `<div class="grid">${halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Điện ${h.id}<small>${hallLabel(h)} người</small></button>`).join('')}</div>`,
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) { joinHall(+b.dataset.h); closeModal(); } }));
     },
@@ -484,7 +526,7 @@
         body => $('#v-login', body).addEventListener('click', () => { closeModal(); showLogin(); }));
       const packs = Vi.packs();
       openModal('Ví xu', `<p>Số dư</p><p class="big" id="v-bal">${xuText()} xu</p>
-        <p class="note">Mỗi lần thắp hương cúng dường ${GIA().incense} xu. Xu chỉ dùng trong chùa, không đổi lại thành tiền.</p>
+        <p class="note">Thắp hương (3 nén) ${GIA().incense} xu · dâng hoa ${GIA().flower} xu một bông. Xu chỉ dùng trong chùa, không đổi lại thành tiền.</p>
         <button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>
         <div id="packs"${open ? '' : ' hidden'}>${packs.length ? `<p>Chọn gói nạp:</p>
           <div class="grid">${packs.map(p => `<button data-pack="${esc(p.id)}"><b>${fmt(p.xu)} xu</b><small>${fmt(p.vnd)} đ</small></button>`).join('')}</div>` : '<p class="note">Máy chủ nạp xu chưa sẵn sàng, xin quay lại sau.</p>'}</div>
@@ -711,7 +753,7 @@
     chime(660, .15);
     if (window.Dien3D && Dien3D.active()) { Dien3D.hide(); paintXoay(); return; }
     if (state.outside) { goInside(); await new Promise(r => setTimeout(r, 450)); }
-    if (!window.Dien3D || !Dien3D.show()) { toast('Máy này chưa hỗ trợ đồ họa 3D'); return; }
+    if (!window.Dien3D || !Dien3D.show()) { toast('Máy này chưa xem được mặt sau'); return; }
     Dien3D.reset(); paintXoay();
   });
 

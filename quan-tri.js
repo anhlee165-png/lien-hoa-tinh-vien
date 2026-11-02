@@ -75,14 +75,14 @@
         <div class="wrap"><table id="pk"><tr><th>Mã gói</th><th>Giá (đ)</th><th>Số xu</th><th>Bật</th></tr>
         ${(await allPacks(h)).map(p => `<tr><td><input value="${esc(p.id)}" size="5"></td><td><input type="number" value="${p.vnd}"></td><td><input type="number" value="${p.xu}"></td><td><input type="checkbox" ${p.on !== false ? 'checked' : ''}></td></tr>`).join('')}</table></div>
         <div class="row"><button id="add">＋ Thêm gói</button><button id="save">Lưu gói</button></div>
-        <h2>Giá dịch vụ (xu)</h2><form id="pr">Thắp hương <input id="inc" type="number" value="${h.prices.incense}" style="width:90px"> Đổi biệt danh (trong 24 giờ) <input id="ren" type="number" value="${h.prices.rename}" style="width:90px"><button>Lưu giá</button></form>${reauthNote}`;
+        <h2>Giá dịch vụ (xu)</h2><form id="pr">Thắp hương <input id="inc" type="number" value="${h.prices.incense}" style="width:90px"> Dâng hoa (1 bông) <input id="flo" type="number" value="${h.prices.flower ?? 150}" style="width:90px"> Đổi biệt danh (trong 24 giờ) <input id="ren" type="number" value="${h.prices.rename}" style="width:90px"><button>Lưu giá</button></form>${reauthNote}`;
       $('#add').onclick = () => $('#pk').insertAdjacentHTML('beforeend', '<tr><td><input size="5"></td><td><input type="number"></td><td><input type="number"></td><td><input type="checkbox" checked></td></tr>');
       $('#save').onclick = async () => {
         const packs = $$('#pk tr').slice(1).map(tr => { const i = $$('input', tr); return { id: i[0].value.trim(), vnd: +i[1].value, xu: +i[2].value, on: i[3].checked }; }).filter(p => p.id);
         if (!confirm('Lưu bảng giá mới? Đơn mới sẽ dùng giá này.')) return;
         try { await call('adminSetPacks', { packs }); toast('Đã lưu gói'); } catch (e) { toast(e.message); }
       };
-      $('#pr').onsubmit = async e => { e.preventDefault(); try { await call('adminSetPrices', { incense: +$('#inc').value, rename: +$('#ren').value }); toast('Đã lưu giá'); } catch (err) { toast(err.message); } };
+      $('#pr').onsubmit = async e => { e.preventDefault(); try { await call('adminSetPrices', { incense: +$('#inc').value, flower: +$('#flo').value, rename: +$('#ren').value }); toast('Đã lưu giá'); } catch (err) { toast(err.message); } };
     },
     async tk() {
       const c = await call('adminGetPayment');

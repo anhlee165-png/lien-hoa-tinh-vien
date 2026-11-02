@@ -4,7 +4,7 @@
 (() => {
   const REGION = 'asia-southeast1';
   const ok = !!(window.firebase && firebase.apps && firebase.apps.length && firebase.firestore && firebase.functions);
-  let uid = null, balance = 0, claims = {}, profile = null, unsub = null, online = false, cfg = { prices: { incense: 50, rename: 20 }, packs: [] };
+  let uid = null, balance = 0, claims = {}, profile = null, unsub = null, online = false, cfg = { prices: { incense: 50, flower: 150, rename: 20 }, packs: [] };
   const fire = (n, d) => dispatchEvent(new CustomEvent(n, { detail: d }));
   const fns = ok ? firebase.app().functions(REGION) : null;
   const db = ok ? firebase.firestore() : null;

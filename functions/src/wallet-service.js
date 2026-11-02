@@ -2,7 +2,7 @@
    Sổ cái chỉ thêm dòng mới, không sửa. Số dư không bao giờ âm. */
 const { db, FieldValue, now, fail } = require('./core');
 
-const DEFAULT_PRICES = { incense: 50, rename: 20,
+const DEFAULT_PRICES = { incense: 50, flower: 150, rename: 20,
   offers: { sen: { xu: 200, name: 'Cúng hoa sen' }, den: { xu: 500, name: 'Cúng đèn' }, tambao: { xu: 1000, name: 'Cúng dường Tam Bảo' }, kinh: { xu: 2000, name: 'Ấn tống kinh' } } };
 const RENAME_FREE_AFTER_MS = 24 * 3600e3;
 
@@ -26,7 +26,7 @@ function post(tx, { uid, wallet, delta, type, ref, reason = '', by = 'system', m
 /* Tiêu xu có chống trừ hai lần: opId do web sinh một lần cho mỗi lần bấm; gửi lại cùng opId trả về kết quả cũ. */
 async function spend(uid, isOwner, kind, opId, payload = {}) {
   if (!/^[A-Za-z0-9_-]{8,64}$/.test(opId || '')) fail('invalid-argument', 'Thiếu mã thao tác');
-  if (!['incense', 'rename', 'offer'].includes(kind)) fail('invalid-argument', 'Thao tác không hợp lệ');
+  if (!['incense', 'flower', 'rename', 'offer'].includes(kind)) fail('invalid-argument', 'Thao tác không hợp lệ');
   let nick, sex;
   if (kind === 'rename') {
     nick = String(payload.nick || '').trim().replace(/\s+/g, ' ');
@@ -41,7 +41,7 @@ async function spend(uid, isOwner, kind, opId, payload = {}) {
   return db.runTransaction(async tx => {
     const [op, w, u, pr] = await Promise.all([tx.get(opRef), tx.get(wref), tx.get(uref), prices(tx)]);
     if (op.exists) return { ...op.data().result, repeated: true };
-    let cost = kind === 'offer' ? 0 : pr[kind] | 0, label = kind === 'incense' ? 'Thắp hương' : 'Đổi biệt danh';
+    let cost = kind === 'offer' ? 0 : pr[kind] | 0, label = { incense: 'Thắp hương', flower: 'Dâng hoa', rename: 'Đổi biệt danh' }[kind];
     if (kind === 'offer') {
       const it = (pr.offers || {})[String(payload.item || '')];
       if (!it) fail('invalid-argument', 'Lễ cúng dường không có');
@@ -64,18 +64,19 @@ async function spend(uid, isOwner, kind, opId, payload = {}) {
   });
 }
 
-/* Hoàn xu cho một lần tiêu (vd. thắp hương thất bại phía web). Chỉ hoàn đúng 1 lần, trong 10 phút. */
+/* Hoàn xu cho một lần tiêu (vd. thắp hương / dâng hoa thất bại phía web). Chỉ hoàn đúng 1 lần, trong 10 phút. */
 async function refund(uid, opId) {
   const opRef = db.collection('ops').doc(`${uid}_${opId}`), rRef = db.collection('ops').doc(`${uid}_${opId}_refund`);
   const wref = db.collection('wallets').doc(uid);
   return db.runTransaction(async tx => {
     const [op, r, w] = await Promise.all([tx.get(opRef), tx.get(rRef), tx.get(wref)]);
-    if (!op.exists || op.data().kind !== 'incense') fail('not-found', 'Không tìm thấy thao tác');
+    if (!op.exists || !['incense', 'flower'].includes(op.data().kind)) fail('not-found', 'Không tìm thấy thao tác');
+    const kind = op.data().kind, label = kind === 'flower' ? 'dâng hoa' : 'thắp hương';
     if (r.exists) return r.data().result;
     const cost = op.data().result.cost | 0;
     if (Date.now() - op.data().at.toMillis() > 10 * 60e3) fail('failed-precondition', 'Đã quá hạn hoàn xu');
     let result = { balance: w.data().balance, refunded: 0 };
-    if (cost > 0) { const p = post(tx, { uid, wallet: w, delta: cost, type: 'REFUND', ref: `incense:${opId}`, reason: 'Hoàn xu thắp hương' }); result = { balance: p.balance, refunded: cost }; }
+    if (cost > 0) { const p = post(tx, { uid, wallet: w, delta: cost, type: 'REFUND', ref: `${kind}:${opId}`, reason: 'Hoàn xu ' + label }); result = { balance: p.balance, refunded: cost }; }
     tx.set(rRef, { uid, kind: 'refund', result, at: now() });
     return result;
   });

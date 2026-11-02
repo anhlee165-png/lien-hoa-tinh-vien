@@ -141,6 +141,20 @@ test('9. Tiêu xu đồng thời không làm số dư âm; bấm nhiều lần c
   assert.equal(rf.refunded, 50); assert.equal(await bal(C.uid), 200);
 });
 
+test('Dâng hoa: giá máy chủ 150 xu/bông, bấm lặp chỉ trừ 1 lần, không đủ xu bị chặn, hoàn xu đúng 1 lần', async () => {
+  const F = await signUp('hoa@vd.vn'); await call('hello', {}, F.token);
+  await db.collection('wallets').doc(F.uid).set({ balance: 200 });
+  const id = opId();
+  const r = await call('spend', { kind: 'flower', opId: id }, F.token); await call('spend', { kind: 'flower', opId: id }, F.token);
+  assert.equal(r.cost, 150); assert.equal(await bal(F.uid), 50);
+  await assert.rejects(call('spend', { kind: 'flower', opId: opId() }, F.token));
+  assert.equal(await bal(F.uid), 50);
+  const rf = await call('refundSpend', { opId: id }, F.token); await call('refundSpend', { opId: id }, F.token);
+  assert.equal(rf.refunded, 150); assert.equal(await bal(F.uid), 200);
+  const L = await db.collection('ledger').where('uid', '==', F.uid).get();
+  assert.ok(L.docs.some(d => d.data().reason === 'Dâng hoa' && d.data().xu === -150));
+});
+
 test('10. Thiếu/thừa tiền, trả sau khi hết hạn, sai tài khoản → không cộng, vào đối soát; hoàn tất thủ công có ghi log', async () => {
   const D = await signUp('d@vd.vn'); await call('hello', {}, D.token);
   const o1 = await call('createTopup', { packId: 'p1' }, D.token);

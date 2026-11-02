@@ -93,12 +93,14 @@ async function setPacks(actor, p) {
   return { packs };                                                            // đơn đã tạo giữ giá cũ (lưu trong đơn)
 }
 async function setPrices(actor, p) {
-  const incense = Math.trunc(+p.incense), rename = Math.trunc(+p.rename);
-  if (!(incense >= 0 && incense <= 100000 && rename >= 0 && rename <= 100000)) fail('invalid-argument', 'Giá không hợp lệ');
   const ref = db.collection('config').doc('prices'), before = (await ref.get()).data() || null;
-  await ref.set({ incense, rename, updatedAt: now(), updatedBy: actor });
-  await audit(actor, 'set_prices', { before, after: { incense, rename } });
-  return { incense, rename };
+  const incense = Math.trunc(+p.incense), rename = Math.trunc(+p.rename);
+  const flower = p.flower == null ? (before && before.flower != null ? before.flower : 150) : Math.trunc(+p.flower);
+  const okv = v => v >= 0 && v <= 100000;
+  if (!(okv(incense) && okv(rename) && okv(flower))) fail('invalid-argument', 'Giá không hợp lệ');
+  await ref.set({ incense, flower, rename, updatedAt: now(), updatedBy: actor }, { merge: true });
+  await audit(actor, 'set_prices', { before, after: { incense, flower, rename } });
+  return { incense, flower, rename };
 }
 
 /* Đổi tài khoản nhận tiền: chỉ chủ chùa, đã đăng nhập lại gần đây (kiểm ở index.js).
