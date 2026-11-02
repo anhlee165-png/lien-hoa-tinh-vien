@@ -78,7 +78,7 @@
   }
 
   /* ---- Phím tắt ---- */
-  const ACTS = ['chaptay', 'cuichao', 'layphat', 'niemphat', 'thien', 'nghekinh', 'chuoihat', 'thaphuong'];
+  const ACTS = ['chaptay', 'cuichao', 'layphat', 'niemphat', 'thien', 'nghekinh', 'chuoihat', 'thaphuong', 'danghoa'];
   addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
     const m = $('#modal'); if (m && !m.hidden) return;
@@ -86,7 +86,7 @@
     if (k === 'h') document.body.classList.toggle('live-noside');
     else if (k === 'q') $('#lv-qr').classList.toggle('off');
     else if (k === 'z') zi = (zi + 1) % ZOOMS.length;
-    else if (/^[1-8]$/.test(k)) { const b = document.querySelector(`#actions [data-act="${ACTS[+k - 1]}"]`); b && b.click(); }
+    else if (/^[1-9]$/.test(k)) { const b = document.querySelector(`#actions [data-act="${ACTS[+k - 1]}"]`); b && b.click(); }
   });
 
   /* ---- Bảng điều khiển bên cạnh khung (ngoài vùng quay): bấm thay phím ---- */

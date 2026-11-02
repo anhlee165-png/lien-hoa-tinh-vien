@@ -36,7 +36,8 @@
       block: [],
       exits: [[[770, 512, 905, 534], 'cua', [836, 900], 'up'],                              // cửa chính
               [[120, 630, 175, 715], 'lau-chuong', [836, 905], 'up'], [[1497, 630, 1552, 715], 'lau-trong', [836, 905], 'up']],   // cửa trái ra Lầu Chuông, cửa phải ra Lầu Trống
-      urn: { stand: [838, 714], face: 'down', plant: [838, 702], len: 55 } },
+      urn: { stand: [838, 714], face: 'down', plant: [838, 702], len: 55 },
+      vases: [{ stand: [455, 680], at: [455, 708] }, { stand: [1213, 680], at: [1213, 708] }] },   // hai bình sen trên bàn thờ: chỗ đứng dâng hoa, chỗ cắm
     'cua': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
@@ -56,12 +57,12 @@
     'san-gan': { lu: { src: 'assets/ngoai/lu-san-gan.png', at: [677, 584, 395, 357] }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 782], [1122, 560], [1000, 528], [700, 528], [560, 560], [0, 782]],
       block: [[205, 600, 335, 785], [1410, 600, 1555, 790], [345, 600, 470, 690], [1295, 600, 1395, 690], [495, 560, 565, 645], [1215, 560, 1290, 650], [1128, 540, 1178, 600], [692, 862, 1058, 941]],
-      exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'mat-tien', [836, 905], 'up'], [[1090, 930, 1672, 941], 'mat-tien', [836, 905], 'up'],
+      exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'san', [836, 905], 'up'], [[1090, 930, 1672, 941], 'san', [836, 905], 'up'],
               [[0, 760, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 760, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [874, 905], face: 'up', plant: [874, 676], len: 62 } },
     'tam-quan': { name: 'Cổng Tam Quan', img: 'assets/ngoai/tam-quan.jpg', hz: 520, k: .62,
       floor: [[300, 941], [1380, 941], [1380, 702], [1230, 672], [440, 672], [300, 702]],
-      exits: [[[300, 930, 1380, 941], 'mat-tien', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
+      exits: [[[300, 930, 1380, 941], 'san-gan', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
     'mat-tien': { lu: { src: 'assets/ngoai/lu-mat-tien.png', at: [699, 529, 272, 301] }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
       floor: [[332, 941], [1338, 941], [1338, 642], [1098, 626], [1090, 522], [580, 522], [572, 626], [332, 642]],
       block: [[716, 766, 954, 836]],
@@ -370,6 +371,7 @@
     ctx.drawImage(rm.key === 'hall' && S.warm || S.img, col * S.cw, row * S.ch, S.cw, S.ch, -dw / 2, -dh, dw, dh);
     ctx.restore();
     if (p.holding) drawHeldSticks(p, h);
+    if (p.holdingFlower) bloom(p.fx, p.fy - h * .52, h * .09);
     const el = tagFor(p);
     if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.left = p._tx.toFixed(1) + 'px'; el.style.top = (p._ty + (p._off || 0)).toFixed(1) + 'px'; el.style.transform = `translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
   }
@@ -406,7 +408,7 @@
     ctx.restore();
   }
   // Hương: que đỏ, đầu đỏ lửa, khói mỏng
-  const sticks = [], flying = [];
+  const sticks = [], flying = [], blooms = [], flyBloom = [];
   function stick(x, y, len, t, a = 1, puff = false) {
     ctx.strokeStyle = `rgba(178,34,40,${a})`; ctx.lineWidth = Math.max(1.4, len * .045); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - len); ctx.stroke();
@@ -417,6 +419,18 @@
       const k = ((t * .35 + i * .25) % 1), sy = y - len - k * len * 1.6, sx = x + Math.sin(t * 1.3 + i * 2 + x) * len * .12 * k + (room === 'hall' ? 0 : GIO(t) * k * k * len * .9);
       ctx.fillStyle = `rgba(235,235,235,${.16 * (1 - k) * a})`; ctx.beginPath(); ctx.arc(sx, sy, len * (.05 + k * .12), 0, 7); ctx.fill();
     }
+  }
+  // bông sen chibi: cánh hồng, nhụy vàng
+  function bloom(x, y, s, a = 1) {
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y);
+    ctx.fillStyle = '#3f8a3a'; ctx.beginPath(); ctx.ellipse(0, s * .55, s * 1.05, s * .32, 0, 0, 7); ctx.fill();
+    for (const [r, k] of [[-1.05, .8], [1.05, .8], [-.5, .95], [.5, .95], [0, 1]]) {
+      ctx.save(); ctx.rotate(r * .55);
+      const g = ctx.createLinearGradient(0, -s, 0, s * .3); g.addColorStop(0, '#ff9fc4'); g.addColorStop(1, '#e4568d');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -s * .3 * k, s * .34, s * .7 * k, 0, 0, 7); ctx.fill(); ctx.restore();
+    }
+    ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.arc(0, s * .1, s * .2, 0, 7); ctx.fill();
+    ctx.restore();
   }
   function drawHeldSticks(p, h) {
     const t = performance.now() / 1000, len = h * .2, hy = p.fy - h * (p.dir === 'up' && p.frame < 16 ? .56 : .5);
@@ -500,6 +514,25 @@
     while (sticks.length > 60) sticks.shift();
     dispatchEvent(new CustomEvent('chua-huong', { detail: { me: !!p.me } }));
     await sleep(500);
+    return true;
+  }
+
+  // Dâng hoa: đến trước bình sen trên bàn thờ, nâng hoa vái ba vái rồi cắm vào bình
+  async function offerFlower(p) {
+    const vs = ROOMS[p.room].vases; if (!vs) return false;
+    if (p.mode === 'seat') await standUp(p);
+    const v = vs.reduce((a, b) => Math.abs(b.stand[0] - p.fx) < Math.abs(a.stand[0] - p.fx) ? b : a);
+    if (Math.abs(p.fx - v.stand[0]) > 40) { await walkTo(p, p.fx, LANE); await walkTo(p, v.stand[0], LANE); }
+    await walkTo(p, v.stand[0], v.stand[1]);
+    p.mode = 'pose'; p.dir = 'down'; p.frame = F.stand; p.holdingFlower = true; await sleep(600);
+    for (let i = 0; i < 3; i++) { p.frame = F.standBow; await sleep(600); p.frame = F.stand; await sleep(450); }
+    p.holdingFlower = false;
+    const h = hAt(p.fy, ROOMS[p.room]), to = [v.at[0] + rnd(-62, 62), v.at[1] + rnd(-14, 14)];
+    flyBloom.push({ room: p.room, from: [p.fx, p.fy - h * .52], to, t0: performance.now() });
+    p.frame = F.standBow; await sleep(700); p.frame = F.stand;
+    blooms.push({ room: p.room, x: to[0], y: to[1], t0: performance.now() });
+    while (blooms.length > 28) blooms.shift();
+    dispatchEvent(new CustomEvent('chua-hoa', { detail: { me: !!p.me } }));
     return true;
   }
 
@@ -654,6 +687,11 @@
       smoke(room, t, dt);
       if (room === 'hall' && imgs.hallFg) { const [dx, dy] = shiftAt(843, 870); ctx.drawImage(imgs.hallFg, dx, ROOMS.hall.fgY + dy); }
       sticks.forEach(s => { if (s.room !== room) return; const age = (now - s.t0) / 1000, a = age > 80 ? Math.max(0, 1 - (age - 80) / 10) : 1; if (a > 0) { const [dx, dy] = shiftAt(s.x, s.y + 40); stick(s.x + dx, s.y + dy, s.len * (1 - Math.min(.5, age / 200)), t, a); } });
+      blooms.forEach(b => { if (b.room !== room) return; const age = (now - b.t0) / 1000, a = age > 600 ? Math.max(0, 1 - (age - 600) / 20) : 1; if (a > 0) { const [dx, dy] = shiftAt(b.x, b.y + 60); bloom(b.x + dx, b.y + dy, 15, a); } });
+      for (let i = flyBloom.length - 1; i >= 0; i--) {
+        const f = flyBloom[i], k = (now - f.t0) / 650; if (k >= 1) { flyBloom.splice(i, 1); continue; }
+        if (f.room === room) bloom(f.from[0] + (f.to[0] - f.from[0]) * k, f.from[1] + (f.to[1] - f.from[1]) * k - Math.sin(k * Math.PI) * 40, 11 + 4 * k);
+      }
       for (let i = flying.length - 1; i >= 0; i--) {
         const f = flying[i], k = (now - f.t0) / 600; if (k >= 1) { flying.splice(i, 1); continue; }
         if (f.room !== room) continue;
@@ -713,7 +751,7 @@
     me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
     room: () => room, roomName: () => R().name,
     exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
-      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[2] <= 160 ? 'left' : r[0] >= W - 160 ? 'right' : r[1] > H - 40 ? 'down' : 'up' })); },
+      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[3] - r[1] > r[2] - r[0] ? (r[0] + r[2] < W ? 'left' : 'right') : r[1] > H - 40 ? 'down' : 'up' })); },
     abbotEnter, abbotLeave,
     // mọi người trong cảnh dừng lại, quay mặt vào trống / chuông
     faceUp(ms = 3000) { const until = performance.now() + ms; people.filter(p => p.room === room && !p.abbot).forEach(p => { p.faceUntil = until; if (p.mode !== 'walk' && !p.busy) p.frame = F.up; }); me.dir = 'up'; },
@@ -740,6 +778,13 @@
       if (sheet === 'nu' || sheet === 'nam') me.sheet = sheet;
     },
     canIncense: () => meBusy ? 'busy' : !R().urn ? 'nourn' : true,
+    canFlower: () => meBusy ? 'busy' : !R().vases ? 'novase' : abbot && room === 'hall' ? 'abbot' : true,
+    async flower() {
+      if (meBusy || !R().vases || (abbot && room === 'hall')) return false;
+      meBusy = true; me.busy = true;
+      if (me.seat && me.seat.owner === me) me.seat.owner = null;
+      try { return await offerFlower(me); } finally { me.busy = false; meBusy = false; }
+    },
     async incense() {
       if (meBusy) return false;
       if (abbot && room === 'hall') return 'abbot';

@@ -11,6 +11,8 @@
   const L = 19.54, C = 4068;                   // hàng đầu (sát bàn thờ) ở y≈735, hàng cuối ở y≈905
   const LAMPS = [[366, 74, 90], [1092, 74, 90], [642, 554, 60], [823, 554, 60], [411, 594, 110], [1063, 594, 110], [734, 32, 120]];
   const URN = [731, 552];
+  const VASES = [[568, 568], [897, 568]];      // hai bình sen trên bàn thờ
+  const blooms = [];
 
   let canvas, ctx, label, img, active = false, raf = 0, failed = false, bowT = -99, count = 0;
   const view = { z: 0, x: 0, in: { x: 0, y: 0 }, drag: null, tx: 0, ty: 0 };
@@ -101,6 +103,10 @@
       const x = s.x + Math.sin(t * 1.4 + s.t0 * 3) * 6 * k + k * 18 * gio, y = s.y - k * 120, r = 3 + k * 16;
       ctx.fillStyle = `rgba(235,228,220,${.16 * (1 - k)})`; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
     }
+    // hoa Phật tử vừa dâng
+    blooms.forEach(b => { const k = Math.min(1, (t - b.t0) / .8); if (k < 0) return; const s = 5.5 * k;
+      ctx.fillStyle = '#ff8fbd'; ctx.beginPath(); ctx.ellipse(b.x - s * .45, b.y, s * .4, s * .8, -.5, 0, 7); ctx.ellipse(b.x + s * .45, b.y, s * .4, s * .8, .5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ffb2d2'; ctx.beginPath(); ctx.ellipse(b.x, b.y - s * .15, s * .38, s * .9, 0, 0, 7); ctx.fill(); });
     // đại chúng ngồi quay lưng (xa vẽ trước)
     const S = window.Nguoi && Nguoi.sheets ? Nguoi.sheets() : null;
     const ppl = window.Nguoi && Nguoi.seated ? Nguoi.seated() : [];
@@ -128,6 +134,7 @@
     drive(x, y) { view.in = { x, y }; },
     bow() { bowT = performance.now() / 1000; },
     incense() { const t = performance.now() / 1000; for (let i = 0; i < 24; i++) smoke.push({ x: URN[0] + (Math.random() - .5) * 30, y: URN[1] - 22, t0: t + i * .08, life: 4 + Math.random() * 2 }); },
+    flower() { const v = VASES[blooms.length % 2], t = performance.now() / 1000; blooms.push({ x: v[0] + (Math.random() - .5) * 46, y: v[1] + (Math.random() - .5) * 14, t0: t }); while (blooms.length > 24) blooms.shift(); },
     reset() { Object.assign(view, { z: 0, x: 0 }); },
     look(z, fov, x = 0) { view.z = Math.max(0, Math.min(1, (60 - (fov || 50)) / 34)); view.x = x / 2.4; }
   };

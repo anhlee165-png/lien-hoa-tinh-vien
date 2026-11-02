@@ -296,7 +296,8 @@
     state.log.unshift({ t: Date.now(), text, merit }); state.log = state.log.slice(0, 60); save();
   }
   const isAdmin = () => state.role === 'admin';
-  const GIA_HUONG = 50;                                                   // xu mỗi lần thắp hương
+  const GIA_HUONG = 50;                                                   // xu mỗi lần thắp hương (3 nén)
+  const GIA_HOA = 150;                                                    // xu mỗi bông hoa dâng lên Phật
   const xuText = () => isAdmin() ? '∞' : fmt(state.xu);
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
   paintWallet();
@@ -361,6 +362,29 @@
         floatText('Thắp nén tâm hương', 843, 520, true);
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
       chime(1040, 2.5, .2);
+    },
+    danghoa() {
+      // mỗi bông hoa cúng dường 150 xu (quản trị không mất xu); dâng không thành thì hoàn lại
+      const pay = () => {
+        if (isAdmin()) return true;
+        if (state.xu < GIA_HOA) { toast(`Mỗi bông hoa dâng Phật cúng dường ${GIA_HOA} xu. Đạo hữu còn ${fmt(state.xu)} xu, mời nạp thêm 🙏`); PANELS.wallet(true); return false; }
+        state.xu -= GIA_HOA; save(); paintWallet(); return true;
+      };
+      const refund = () => { if (!isAdmin()) { state.xu += GIA_HOA; save(); paintWallet(); } };
+      const book = () => { const L = store.get('ledger', []); L.unshift({ who: myName(), xu: isAdmin() ? 0 : GIA_HOA, kind: 'cung', what: 'Dâng hoa', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500)); };
+      const done = () => { book(); addMerit(3, 'Dâng hoa'); if (!isAdmin()) toast(`Đã cúng dường ${GIA_HOA} xu dâng hoa 🙏`); };
+      if (window.Dien3D && Dien3D.active()) {
+        if (!pay()) return; Dien3D.flower(); done(); floatText('Nguyện hoa tâm thanh tịnh dâng lên chư Phật', 843, 560, true);
+      } else if (window.Nguoi) {
+        const ok = Nguoi.canFlower();
+        if (ok === 'abbot') { toast('Thầy trụ trì đang ngồi giữa điện, xin dâng hoa sau khi thầy rời điện 🙏'); return; }
+        if (ok === 'novase') { toast('Hãy vào chánh điện để dâng hoa lên bàn thờ Phật'); return; }
+        if (ok !== true) return;
+        if (!pay()) return;
+        Nguoi.flower().then(r => { if (!r) refund(); else done(); });
+        floatText('Dâng hoa cúng Phật', 843, 520, true);
+      }
+      chime(1180, 2.5, .2);
     },
     rangoai() { state.outside ? goInside() : goOutside(); }
   };
@@ -457,10 +481,6 @@
     paintBellDot();
   });
   document.addEventListener('click', e => { if (!e.target.closest('.dropdown')) { hallMenu.hidden = true; bellMenu.hidden = true; } });
-  $('#niem-room').addEventListener('click', () => {
-    const b = $('[data-act="niemphat"]'); if (current !== 'niemphat') b.click();
-    Object.assign(cam, VIEWS.buddha); applyCam(); toast('Vào Phòng niệm Phật');
-  });
 
   /* ---------- Modal ---------- */
   const modal = $('#modal');
@@ -481,7 +501,7 @@
       const PACKS = [[18990, 1680], [48990, 5099], [99000, 10900], [199000, 21900]];
       const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
       openModal('Ví xu', `<p>Số dư</p><p class="big">${xuText()} xu</p>
-        ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p class="note">Mỗi lần thắp hương cúng dường ${GIA_HUONG} xu.</p>
+        ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p class="note">Thắp hương (3 nén) ${GIA_HUONG} xu · dâng hoa ${GIA_HOA} xu một bông.</p>
         <button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>
         <div id="packs"${open ? '' : ' hidden'}><p>Chọn gói nạp:</p>
         <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div></div>
