@@ -117,7 +117,7 @@
     for (let i = 2; ; i++) { const n = pick(TEN[sheet]) + ' ' + i; if (!used.has(n)) return n; }
   }
   const SEATS = [];
-  SEATS.push({ x: 838, y: 640, abbotSeat: true });                       // chỗ chính giữa trên thảm đỏ: chỉ thầy trụ trì được ngồi
+  SEATS.push({ x: 838, y: 732, abbotSeat: true });                       // thầy ngồi trên cùng: trước hàng Phật tử đầu, sát bàn thờ                       // chỗ chính giữa trên thảm đỏ: chỉ thầy trụ trì được ngồi
   for (const y of [702, 657, 624, 600, 583, 570]) {
     const h = hallH(y), gap = .66 * h, [cl, cr] = carpetX(y);
     const l0 = 205 + (460 - 205) * (702 - y) / (702 - 570);              // mép tường trái của khối ghế

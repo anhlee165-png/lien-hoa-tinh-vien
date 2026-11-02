@@ -19,6 +19,7 @@
   const smoke = [];
 
   function place(s) {
+    if (s.abbot) return { x: CX, y: 712 };                                // thầy ngồi trước hàng đầu, gần Phật nhất
     const d = Math.max(20, s.y - FRONT_HZ), zf = 1000 / d, yb = HZ + C / (L - zf);
     const lat = (s.x - 836) / d, a = Math.abs(lat);
     const off = (yb - HZ) * (a < .55 ? a * .42 / .55 : .42 + (a - .55) * .62);   // giữa thảm (thầy trụ trì) giữ ở giữa
