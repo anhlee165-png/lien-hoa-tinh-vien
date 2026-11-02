@@ -40,12 +40,12 @@
       vases: [{ stand: [455, 680], at: [455, 708] }, { stand: [1213, 680], at: [1213, 708] }] },   // hai bình sen trên bàn thờ: chỗ đứng dâng hoa, chỗ cắm
     'cua': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
-      block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
+      block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [772, 586, 900, 612]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [845, 575], 'down']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
     'cua-hong': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
-      block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
+      block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [772, 586, 900, 612]],
       exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [205, 680], 'right']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
     'san': { lu: { src: 'assets/ngoai/lu-san.png', at: [682, 512, 307, 337] }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
@@ -97,23 +97,27 @@
   const carpetX = y => { const t = (y - 548) / (790 - 548); return [790 + (675 - 790) * t, 882 + (997 - 882) * t]; };
   const LANE = 748;                                                       // lối đi ngang trước hàng ghế đầu, sát bàn thờ
   const NAMES = {};                                                       // tên cố định cho hàng ghế đầu (điện 1)
-  const FRONT_NAMES = [['Liên Hoa', 'nu'], ['An Nhiên', 'nu'], ['Quang Huy', 'nam'], ['Từ Hạnh', 'nu'], ['Minh Tâm', 'nu'], ['Nhật Minh', 'nam']];
-  // tên cho mọi Phật tử ảo (không trùng trong cùng một điện)
+  const FRONT_NAMES = [['Chị Ba Xôi Gấc', 'nu'], ['Ni Cô Trà Sữa', 'nu'], ['Anh Ba Khó Ngủ', 'nam'], ['Bà Tám Chánh Niệm', 'nu'], ['Cô Út Hiền Khô', 'nu'], ['Chú Tư Xe Ôm', 'nam']];
+  // biệt danh vui, độc lạ cho mọi Phật tử ảo (không trùng trong cùng một điện)
   const TEN = {
-    nu: ['Diệu Hạnh', 'Tâm An', 'Thanh Tịnh', 'Diệu Âm', 'Ngọc Liên', 'Huệ Chi', 'Bảo Châu', 'Thiện Mỹ', 'Diệu Thảo', 'Phương Thảo', 'Ngọc Hân',
-         'Minh Châu', 'Thu Hằng', 'Lan Anh', 'Bích Ngọc', 'Mai Hương', 'Kim Liên', 'Diệu Tâm', 'Như Ý', 'Hạnh Nguyên', 'Tuệ Lâm', 'Thảo Vy',
-         'Hồng Nhung', 'Thùy Dương', 'Ánh Tuyết', 'Diệu Liên', 'Tịnh Nghiêm', 'Quế Chi', 'Ngọc Trâm', 'Thanh Hương', 'Bảo Ngọc', 'Hải Yến',
-         'Kim Oanh', 'Thu Trang', 'Mỹ Duyên', 'Ngọc Diệp', 'Tường Vi', 'Khánh Linh', 'Diệu Nhàn', 'Thiện Hoa'],
-    nam: ['Thiện Tâm', 'Minh Đức', 'Trí Tuệ', 'Phúc Lâm', 'Thanh Sơn', 'Đức Hải', 'Minh Quang', 'Hải Đăng', 'Văn Tín', 'Hoàng Nam', 'Gia Bảo',
-          'Tuấn Kiệt', 'Bảo Long', 'Trung Hiếu', 'Quốc Khánh', 'Đình Phong', 'Thành Công', 'Minh Khang', 'Hữu Phước', 'Chánh Niệm', 'Tâm Đức',
-          'Văn Hòa', 'Đăng Khoa', 'Thiện Phúc', 'Quang Minh', 'Trí Dũng', 'Hữu Nghĩa', 'Nhật Quang', 'Tâm Thiện', 'Phước Sang']
+    nu: ['Cô Tấm Hiện Đại', 'Mơ Ngủ Nướng', 'Bé Mít Ướt', 'Chị Hai Bánh Bèo', 'Cô Ba Đậu Hũ', 'Dì Năm Chè Đậu', 'Hoa Hậu Chùa Làng', 'Chị Đẹp Niệm Phật',
+         'Bé Na Lém Lỉnh', 'Cô Nàng Thiền Định', 'Cô Ba Sài Gòn', 'Chị Tư Bánh Ít', 'Mẹ Bỉm Tu Tại Gia', 'Cô Chín Nhang Thơm', 'Bé Bơ Tu Hú',
+         'Chị Sáu Bông Sen', 'Thỏ Ngọc Ăn Chay', 'Cô Bảy Mứt Gừng', 'Nữ Hoàng Lạy Phật', 'Chị Ba Cà Phê Sữa', 'Cô Sáu Chuỗi Hạt', 'Bé Su Kem',
+         'Cô Mây Lang Thang', 'Thích Chụp Ảnh', 'Thích Trà Đá', 'Thích Ngủ Trưa', 'Thích Hoa Sen', 'Bà Ngoại Siêng Năng', 'Chị Bông Bí',
+         'Cô Hai Bún Riêu', 'Bé Mận Hậu', 'Dì Tư Nhiều Chuyện', 'Cô Ba Mắm Ruốc', 'Chị Cả Đảm Đang', 'Cô Bé Quàng Khăn Lam', 'Thím Sáu Bánh Xèo',
+         'Mợ Hai Hay Cười', 'Cô Năm Bánh Tét', 'Bé Hạt Tiêu', 'Chị Tơ Hồng'],
+    nam: ['Thích Ngồi Thiền', 'Thích Bánh Chưng', 'Anh Hai Hiền Lành', 'Ông Sáu Râu Bạc', 'Thích Đi Lễ Sớm', 'Bác Bảy Nhang Vòng', 'Cậu Út Ham Ăn',
+          'Thích Uống Trà', 'Anh Tư Lúa Mới', 'Chú Mười Chuông Đồng', 'Thích Câu Cá', 'Anh Tèo Chánh Niệm', 'Thích Ăn Xôi', 'Chú Bé Đánh Trống',
+          'Anh Ba Đậu Phộng', 'Thích Nghe Kinh', 'Ông Tám Mõ Gỗ', 'Thích Ngủ Gật', 'Thợ Hồ Tu Tâm', 'Cậu Ba Lúa Non', 'Thích Đạp Xe',
+          'Anh Hai Bánh Mì', 'Chú Năm Bồ Đề', 'Ông Bụt Mini', 'Hiền Như Bụt', 'Tèo Em Niệm Phật', 'Bác Ba Phi', 'Chú Tễu Vui Vẻ',
+          'Anh Cả Bánh Đa', 'Cậu Vàng Ăn Chay', 'Ông Năm Cờ Tướng', 'Chú Lùn Tốt Bụng', 'Anh Bảy Xe Lôi', 'Cậu Hai Ốc Luộc']
   };
   function nameFor(sheet) {
     const used = new Set(people.map(p => p.name));
     const free = TEN[sheet].filter(n => !used.has(n));
     if (free.length) return pick(free);
-    const A = TEN[sheet].map(n => n.split(' ')[0]), B = TEN[sheet].map(n => n.split(' ')[1]);
-    for (let k = 0; k < 400; k++) { const n = pick(A) + ' ' + pick(B); if (!used.has(n) && n.split(' ')[0] !== n.split(' ')[1]) return n; }
+    const A = TEN[sheet].map(n => n.split(' ').slice(0, 2).join(' ')), B = TEN[sheet].map(n => n.split(' ').slice(2).join(' ')).filter(Boolean);
+    for (let k = 0; k < 400; k++) { const n = pick(A) + ' ' + pick(B); if (!used.has(n)) return n; }
     for (let i = 2; ; i++) { const n = pick(TEN[sheet]) + ' ' + i; if (!used.has(n)) return n; }
   }
   const SEATS = [];
@@ -598,7 +602,17 @@
       }
       if (walkable(nx, ny)) { me.fx = nx; me.fy = ny; }
       else if (walkable(nx, me.fy) && Math.abs(input.x) > .3) me.fx = nx;
-      else if (walkable(me.fx, ny)) me.fy = ny;
+      else if (Math.abs(input.x) > Math.abs(input.y) && (() => {          // đi ngang mà vướng: lách lên/xuống theo phía gần nhất còn lối ngang
+        for (let d = 6; d <= 140; d += 6) for (const s of [-1, 1]) {
+          const y2 = me.fy + s * d;
+          if (!walkable(nx, y2)) continue;
+          const ys = me.fy + s * Math.min(d, v);
+          if (walkable(me.fx, ys)) { me.fy = ys; return true; }
+          if (walkable(nx, ys)) { me.fx = nx; me.fy = ys; return true; }
+        }
+        return false;
+      })()) { /* đã lách */ }
+      else if (walkable(me.fx, ny) && ny !== me.fy) me.fy = ny;
       else {                                                                // vướng lư hương, đèn đá, mép sân…: tự lách sang bên gần nhất còn lối đi
         const dy = ny - me.fy, look = Math.sign(dy) * 70;                 // dò trước ~70px theo hướng đang đi: phải thông suốt cả đoạn
         const ok = (x, y) => walkable(x, y) || R().exits.some(e => inRect(x, y, e[0])) || y < Math.min(...R().floor.map(p => p[1])) + 6 || y > H;   // lối ra / quá mép sân cũng tính là thông
@@ -667,7 +681,7 @@
       if (room === 'hall' || true) {
         nextBow -= dt;
         if (nextBow <= 0) { nextBow = rnd(.8, 2.6); const p = pick(people); if (p && !p.me && p.room === 'hall') bowOnce(p, rnd(700, 1400)); }
-        nextGroup -= dt; if (nextGroup <= 0) { nextGroup = rnd(20, 75); tripGroup(); }
+        nextGroup -= dt; if (nextGroup <= 0) { nextGroup = rnd(9, 26); tripGroup(); }
         nextTrip -= dt;
         if (nextTrip <= 0) {
           nextTrip = rnd(3, 7);
@@ -760,6 +774,7 @@
     drive(x, y) { input = { x, y }; },
     me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
     room: () => room, roomName: () => R().name,
+    canWalk: (x, y) => walkable(x, y),
     exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
       .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[3] - r[1] > r[2] - r[0] ? (r[0] + r[2] < W ? 'left' : 'right') : r[1] > H - 40 ? 'down' : 'up' })); },
     abbotEnter, abbotLeave,
@@ -772,6 +787,13 @@
     abbotHere: () => !!abbot && room === 'hall',
     // cho cảnh mặt sau: những người đang ngồi trong chánh điện (chỗ ngồi, áo, hướng)
     seated: () => people.filter(p => p.room === 'hall' && p.mode === 'seat' && (p.seat || p.abbot)).map(p => { const s = p.abbot ? ABBOT_SEAT : p.seat; return { x: s.x, y: s.y, sheet: p.sheet, flip: p.flip, me: !!p.me, abbot: !!p.abbot, name: p.name, bow: p.frame === F.prostrate ? 1 : p.frame === F.sitBow ? .4 : 0 }; }),
+    // cho cảnh mặt sau: mọi người đang ở trong chánh điện (ngồi, đứng, đang đi), kèm tên và hướng đi
+    hallPeople: () => people.filter(p => p.room === 'hall' && (p.mode !== 'seat' || p.seat || p.abbot)).map(p => {
+      const sit = p.mode === 'seat', s = sit ? (p.abbot ? ABBOT_SEAT : p.seat) : null;
+      return { id: p.id, x: s ? s.x : p.fx, y: s ? s.y : p.fy, sit, walk: p.mode === 'walk', dir: p.dir, walkT: p.walkT, sheet: p.sheet, flip: p.flip,
+        me: !!p.me, abbot: !!p.abbot, real: !!p.real, name: p.name,
+        bow: p.frame === F.prostrate ? 1 : p.frame === F.sitBow || p.frame === F.standBow ? .4 : 0 };
+    }),
     sheets: () => SHEETS,
     async layPhat(times = 3) {
       // chỉ người bấm lạy; mỗi Phật tử khác tự lạy theo nhịp riêng của mình
