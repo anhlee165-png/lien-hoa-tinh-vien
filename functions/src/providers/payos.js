@@ -8,7 +8,7 @@ const crypto = require('crypto');
 
 const name = 'payos';
 const BASE = () => process.env.PAYOS_BASE_URL || 'https://api-merchant.payos.vn';
-const SITE = 'https://anhlee165-png.github.io/lien-hoa-tinh-vien/';
+const SITE = 'https://lienhoatinhvien.com/';
 
 const hmac = (key, s) => crypto.createHmac('sha256', key).update(s).digest('hex');
 
