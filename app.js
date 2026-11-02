@@ -511,16 +511,19 @@
     wallet(open) {
       // Nạp xu: giá tiền (đồng) → số xu nhận được. Khách quét QR của chùa, quản trị xác nhận rồi xu mới vào ví.
       const PACKS = [[18990, 1680], [48990, 5099], [99000, 10900], [199000, 21900]];
+      // TẠM KHOÁ: chưa có máy chủ xác thực giao dịch (payOS) thì không cho chuyển tiền thật, tránh khách mất tiền mà không nhận xu
+      const NAP_MO = false;
       const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
       openModal('Ví xu', `<p>Số dư</p><p class="big">${xuText()} xu</p>
         ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p class="note">Thắp hương (3 nén) ${GIA_HUONG} xu · dâng hoa ${GIA_HOA} xu một bông.</p>
-        <button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>
-        <div id="packs"${open ? '' : ' hidden'}><p>Chọn gói nạp:</p>
+        ${NAP_MO ? `<button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>` : '<p class="note"><b>Sắp mở nạp xu.</b> Nhà chùa đang hoàn thiện cổng thanh toán an toàn, đạo hữu vui lòng quay lại sau 🙏</p>'}
+        <div id="packs"${open && NAP_MO ? '' : ' hidden'}><p>Chọn gói nạp:</p>
         <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div></div>
         <div id="pay" hidden></div>`}`,
         body => body.addEventListener('click', e => {
           if (e.target.closest('#nap-btn')) { $('#nap-btn', body).hidden = true; $('#packs', body).hidden = false; return; }
           const b = e.target.closest('[data-x]');
+          if (b && !NAP_MO) return;
           if (b) {
             const x = +b.dataset.x, d = +b.dataset.d, code = 'LHTV' + Date.now().toString(36).toUpperCase().slice(-6);
             const pay = $('#pay', body); pay.hidden = false;
