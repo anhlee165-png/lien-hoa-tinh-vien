@@ -31,12 +31,13 @@
      floor: vùng đi được · block: vật cản · exits: [vùng, cảnh tới, chỗ xuất hiện [x,y], hướng nhìn]
      urn: lư hương {stand: chỗ đứng, face, plant: miệng lư} */
   const ROOMS = {
-    hall: { name: 'Chánh điện', img: 'assets/song/nen.jpg', fg: 'assets/song/truoc.png', fgY: 660, hz: 472.4, k: .525,
-      floor: [[798, 556], [892, 556], [1430, 648], [1672, 712], [1672, 900], [1388, 900], [1388, 818], [292, 818], [292, 900], [0, 900], [0, 712], [250, 648]],
+    hall: { name: 'Chánh điện', img: 'assets/song/nen.jpg', fg: 'assets/song/truoc.png', fgY: 0, hz: 472.4, k: .525,
+      floor: [[780, 522], [895, 522], [1185, 548], [1535, 652], [1540, 700], [1400, 742], [1320, 770], [355, 770], [272, 742], [132, 700], [137, 652], [487, 548]],
       block: [],
-      exits: [[[790, 540, 900, 563], 'cua', [836, 900], 'up'],                              // cửa chính
-              [[0, 640, 150, 735], 'lau-chuong', [836, 905], 'up'], [[1522, 640, 1672, 735], 'lau-trong', [836, 905], 'up']],   // cửa trái ra Lầu Chuông, cửa phải ra Lầu Trống
-      urn: { stand: [845, 806], face: 'down', plant: [843, 800], len: 58 } },
+      exits: [[[770, 512, 905, 534], 'cua', [836, 900], 'up'],                              // cửa chính
+              [[120, 630, 175, 715], 'lau-chuong', [836, 905], 'up'], [[1497, 630, 1552, 715], 'lau-trong', [836, 905], 'up']],   // cửa trái ra Lầu Chuông, cửa phải ra Lầu Trống
+      urn: { stand: [838, 714], face: 'down', plant: [838, 702], len: 55 },
+      vases: [{ stand: [455, 680], at: [455, 708] }, { stand: [1213, 680], at: [1213, 708] }] },   // hai bình sen trên bàn thờ: chỗ đứng dâng hoa, chỗ cắm
     'cua': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Cửa Chánh điện', img: 'assets/ngoai/cua.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
@@ -45,7 +46,7 @@
     'cua-hong': { lu: { src: 'assets/ngoai/lu-cua.png', at: [755, 423, 164, 184] }, name: 'Thềm Chánh điện', img: 'assets/ngoai/cua-hong.jpg', hz: 470, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 742], [1085, 522], [600, 522], [222, 742]],
       block: [[425, 560, 515, 640], [1157, 560, 1250, 640], [600, 505, 645, 552], [1030, 505, 1070, 552], [675, 490, 700, 515], [975, 490, 1000, 515], [238, 560, 425, 835], [1245, 560, 1440, 835], [762, 566, 910, 616]],
-      exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [60, 790], 'right']],
+      exits: [[[560, 500, 1110, 532], 'san', [836, 905], 'up'], [[222, 932, 1450, 941], 'hall', [205, 680], 'right']],
       urn: { stand: [836, 640], face: 'up', plant: [836, 462], len: 26 } },
     'san': { lu: { src: 'assets/ngoai/lu-san.png', at: [682, 512, 307, 337] }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 822], [1112, 560], [1042, 500], [628, 500], [558, 560], [0, 822]],
@@ -56,12 +57,12 @@
     'san-gan': { lu: { src: 'assets/ngoai/lu-san-gan.png', at: [677, 584, 395, 357] }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 782], [1122, 560], [1000, 528], [700, 528], [560, 560], [0, 782]],
       block: [[205, 600, 335, 785], [1410, 600, 1555, 790], [345, 600, 470, 690], [1295, 600, 1395, 690], [495, 560, 565, 645], [1215, 560, 1290, 650], [1128, 540, 1178, 600], [692, 862, 1058, 941]],
-      exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'mat-tien', [836, 905], 'up'], [[1090, 930, 1672, 941], 'mat-tien', [836, 905], 'up'],
+      exits: [[[680, 515, 1020, 538], 'tam-quan', [836, 905], 'up'], [[0, 930, 650, 941], 'san', [836, 905], 'up'], [[1090, 930, 1672, 941], 'san', [836, 905], 'up'],
               [[0, 760, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 760, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [874, 905], face: 'up', plant: [874, 676], len: 62 } },
     'tam-quan': { name: 'Cổng Tam Quan', img: 'assets/ngoai/tam-quan.jpg', hz: 520, k: .62,
       floor: [[300, 941], [1380, 941], [1380, 702], [1230, 672], [440, 672], [300, 702]],
-      exits: [[[300, 930, 1380, 941], 'mat-tien', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
+      exits: [[[300, 930, 1380, 941], 'san-gan', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
     'mat-tien': { lu: { src: 'assets/ngoai/lu-mat-tien.png', at: [699, 529, 272, 301] }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
       floor: [[332, 941], [1338, 941], [1338, 642], [1098, 626], [1090, 522], [580, 522], [572, 626], [332, 642]],
       block: [[716, 766, 954, 836]],
@@ -79,11 +80,11 @@
     'lau-chuong': { tap: [[737, 415, 927, 679], 'chuong'], name: 'Lầu Chuông', img: 'assets/ngoai/lau-chuong.jpg', hz: 560, k: .66,
       floor: [[0, 941], [1672, 941], [1672, 802], [1052, 802], [1042, 722], [648, 722], [640, 802], [0, 802]],
       block: [[115, 780, 280, 845], [1415, 780, 1585, 845], [420, 795, 640, 840], [1045, 795, 1265, 830]],
-      exits: [[[0, 802, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 802, 1672, 941], 'hanh-lang', [500, 905], 'up'], [[0, 930, 1672, 941], 'hall', [200, 745], 'right']],
+      exits: [[[0, 802, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 802, 1672, 941], 'hanh-lang', [500, 905], 'up'], [[0, 930, 1672, 941], 'hall', [205, 690], 'right']],
       act: [[648, 718, 1042, 740], 'chuong'] },
     'lau-trong': { tap: [[760, 361, 935, 519], 'trong'], name: 'Lầu Trống', img: 'assets/ngoai/lau-trong.jpg', hz: 480, k: .6,
       floor: [[222, 941], [1450, 941], [1450, 846], [1322, 752], [1322, 652], [362, 652], [362, 752], [222, 846]],
-      exits: [[[222, 930, 1450, 941], 'hall', [1470, 745], 'left']],
+      exits: [[[222, 930, 1450, 941], 'hall', [1467, 690], 'left']],
       act: [[700, 648, 990, 670], 'trong'] },
     'hanh-lang': { name: 'Hành lang', img: 'assets/ngoai/hanh-lang.jpg', hz: 470, k: .6,
       floor: [[150, 941], [1262, 941], [1202, 802], [962, 602], [890, 572], [730, 572], [600, 642], [150, 832]],
@@ -93,9 +94,10 @@
   Object.entries(ROOMS).forEach(([k, v]) => v.key = k);
   /* ---------- Chỗ ngồi trong chánh điện ---------- */
   const hallH = y => ROOMS.hall.k * (y - ROOMS.hall.hz);            // chiều cao người đứng
-  const carpetX = y => { const t = (y - 548) / (790 - 548); return [806 + (732 - 806) * t, 884 + (958 - 884) * t]; };
-  const NAMES = { '323,794': ['Minh Tâm', 'nu'], '487,792': ['Quang Huy', 'nam'], '677,782': ['Liên Hoa', 'nu'],
-                  '1024,788': ['An Nhiên', 'nu'], '1193,792': ['Từ Hạnh', 'nu'], '1353,792': ['Nhật Minh', 'nam'] };
+  const carpetX = y => { const t = (y - 548) / (790 - 548); return [790 + (675 - 790) * t, 882 + (997 - 882) * t]; };
+  const LANE = 748;                                                       // lối đi ngang trước hàng ghế đầu, sát bàn thờ
+  const NAMES = {};                                                       // tên cố định cho hàng ghế đầu (điện 1)
+  const FRONT_NAMES = [['Liên Hoa', 'nu'], ['An Nhiên', 'nu'], ['Quang Huy', 'nam'], ['Từ Hạnh', 'nu'], ['Minh Tâm', 'nu'], ['Nhật Minh', 'nam']];
   // tên cho mọi Phật tử ảo (không trùng trong cùng một điện)
   const TEN = {
     nu: ['Diệu Hạnh', 'Tâm An', 'Thanh Tịnh', 'Diệu Âm', 'Ngọc Liên', 'Huệ Chi', 'Bảo Châu', 'Thiện Mỹ', 'Diệu Thảo', 'Phương Thảo', 'Ngọc Hân',
@@ -115,17 +117,18 @@
     for (let i = 2; ; i++) { const n = pick(TEN[sheet]) + ' ' + i; if (!used.has(n)) return n; }
   }
   const SEATS = [];
-  [[323, 794], [487, 792], [677, 782], [1024, 788], [1193, 792], [1353, 792]].forEach(([x, y]) => SEATS.push({ x, y, front: true }));
-  SEATS.push({ x: 845, y: 778, abbotSeat: true });                       // chỗ chính giữa trên thảm đỏ: chỉ thầy trụ trì được ngồi
+  SEATS.push({ x: 838, y: 640, abbotSeat: true });                       // chỗ chính giữa trên thảm đỏ: chỉ thầy trụ trì được ngồi
   for (const y of [702, 657, 624, 600, 583, 570]) {
     const h = hallH(y), gap = .66 * h, [cl, cr] = carpetX(y);
-    const l0 = 268 + (556 - 268) * (702 - y) / (702 - 570);              // mép tường trái của khối ghế
+    const l0 = 205 + (460 - 205) * (702 - y) / (702 - 570);              // mép tường trái của khối ghế
     const lEnd = cl - .32 * h, rStart = cr + .32 * h, rEnd = 1672 - l0 + 20;
     const nL = Math.max(1, Math.floor((lEnd - l0) / gap) + 1), nR = Math.max(1, Math.floor((rEnd - rStart) / gap) + 1);
-    for (let i = 0; i < nL; i++) SEATS.push({ x: lEnd - i * (lEnd - l0) / Math.max(1, nL - 1), y });
-    for (let i = 0; i < nR; i++) SEATS.push({ x: rStart + i * (rEnd - rStart) / Math.max(1, nR - 1), y });
+    for (let i = 0; i < nL; i++) SEATS.push({ x: lEnd - i * (lEnd - l0) / Math.max(1, nL - 1), y, front: y === 702 });
+    for (let i = 0; i < nR; i++) SEATS.push({ x: rStart + i * (rEnd - rStart) / Math.max(1, nR - 1), y, front: y === 702 });
   }
-  SEATS.find(s => s.y === 702).mine = true;                              // chỗ của Bạn: hàng sau, sát thảm đỏ
+  SEATS.find(s => s.y === 702).mine = true;                              // chỗ của Bạn: hàng đầu, sát thảm đỏ
+  { const fr = SEATS.filter(s => s.front && !s.mine).sort((a, b) => Math.abs(a.x - 838) - Math.abs(b.x - 838));
+    fr.forEach((s, i) => FRONT_NAMES[i] && (NAMES[s.x + ',' + s.y] = FRONT_NAMES[i])); }
   const MAX_AO = SEATS.length - 2;
   const CAP = SEATS.length - 1;                                          // số chỗ của một điện (trừ chỗ thầy), kể cả Bạn
 
@@ -184,8 +187,8 @@
     p.busy = true;
     try {
       if (p.mode === 'seat') { await standUp(p); }
-      if (p.fy > 690) await walkTo(p, p.fx, Math.min(812, Math.max(p.fy + 14, 806)));
-      if (p.fy > 690) await walkTo(p, p.fx < 845 ? 770 : 920, 806);
+      if (p.fy > 690) await walkTo(p, p.fx, LANE);
+      if (p.fy > 690) await walkTo(p, p.fx < 845 ? 760 : 920, LANE);
       await walkTo(p, 845 + rnd(-25, 25), 680); await walkTo(p, 836 + rnd(-15, 15), 560);
       if (p.room === 'hall') { p.room = 'away'; p.mode = 'pose'; }
     } finally { p.busy = false; }
@@ -193,7 +196,7 @@
   async function walkIn(p) {
     const s = p.seat; if (!s || s.owner !== p) return drop(p);
     p.busy = true; p.room = 'hall'; p.mode = 'pose'; p.frame = F.down; p.fx = 836 + rnd(-15, 15); p.fy = 560;
-    try { await walkTo(p, 845 + rnd(-25, 25), 680); if (s.y > 690) await walkTo(p, s.x < 845 ? 770 : 920, 806); await walkTo(p, s.x, Math.min(812, s.y + 16)); await sitAt(p, s); }
+    try { await walkTo(p, 845 + rnd(-25, 25), 680); if (s.y > 690) await walkTo(p, s.x < 845 ? 760 : 920, LANE); await walkTo(p, s.x, Math.min(LANE, s.y + 16)); await sitAt(p, s); }
     finally { p.busy = false; }
   }
   function tripGroup() {
@@ -276,8 +279,11 @@
 
   /* ---------- Tải ảnh ---------- */
   const imgs = {}; let monk = null, ready = false;
+  // ánh nến trong chánh điện: phủ nhẹ một lớp vàng ấm lên áo lam để hợp tông màu ảnh nền
+  const warmUp = i => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const g = c.getContext('2d'); g.drawImage(i, 0, 0);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,170,80,.16)'; g.fillRect(0, 0, c.width, c.height); return c; };
   Promise.all([
-    load('assets/song/nu.png').then(i => SHEETS.nu.img = i), load('assets/song/nam.png').then(i => SHEETS.nam.img = i), load('assets/song/tru-tri.png').then(i => SHEETS.tt.img = i),
+    ...['nu', 'nam', 'tt'].map(k => load(`assets/song/${{ nu: 'nu', nam: 'nam', tt: 'tru-tri' }[k]}.png`).then(i => { SHEETS[k].img = i; SHEETS[k].warm = warmUp(i); })),
     load('assets/song/monk.png').then(i => monk = i), load(ROOMS.hall.img).then(i => imgs.hall = i), load(ROOMS.hall.fg).then(i => imgs.hallFg = i)
   ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); realList = window.Presence ? Presence.others() : []; syncReal();
     Object.keys(ROOMS).forEach(k => { if (k !== 'hall') load(ROOMS[k].img).then(i => imgs[k] = i); if (ROOMS[k].lu) load(ROOMS[k].lu.src).then(i => imgs['lu-' + k] = i); }); });
@@ -362,9 +368,10 @@
     ctx.save(); ctx.translate(p.fx, p.fy + 1);
     if (flip) ctx.scale(-1, 1);
     if (p.squash) ctx.scale(1, p.squash);
-    ctx.drawImage(S.img, col * S.cw, row * S.ch, S.cw, S.ch, -dw / 2, -dh, dw, dh);
+    ctx.drawImage(rm.key === 'hall' && S.warm || S.img, col * S.cw, row * S.ch, S.cw, S.ch, -dw / 2, -dh, dw, dh);
     ctx.restore();
     if (p.holding) drawHeldSticks(p, h);
+    if (p.holdingFlower) bloom(p.fx, p.fy - h * .52, h * .09);
     const el = tagFor(p);
     if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.left = p._tx.toFixed(1) + 'px'; el.style.top = (p._ty + (p._off || 0)).toFixed(1) + 'px'; el.style.transform = `translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
   }
@@ -401,7 +408,7 @@
     ctx.restore();
   }
   // Hương: que đỏ, đầu đỏ lửa, khói mỏng
-  const sticks = [], flying = [];
+  const sticks = [], flying = [], blooms = [], flyBloom = [];
   function stick(x, y, len, t, a = 1, puff = false) {
     ctx.strokeStyle = `rgba(178,34,40,${a})`; ctx.lineWidth = Math.max(1.4, len * .045); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - len); ctx.stroke();
@@ -412,6 +419,18 @@
       const k = ((t * .35 + i * .25) % 1), sy = y - len - k * len * 1.6, sx = x + Math.sin(t * 1.3 + i * 2 + x) * len * .12 * k + (room === 'hall' ? 0 : GIO(t) * k * k * len * .9);
       ctx.fillStyle = `rgba(235,235,235,${.16 * (1 - k) * a})`; ctx.beginPath(); ctx.arc(sx, sy, len * (.05 + k * .12), 0, 7); ctx.fill();
     }
+  }
+  // bông sen chibi: cánh hồng, nhụy vàng
+  function bloom(x, y, s, a = 1) {
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y);
+    ctx.fillStyle = '#3f8a3a'; ctx.beginPath(); ctx.ellipse(0, s * .55, s * 1.05, s * .32, 0, 0, 7); ctx.fill();
+    for (const [r, k] of [[-1.05, .8], [1.05, .8], [-.5, .95], [.5, .95], [0, 1]]) {
+      ctx.save(); ctx.rotate(r * .55);
+      const g = ctx.createLinearGradient(0, -s, 0, s * .3); g.addColorStop(0, '#ff9fc4'); g.addColorStop(1, '#e4568d');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -s * .3 * k, s * .34, s * .7 * k, 0, 0, 7); ctx.fill(); ctx.restore();
+    }
+    ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.arc(0, s * .1, s * .2, 0, 7); ctx.fill();
+    ctx.restore();
   }
   function drawHeldSticks(p, h) {
     const t = performance.now() / 1000, len = h * .2, hy = p.fy - h * (p.dir === 'up' && p.frame < 16 ? .56 : .5);
@@ -425,7 +444,7 @@
     if (rm.key && rm.key !== 'hall' && chanAt(rm.key, x, y) > 128) return false;   // chân lư, đèn đá, chậu cây… (vật cố định)
     const m = rm.key === 'hall' ? 0 : .1 * hAt(y, rm);                     // bề ngang thân người: không lấn vào vật cản
     for (const b of rm.block || []) if (x >= b[0] - m && x <= b[2] + m && y >= b[1] && y <= b[3]) return false;
-    if (rm.key === 'hall' && abbot && x > 740 && x < 950 && y > 735) return false;   // không đi che trước mặt thầy trụ trì
+    if (rm.key === 'hall' && abbot && x > 770 && x < 910 && y > 650) return false;   // không đi che trước mặt thầy trụ trì
     return true;
   }
   const dirOf = (dx, dy) => Math.abs(dx) > Math.abs(dy) * .8 ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
@@ -480,7 +499,7 @@
     const u = ROOMS[p.room].urn; if (!u) return false;
     if (p.mode === 'seat') await standUp(p);
     const [sx, sy] = u.stand;
-    if (p.room === 'hall' && Math.abs(p.fx - sx) > 40) await walkTo(p, p.fx, Math.max(p.fy, 800));  // ra lối trước bàn
+    if (p.room === 'hall' && Math.abs(p.fx - sx) > 40) await walkTo(p, p.fx, Math.max(p.fy, LANE));  // ra lối trước bàn
     await walkTo(p, sx + (p.me ? 0 : rnd(-30, 30)), sy);
     p.mode = 'pose'; p.dir = u.face; p.frame = u.face === 'up' ? F.up : F.stand;
     p.holding = true; await sleep(700);
@@ -498,22 +517,41 @@
     return true;
   }
 
+  // Dâng hoa: đến trước bình sen trên bàn thờ, nâng hoa vái ba vái rồi cắm vào bình
+  async function offerFlower(p) {
+    const vs = ROOMS[p.room].vases; if (!vs) return false;
+    if (p.mode === 'seat') await standUp(p);
+    const v = vs.reduce((a, b) => Math.abs(b.stand[0] - p.fx) < Math.abs(a.stand[0] - p.fx) ? b : a);
+    if (Math.abs(p.fx - v.stand[0]) > 40) { await walkTo(p, p.fx, LANE); await walkTo(p, v.stand[0], LANE); }
+    await walkTo(p, v.stand[0], v.stand[1]);
+    p.mode = 'pose'; p.dir = 'down'; p.frame = F.stand; p.holdingFlower = true; await sleep(600);
+    for (let i = 0; i < 3; i++) { p.frame = F.standBow; await sleep(600); p.frame = F.stand; await sleep(450); }
+    p.holdingFlower = false;
+    const h = hAt(p.fy, ROOMS[p.room]), to = [v.at[0] + rnd(-62, 62), v.at[1] + rnd(-14, 14)];
+    flyBloom.push({ room: p.room, from: [p.fx, p.fy - h * .52], to, t0: performance.now() });
+    p.frame = F.standBow; await sleep(700); p.frame = F.stand;
+    blooms.push({ room: p.room, x: to[0], y: to[1], t0: performance.now() });
+    while (blooms.length > 28) blooms.shift();
+    dispatchEvent(new CustomEvent('chua-hoa', { detail: { me: !!p.me } }));
+    return true;
+  }
+
   /* ---------- Phật tử tự sinh hoạt ---------- */
   const hallSpots = () => ({
     door: [[836 + rnd(-20, 20), 572]],
-    left: [[rnd(70, 230), rnd(735, 800)]], right: [[rnd(1450, 1600), rnd(735, 800)]],
-    wander: [[rnd(300, 1380), rnd(700, 810)]]
+    left: [[rnd(180, 260), rnd(672, 720)]], right: [[rnd(1412, 1492), rnd(672, 720)]],
+    wander: [[rnd(380, 1290), rnd(712, 765)]]
   });
   async function outing(p, kind) {
     if (p.busy || p.mode !== 'seat' || p.room !== 'hall') return; p.busy = true;
     try {
       if (kind === 'lay') { await prostrate(p, 3); return; }
       await standUp(p);
-      const lane = [p.fx, Math.min(812, Math.max(p.fy + 14, 806))];
+      const lane = [p.fx, LANE];
       if (kind === 'huong') { await walkTo(p, ...lane); await incense(p); }
       else {
         const sp = hallSpots()[kind] || hallSpots().wander;
-        const via = kind === 'door' ? [lane, [p.fx < 845 ? 770 : 920, 806], [845 + rnd(-30, 30), 680]] : kind === 'wander' ? [] : [lane];
+        const via = kind === 'door' ? [lane, [p.fx < 845 ? 760 : 920, LANE], [845 + rnd(-30, 30), 680]] : kind === 'wander' ? [] : [lane];
         for (const pt of [...via, ...sp]) await walkTo(p, ...pt);
         p.frame = kind === 'door' || kind === 'left' || kind === 'right' ? F.up : F.stand;
         if (kind === 'left' || kind === 'right') { p.mode = 'pose'; p.frame = F.up; }
@@ -521,8 +559,8 @@
         p.frame = F.standBow; await sleep(800); p.frame = F.stand;
         for (const pt of via.reverse()) await walkTo(p, ...pt);
       }
-      if (p.fy < 800 && Math.abs(p.fy - p.seat.y) > 20) await walkTo(p, p.fx, Math.max(p.seat.y + 14, Math.min(812, p.fy)));
-      await walkTo(p, p.seat.x, Math.min(812, p.seat.y + 16));
+      if (p.fy < LANE - 6 && Math.abs(p.fy - p.seat.y) > 20) await walkTo(p, p.fx, Math.max(p.seat.y + 14, Math.min(LANE, p.fy)));
+      await walkTo(p, p.seat.x, Math.min(LANE, p.seat.y + 16));
       await sitAt(p, p.seat);
     } finally { p.busy = false; }
   }
@@ -649,6 +687,11 @@
       smoke(room, t, dt);
       if (room === 'hall' && imgs.hallFg) { const [dx, dy] = shiftAt(843, 870); ctx.drawImage(imgs.hallFg, dx, ROOMS.hall.fgY + dy); }
       sticks.forEach(s => { if (s.room !== room) return; const age = (now - s.t0) / 1000, a = age > 80 ? Math.max(0, 1 - (age - 80) / 10) : 1; if (a > 0) { const [dx, dy] = shiftAt(s.x, s.y + 40); stick(s.x + dx, s.y + dy, s.len * (1 - Math.min(.5, age / 200)), t, a); } });
+      blooms.forEach(b => { if (b.room !== room) return; const age = (now - b.t0) / 1000, a = age > 600 ? Math.max(0, 1 - (age - 600) / 20) : 1; if (a > 0) { const [dx, dy] = shiftAt(b.x, b.y + 60); bloom(b.x + dx, b.y + dy, 15, a); } });
+      for (let i = flyBloom.length - 1; i >= 0; i--) {
+        const f = flyBloom[i], k = (now - f.t0) / 650; if (k >= 1) { flyBloom.splice(i, 1); continue; }
+        if (f.room === room) bloom(f.from[0] + (f.to[0] - f.from[0]) * k, f.from[1] + (f.to[1] - f.from[1]) * k - Math.sin(k * Math.PI) * 40, 11 + 4 * k);
+      }
       for (let i = flying.length - 1; i >= 0; i--) {
         const f = flying[i], k = (now - f.t0) / 600; if (k >= 1) { flying.splice(i, 1); continue; }
         if (f.room !== room) continue;
@@ -690,8 +733,8 @@
     abbot = makePerson({ sheet: 'tt', name: 'Thầy Trụ trì', flip: false, room: 'hall', fx: 836, fy: 562, mode: 'pose', frame: F.down, busy: true, abbot: true, big: 1.4 });
     people.push(abbot); ABBOT_SEAT.owner = abbot;
     // ai đang đứng trên lối giữa thì về chỗ, để thầy đi thẳng theo thảm đỏ vào ngồi chính giữa
-    if (me.room === 'hall' && me.mode !== 'seat' && me.fx > 740 && me.fx < 950 && me.fy > 735 && !meBusy) { meBusy = true; await walkTo(me, 640, 720); me.mode = 'pose'; meBusy = false; }
-    await walkTo(abbot, 840, 680); await walkTo(abbot, ABBOT_SEAT.x, ABBOT_SEAT.y);
+    if (me.room === 'hall' && me.mode !== 'seat' && me.fx > 770 && me.fx < 910 && me.fy > 650 && !meBusy) { meBusy = true; await walkTo(me, 640, 735); me.mode = 'pose'; meBusy = false; }
+    await walkTo(abbot, ABBOT_SEAT.x, ABBOT_SEAT.y);
     abbot.dir = 'down'; abbot.frame = F.stand; await sleep(250); abbot.frame = F.standBow; await sleep(700);
     abbot.frame = F.stand; await sleep(250); abbot.frame = F.sit; abbot.mode = 'seat'; abbot.busy = false;
     dispatchEvent(new CustomEvent('chua-count', { detail: count() }));
@@ -708,7 +751,7 @@
     me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
     room: () => room, roomName: () => R().name,
     exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
-      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[2] <= 160 ? 'left' : r[0] >= W - 160 ? 'right' : r[1] > H - 40 ? 'down' : 'up' })); },
+      .map(([r, to, at, face]) => ({ to, at, face, name: ROOMS[to].name, side: r[3] - r[1] > r[2] - r[0] ? (r[0] + r[2] < W ? 'left' : 'right') : r[1] > H - 40 ? 'down' : 'up' })); },
     abbotEnter, abbotLeave,
     // mọi người trong cảnh dừng lại, quay mặt vào trống / chuông
     faceUp(ms = 3000) { const until = performance.now() + ms; people.filter(p => p.room === room && !p.abbot).forEach(p => { p.faceUntil = until; if (p.mode !== 'walk' && !p.busy) p.frame = F.up; }); me.dir = 'up'; },
@@ -717,6 +760,9 @@
     bowAll(depth, ms) { hallNpcs().forEach(p => setTimeout(() => bowOnce(p, ms || 1200), rnd(100, 700))); if (!meBusy) bowOnce(me, ms || 1200); },
     beat() { bowOnce(me, 380); for (let i = 0; i < 4; i++) { const p = pick(hallNpcs()); p && bowOnce(p, 380); } },
     abbotHere: () => !!abbot && room === 'hall',
+    // cho cảnh mặt sau: những người đang ngồi trong chánh điện (chỗ ngồi, áo, hướng)
+    seated: () => people.filter(p => p.room === 'hall' && p.mode === 'seat' && (p.seat || p.abbot)).map(p => { const s = p.abbot ? ABBOT_SEAT : p.seat; return { x: s.x, y: s.y, sheet: p.sheet, flip: p.flip, me: !!p.me, abbot: !!p.abbot, name: p.name }; }),
+    sheets: () => SHEETS,
     async layPhat(times = 3) {
       if (abbot && room === 'hall') {                                       // thầy đang ngồi: chỉ ngồi chắp tay cúi đầu, không lạy rạp
         hallNpcs().filter(p => !p.busy && p.mode === 'seat').forEach(p => setTimeout(() => bowOnce(p, 1200), rnd(100, 700)));
@@ -732,6 +778,13 @@
       if (sheet === 'nu' || sheet === 'nam') me.sheet = sheet;
     },
     canIncense: () => meBusy ? 'busy' : !R().urn ? 'nourn' : true,
+    canFlower: () => meBusy ? 'busy' : !R().vases ? 'novase' : abbot && room === 'hall' ? 'abbot' : true,
+    async flower() {
+      if (meBusy || !R().vases || (abbot && room === 'hall')) return false;
+      meBusy = true; me.busy = true;
+      if (me.seat && me.seat.owner === me) me.seat.owner = null;
+      try { return await offerFlower(me); } finally { me.busy = false; meBusy = false; }
+    },
     async incense() {
       if (meBusy) return false;
       if (abbot && room === 'hall') return 'abbot';
