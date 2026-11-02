@@ -4,7 +4,7 @@ const { getAuth } = require('firebase-admin/auth');
 const { AggregateField } = require('firebase-admin/firestore');
 const { db, now, fail, audit, alert, randomCode, Timestamp } = require('./core');
 const { post } = require('./wallet-service');
-const { packs: getPacks, paymentConfig, DEFAULT_PACKS } = require('./payment-service');
+const { packs: getPacks, paymentConfig, payosLink, DEFAULT_PACKS } = require('./payment-service');
 
 const day = 86400e3;
 const ms = t => (t && t.toMillis ? t.toMillis() : null);
@@ -104,24 +104,31 @@ async function setPrices(actor, p) {
 /* Đổi tài khoản nhận tiền: chỉ chủ chùa, đã đăng nhập lại gần đây (kiểm ở index.js).
    Sau khi đổi, nạp xu TẠM ĐÓNG cho tới khi xác minh: chủ chùa chuyển một khoản nhỏ vào tài khoản mới
    với nội dung LHTVXM<mã>; webhook từ cổng thanh toán khớp mã + tài khoản thì mới mở lại. */
-async function setPaymentConfig(actor, c) {
+async function setPaymentConfig(actor, c, payosKeys) {
   const bankCode = String(c.bankCode || '').trim(), accountNumber = String(c.accountNumber || '').replace(/\s/g, ''), accountName = String(c.accountName || '').trim().toUpperCase();
   if (!/^[A-Za-z0-9]{2,20}$/.test(bankCode) || !/^[0-9A-Za-z]{4,25}$/.test(accountNumber) || accountName.length < 3 || accountName.length > 60) fail('invalid-argument', 'Thông tin tài khoản không hợp lệ');
-  const provider = String(c.provider || 'casso');
-  if (!['casso', 'sepay'].includes(provider)) fail('invalid-argument', 'Cổng thanh toán không hợp lệ');
+  const provider = String(c.provider || 'payos');
+  if (!['payos', 'casso', 'sepay'].includes(provider)) fail('invalid-argument', 'Cổng thanh toán không hợp lệ');
   const before = await paymentConfig(), verifyCode = randomCode(6);
   const after = { provider, bankCode, accountNumber, accountName, enabled: false, verified: false, verifyCode, updatedAt: now(), updatedBy: actor };
+  // payOS chỉ báo tiền vào cho link do payOS tạo → khoản xác minh cũng đi qua một link 2.000đ
+  if (provider === 'payos') {
+    let link;
+    try { link = await payosLink(payosKeys, { amount: 2000, description: 'XM' + verifyCode, expiresAtMs: Date.now() + 864e5, target: { kind: 'verify', verifyCode, cfgAccount: accountNumber } }); }
+    catch (e) { fail('failed-precondition', 'Không tạo được link payOS (kiểm tra Client ID / API Key / Checksum Key): ' + String(e.message).slice(0, 120)); }
+    after.verifyLink = { checkoutUrl: link.checkoutUrl, qrUrl: require('./providers/payos').qrFromLink(link, 2000), accountNumber: link.accountNumber, description: link.description };
+  }
   await db.collection('config').doc('payment').set(after);
   const hide = o => { if (!o) return null; const { verifyCode, ...rest } = o; return rest; };
   await audit(actor, 'set_payment_config', { before: hide(before), after: hide(after) });
   await alert('payment_config', `Tài khoản nhận tiền vừa đổi sang ${bankCode} ${accountNumber} (${accountName}), đang chờ xác minh`);
-  return { verifyContent: 'LHTVXM' + verifyCode, provider, bankCode, accountNumber, accountName };
+  return { verifyContent: 'LHTVXM' + verifyCode, verifyLink: after.verifyLink || null, provider, bankCode, accountNumber, accountName };
 }
 
 async function getPaymentConfig() {
   const c = await paymentConfig();
   return c ? { provider: c.provider, bankCode: c.bankCode, accountNumber: c.accountNumber, accountName: c.accountName, enabled: c.enabled !== false, verified: !!c.verified,
-    verifyContent: c.verified ? null : 'LHTVXM' + c.verifyCode, verifiedAt: ms(c.verifiedAt), updatedAt: ms(c.updatedAt) } : null;
+    verifyContent: c.verified ? null : 'LHTVXM' + c.verifyCode, verifyLink: c.verified ? null : c.verifyLink || null, verifiedAt: ms(c.verifiedAt), updatedAt: ms(c.updatedAt) } : null;
 }
 
 async function listReconcile(status = 'OPEN') {

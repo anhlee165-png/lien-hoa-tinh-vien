@@ -14,6 +14,11 @@ const notify = require('./notification-service');
 const backup = require('./backup');
 
 const SEPAY_WEBHOOK_SECRET = defineSecret('SEPAY_WEBHOOK_SECRET');
+const PAYOS_CLIENT_ID = defineSecret('PAYOS_CLIENT_ID');            // payOS › Kênh thanh toán › Client ID / Api Key / Checksum Key
+const PAYOS_API_KEY = defineSecret('PAYOS_API_KEY');
+const PAYOS_CHECKSUM_KEY = defineSecret('PAYOS_CHECKSUM_KEY');
+const PAYOS = [PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY];
+const payosKeys = () => ({ clientId: PAYOS_CLIENT_ID.value(), apiKey: PAYOS_API_KEY.value(), checksumKey: PAYOS_CHECKSUM_KEY.value() });
 const CASSO_WEBHOOK_SECRET = defineSecret('CASSO_WEBHOOK_SECRET');   // "Key bảo mật" của tích hợp Webhook V2 trên Casso
 const NOTIFY_WEBHOOK_URL = defineSecret('NOTIFY_WEBHOOK_URL');
 const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';   // bật trong functions/.env khi web đã gắn App Check
@@ -52,8 +57,8 @@ exports.refundSpend = call(async req => {
 
 exports.createTopup = call(async req => {
   const { uid } = await authSvc.requireUser(req);
-  return pay.createTopup(uid, String((req.data || {}).packId || ''));
-});
+  return pay.createTopup(uid, String((req.data || {}).packId || ''), payosKeys());
+}, { secrets: PAYOS });
 
 exports.cancelTopup = call(async req => {
   const { uid } = await authSvc.requireUser(req);
@@ -64,6 +69,11 @@ exports.cancelTopup = call(async req => {
 exports.sepayWebhook = onRequest({ region: REGION, secrets: [SEPAY_WEBHOOK_SECRET], maxInstances: 5, cors: false }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
   return webhook.handle(pay.PROVIDERS.sepay, req, res, SEPAY_WEBHOOK_SECRET.value());
+});
+
+exports.payosWebhook = onRequest({ region: REGION, secrets: [PAYOS_CHECKSUM_KEY], maxInstances: 5, cors: false }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).end();
+  return webhook.handle(pay.PROVIDERS.payos, req, res, PAYOS_CHECKSUM_KEY.value());
 });
 
 exports.cassoWebhook = onRequest({ region: REGION, secrets: [CASSO_WEBHOOK_SECRET], maxInstances: 5, cors: false }, async (req, res) => {
@@ -80,7 +90,7 @@ exports.adminAdjust = adminCall((d, by) => wallet.adjust(by, String(d.uid || '')
 exports.adminSetPacks = adminCall((d, by) => admin.setPacks(by, d.packs), { owner: true, recentLoginSec: 900 });
 exports.adminSetPrices = adminCall((d, by) => admin.setPrices(by, d), { owner: true, recentLoginSec: 900 });
 exports.adminGetPayment = adminCall(() => admin.getPaymentConfig());
-exports.adminSetPayment = adminCall((d, by) => admin.setPaymentConfig(by, d), { owner: true, recentLoginSec: 300 });
+exports.adminSetPayment = call(async req => { const a = await authSvc.requireAdmin(req, { owner: true, recentLoginSec: 300 }); return admin.setPaymentConfig(a.uid, req.data || {}, payosKeys()); }, { secrets: PAYOS });
 exports.adminReconcile = adminCall(d => admin.listReconcile(d.status === 'RESOLVED' ? 'RESOLVED' : 'OPEN'));
 exports.adminResolve = adminCall((d, by) => admin.resolveReconcile(by, d.id, d.action, d));
 exports.adminAlerts = adminCall(() => admin.listAlerts());

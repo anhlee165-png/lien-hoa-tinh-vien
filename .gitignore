@@ -3,3 +3,4 @@ functions/.secret.local
 *.log
 .firebase/
 sa*.json
+functions/.env.local

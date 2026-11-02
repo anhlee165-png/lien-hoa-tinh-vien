@@ -254,3 +254,94 @@ test('Casso: xác minh tài khoản, nạp đúng cộng 1 lần, gửi lại 5 
   assert.equal((await db.collection('reconcile').doc('casso_31007').get()).data().reason, 'UNDERPAID');
   assert.equal(await bal(A.uid), before + 5099);
 });
+
+/* ---------- payOS ---------- */
+const payos = require('../src/providers/payos');
+const http = require('http');
+const PAYOS_ACC = '98616059699999';
+let payosMock, payosLinks = [], payosFail = false;
+test.before(() => new Promise(ok => {
+  // payOS giả lập: kiểm khoá API + chữ ký yêu cầu, trả dữ liệu có chữ ký như payOS thật
+  payosMock = http.createServer((req, res) => {
+    let raw = ''; req.on('data', c => raw += c); req.on('end', () => {
+      const b = JSON.parse(raw || '{}');
+      const reqSig = crypto.createHmac('sha256', SECRET).update(`amount=${b.amount}&cancelUrl=${b.cancelUrl}&description=${b.description}&orderCode=${b.orderCode}&returnUrl=${b.returnUrl}`).digest('hex');
+      if (payosFail || req.headers['x-client-id'] !== 'test-client' || req.headers['x-api-key'] !== 'test-api-key' || b.signature !== reqSig) {
+        res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ code: '20', desc: 'Lỗi giả lập' }));
+      }
+      const data = { bin: '970422', accountNumber: 'V3CAS' + PAYOS_ACC.slice(-6), accountName: 'LE DUC ANH', amount: b.amount, description: b.description, orderCode: b.orderCode,
+        currency: 'VND', paymentLinkId: crypto.randomBytes(16).toString('hex'), status: 'PENDING', expiredAt: b.expiredAt, checkoutUrl: 'https://pay.payos.vn/web/' + b.orderCode, qrCode: '000201...' };
+      payosLinks.push(data);
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ code: '00', desc: 'success', data, signature: payos.signData(data, SECRET) }));
+    });
+  }).listen(5098, '127.0.0.1', ok);
+}));
+test.after(() => payosMock && payosMock.close());
+
+async function payosHook(link, { amount = link.amount, ref = 'FT' + crypto.randomBytes(4).toString('hex'), secret = SECRET, sig, acc = link.accountNumber } = {}) {
+  const data = { orderCode: link.orderCode, amount, description: link.description, accountNumber: acc, reference: ref, transactionDateTime: '2026-11-02 11:30:00',
+    currency: 'VND', paymentLinkId: link.paymentLinkId, code: '00', desc: 'Thành công', counterAccountBankId: '', counterAccountBankName: '', counterAccountName: null,
+    counterAccountNumber: null, virtualAccountName: '', virtualAccountNumber: '' };
+  const body = JSON.stringify({ code: '00', desc: 'success', success: true, data, signature: sig || payos.signData(data, secret) });
+  const r = await fetch(`${FN}/payosWebhook`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  return { status: r.status, ref };
+}
+
+test('payOS: chữ ký khớp ví dụ chính thức trong tài liệu payOS', () => {
+  const data = { orderCode: 123, amount: 3000, description: 'VQRIO123', accountNumber: '12345678', reference: 'TF230204212323', transactionDateTime: '2023-02-04 18:25:00',
+    currency: 'VND', paymentLinkId: '124c33293c43417ab7879e14c8d9eb18', code: '00', desc: 'Thành công', counterAccountBankId: '', counterAccountBankName: '',
+    counterAccountName: '', counterAccountNumber: '', virtualAccountName: '', virtualAccountNumber: '' };
+  const key = '1a54716c8f0efb2744fb28b6e38b25da7f67a925d98bc1c18bd8faaecadd7675';   // key mẫu công khai trong tài liệu payOS
+  const sig = '412e915d2871504ed31be63c8f62a149a4410d34c4c42affc9006ef9917eaa03';
+  assert.deepEqual(payos.verify(Buffer.from(JSON.stringify({ code: '00', data, signature: sig })), {}, key), { ok: true });
+  assert.equal(payos.verify(Buffer.from(JSON.stringify({ code: '00', data: { ...data, amount: 30000 }, signature: sig })), {}, key).why, 'BAD_SIGNATURE');
+});
+
+test('payOS: xác minh tài khoản qua link 2.000đ, nạp đúng cộng 1 lần, gửi lại không cộng thêm, giả chữ ký bị chặn, sai số tiền vào đối soát', async () => {
+  const A = await signUp('pa@vd.vn'), B = await signUp('pb@vd.vn');
+  await call('hello', {}, A.token); await call('hello', {}, B.token);
+  const r = await call('adminSetPayment', { provider: 'payos', bankCode: 'MB', accountNumber: PAYOS_ACC, accountName: 'LE DUC ANH' }, OWNER.token);
+  assert.ok(r.verifyLink && /^https:\/\/img\.vietqr\.io\/image\/970422-/.test(r.verifyLink.qrUrl));
+  await assert.rejects(call('createTopup', { packId: 'p2' }, A.token), /chưa mở nạp/);
+  const vlink = payosLinks[payosLinks.length - 1];
+  assert.equal(vlink.amount, 2000);
+  assert.equal((await payosHook(vlink, { secret: 'key-gia' })).status, 401);
+  assert.equal((await db.collection('config').doc('payment').get()).data().verified, false);
+  assert.equal((await payosHook(vlink)).status, 200);
+  assert.equal((await db.collection('config').doc('payment').get()).data().verified, true);
+
+  const o = await call('createTopup', { packId: 'p2' }, A.token);
+  assert.match(o.checkoutUrl, /^https:\/\/pay\.payos\.vn\//);
+  assert.match(o.qrUrl, /amount=48990/);
+  assert.equal(o.code.length <= 9, true);
+  const link = payosLinks[payosLinks.length - 1];
+  const before = await bal(A.uid);
+  const first = await payosHook(link);
+  assert.equal(first.status, 200);
+  for (let i = 0; i < 5; i++) assert.equal((await payosHook(link, { ref: first.ref })).status, 200);
+  assert.equal(await bal(A.uid), before + 5099);
+  assert.equal((await db.collection('orders').doc(o.orderId).get()).data().status, 'PAID');
+  // giao dịch thứ hai vào cùng link (đơn đã trả) → đối soát, không cộng
+  const dup = await payosHook(link);
+  assert.equal((await db.collection('reconcile').doc(`payos_${link.paymentLinkId}_${dup.ref}`).get()).data().reason, 'ORDER_ALREADY_PAID');
+  // giả chữ ký / thiếu chữ ký
+  const o2 = await call('createTopup', { packId: 'p1' }, A.token);
+  const l2 = payosLinks[payosLinks.length - 1];
+  assert.equal((await payosHook(l2, { secret: 'key-gia' })).status, 401);
+  assert.equal((await payosHook(l2, { sig: 'abc' })).status, 401);
+  // thiếu tiền → đối soát
+  const under = await payosHook(l2, { amount: 10000 });
+  assert.equal((await db.collection('reconcile').doc(`payos_${l2.paymentLinkId}_${under.ref}`).get()).data().reason, 'UNDERPAID');
+  // sai tài khoản nhận → đối soát
+  const o3 = await call('createTopup', { packId: 'p1' }, B.token);
+  const l3 = payosLinks[payosLinks.length - 1];
+  const wrong = await payosHook(l3, { acc: '000111222' });
+  assert.equal((await db.collection('reconcile').doc(`payos_${l3.paymentLinkId}_${wrong.ref}`).get()).data().reason, 'WRONG_ACCOUNT');
+  assert.equal(await bal(A.uid), before + 5099);
+  assert.ok(o2 && o3);
+  // payOS lỗi → báo bận, đơn đánh dấu FAILED, không treo
+  payosFail = true;
+  await assert.rejects(call('createTopup', { packId: 'p1' }, B.token), /bận/);
+  payosFail = false;
+});

@@ -2,8 +2,10 @@
 const { db, now, fail, randomCode, rateLimit, Timestamp } = require('./core');
 const sepay = require('./providers/sepay');
 const casso = require('./providers/casso');
+const payos = require('./providers/payos');
+const crypto = require('crypto');
 
-const PROVIDERS = { sepay, casso };
+const PROVIDERS = { sepay, casso, payos };
 const ORDER_TTL_MS = 30 * 60e3;                                              // đơn hết hạn sau 30 phút
 const CODE_PREFIX = 'LHTV';
 const CODE_RE = /LHTV[A-HJ-NP-Z2-9]{8}/;
@@ -25,7 +27,22 @@ async function paymentConfig(tx) {
 }
 const provider = cfg => PROVIDERS[(cfg && cfg.provider) || 'sepay'];
 
-async function createTopup(uid, packId) {
+/* payOS: mỗi link cần orderCode là số nguyên duy nhất → bảng payos_links/{orderCode} trỏ về đơn (hoặc lần xác minh tài khoản) */
+async function payosLink(keys, { amount, description, expiresAtMs, target }) {
+  for (let i = 0; i < 5; i++) {
+    const orderCode = crypto.randomInt(1e9, 2 ** 47);
+    const ref = db.collection('payos_links').doc(String(orderCode));
+    try { await ref.create({ ...target, amount, at: now() }); } catch (e) { if (e.code === 6) continue; throw e; }
+    try {
+      const link = await payos.createLink(keys, { orderCode, amount, description, expiredAt: Math.floor(expiresAtMs / 1000) });
+      await ref.update({ accountNumber: link.accountNumber, paymentLinkId: link.paymentLinkId });
+      return { orderCode, ...link };
+    } catch (e) { await ref.delete().catch(() => {}); throw e; }
+  }
+  throw new Error('PAYOS_NO_ORDER_CODE');
+}
+
+async function createTopup(uid, packId, payosKeys) {
   const cfg = await paymentConfig();
   if (!cfg || !cfg.accountNumber || !cfg.bankCode || cfg.enabled === false) fail('failed-precondition', 'Nhà chùa chưa mở nạp xu, xin quay lại sau');
   const pack = (await packs()).find(p => p.id === packId && p.on !== false);
@@ -40,6 +57,18 @@ async function createTopup(uid, packId) {
     const order = { uid, packId: pack.id, vnd: pack.vnd, xu: pack.xu, currency: 'VND', code, provider: provider(cfg).name,
       account: cfg.accountNumber, status: 'PENDING', createdAt: now(), expiresAt: Timestamp.fromMillis(Date.now() + ORDER_TTL_MS) };
     try { await ref.create(order); } catch (e) { if (e.code === 6) continue; throw e; }
+    if (order.provider === 'payos') {
+      let link;
+      try { link = await payosLink(payosKeys, { amount: pack.vnd, description: code.slice(4), expiresAtMs: order.expiresAt.toMillis(), target: { kind: 'order', orderId: code, cfgAccount: cfg.accountNumber } }); }
+      catch (e) {
+        await ref.update({ status: 'FAILED', failReason: String(e.message).slice(0, 200) });
+        require('firebase-functions').logger.error('payOS tạo link lỗi', { err: e.message });
+        fail('unavailable', 'Cổng thanh toán đang bận, xin thử lại sau ít phút');
+      }
+      await ref.update({ payos: { orderCode: link.orderCode, paymentLinkId: link.paymentLinkId, accountNumber: link.accountNumber, description: link.description } });
+      return { orderId: code, code: link.description, vnd: pack.vnd, xu: pack.xu, expiresAt: order.expiresAt.toMillis(), qrUrl: payos.qrFromLink(link, pack.vnd), checkoutUrl: link.checkoutUrl,
+        bank: { code: cfg.bankCode, account: link.accountNumber, holder: link.accountName || cfg.accountName || '' } };
+    }
     return { orderId: code, code, vnd: pack.vnd, xu: pack.xu, expiresAt: order.expiresAt.toMillis(),
       qrUrl: provider(cfg).qrUrl(cfg, pack.vnd, code), bank: { code: cfg.bankCode, account: cfg.accountNumber, holder: cfg.accountName || '' } };
   }
@@ -65,4 +94,4 @@ async function expireOrders() {
   return q.size;
 }
 
-module.exports = { PROVIDERS, DEFAULT_PACKS, CODE_RE, packs, paymentConfig, provider, createTopup, cancelTopup, expireOrders };
+module.exports = { payosLink, PROVIDERS, DEFAULT_PACKS, CODE_RE, packs, paymentConfig, provider, createTopup, cancelTopup, expireOrders };

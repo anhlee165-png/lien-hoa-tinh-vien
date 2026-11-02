@@ -503,6 +503,7 @@
               pay.innerHTML = `<p>Quét mã bằng ứng dụng ngân hàng để chuyển <b>${fmt(o.vnd)} đ</b> (nhận ${fmt(o.xu)} xu)</p>
                 <img class="qr" src="${esc(o.qrUrl)}" alt="Mã VietQR của đơn ${esc(o.code)}">
                 <p class="note">Nội dung chuyển khoản phải giữ đúng: <b>${esc(o.code)}</b><br>${esc(o.bank.code)} · ${esc(o.bank.account)} · ${esc(o.bank.holder)}</p>
+                ${/^https:\/\/pay\.payos\.vn\//.test(o.checkoutUrl || '') ? `<p><a class="btn nap" href="${esc(o.checkoutUrl)}" target="_blank" rel="noopener">Mở trang thanh toán payOS</a></p>` : ''}
                 <p id="o-st">Đang chờ ngân hàng báo có… <span id="o-left"></span></p>
                 <p class="note">Xu tự vào ví khi ngân hàng báo có, có thể đóng cửa sổ này. Chuyển thiếu, thừa hay sai nội dung sẽ được nhà chùa đối soát.</p>
                 <button class="btn nap" id="o-cancel">Huỷ đơn</button>`;

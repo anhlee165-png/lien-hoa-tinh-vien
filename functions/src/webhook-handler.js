@@ -19,6 +19,7 @@ async function handle(adapter, req, res, secret) {
     return res.status(400).json({ success: false });
   }
   try {
+    if (t.payosOrderCode) await resolvePayos(t);
     const out = await process(t);
     await audit('webhook', 'webhook_' + out.result, { provider: t.provider, txId: t.txId, orderId: out.orderId || null, reason: out.reason || null });
     return adapter.ack(res);
@@ -27,6 +28,17 @@ async function handle(adapter, req, res, secret) {
     await alert('webhook_error', `Lỗi xử lý webhook ${t.provider}:${t.txId}: ${e.message}`).catch(() => {});
     return res.status(500).json({ success: false });
   }
+}
+
+/* payOS: nội dung chuyển khoản do payOS đặt, nên ghép đơn bằng orderCode (bảng payos_links do máy chủ tạo).
+   Số tài khoản payOS báo về phải khớp số tài khoản payOS đã trả khi tạo link, khi đó quy về tài khoản nhận tiền đã cấu hình. */
+async function resolvePayos(t) {
+  const s = await db.collection('payos_links').doc(t.payosOrderCode).get();
+  if (!s.exists) return;
+  const l = s.data();
+  if (l.paymentLinkId && t.paymentLinkId && l.paymentLinkId !== t.paymentLinkId) return;
+  if (l.accountNumber && String(t.account) === String(l.accountNumber)) t.account = String(l.cfgAccount);
+  t.content = (l.kind === 'verify' ? 'LHTVXM' + l.verifyCode : l.orderId) + ' ' + t.content;
 }
 
 /* Lõi xử lý (tách riêng để kiểm thử). Trả { result: 'credited'|'duplicate'|'review'|'ignored', ... } */

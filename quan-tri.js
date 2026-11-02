@@ -86,14 +86,14 @@
     },
     async tk() {
       const c = await call('adminGetPayment');
-      view.innerHTML = `<h2>Tài khoản nhận tiền hiện tại</h2>${c ? `<div class="card"><p>${c.provider === 'sepay' ? 'SePay' : 'Casso'} · ${esc(c.bankCode)} · <b>${esc(c.accountNumber)}</b> · ${esc(c.accountName)}</p>
+      view.innerHTML = `<h2>Tài khoản nhận tiền hiện tại</h2>${c ? `<div class="card"><p>${({ payos: 'payOS', casso: 'Casso', sepay: 'SePay' })[c.provider] || esc(c.provider)} · ${esc(c.bankCode)} · <b>${esc(c.accountNumber)}</b> · ${esc(c.accountName)}</p>
         <p>${c.verified ? `<span class="ok">Đã xác minh</span> ${dt(c.verifiedAt)}` : `<span class="bad">Chưa xác minh — nạp xu đang tạm đóng</span>`}</p>
-        ${c.verified ? '' : `<p>Để xác minh: chuyển một khoản nhỏ (vd. 2.000đ) vào chính tài khoản này với nội dung <b>${esc(c.verifyContent)}</b>. Khi Casso/SePay báo có, hệ thống tự mở nạp xu.</p>`}</div>` : '<p class="note">Chưa cấu hình.</p>'}
+        ${c.verified ? '' : c.verifyLink ? `<p>Để xác minh: quét mã dưới đây, chuyển <b>2.000đ</b> qua payOS. Khi payOS báo có, hệ thống tự mở nạp xu.</p><img class="qr" src="${esc(c.verifyLink.qrUrl)}" alt="QR xác minh" width="240"><p>${/^https:\/\/pay\.payos\.vn\//.test(c.verifyLink.checkoutUrl) ? `<a href="${esc(c.verifyLink.checkoutUrl)}" target="_blank" rel="noopener">Mở trang thanh toán payOS</a>` : ''}</p>` : `<p>Để xác minh: chuyển một khoản nhỏ (vd. 2.000đ) vào chính tài khoản này với nội dung <b>${esc(c.verifyContent)}</b>. Khi Casso/SePay báo có, hệ thống tự mở nạp xu.</p>`}</div>` : '<p class="note">Chưa cấu hình.</p>'}
         <h2>Đổi tài khoản nhận tiền</h2><p class="note">Chỉ chủ chùa. Tài khoản phải là tài khoản đã liên kết với cổng thanh toán đã chọn. Sau khi đổi, nạp xu tạm đóng cho tới khi xác minh. Không thể đổi bằng cách tải ảnh QR.</p>
-        <form id="f"><select id="pv"><option value="casso">Casso</option><option value="sepay">SePay</option></select><input id="b" placeholder="Mã ngân hàng (vd. MB, VCB, TCB hoặc mã BIN 970422)" required><input id="a" placeholder="Số tài khoản" required><input id="n" placeholder="Tên chủ tài khoản" required><button>Đổi tài khoản</button></form>${reauthNote}`;
+        <form id="f"><select id="pv"><option value="payos">payOS</option><option value="casso">Casso</option><option value="sepay">SePay</option></select><input id="b" placeholder="Mã ngân hàng (vd. MB, VCB, TCB hoặc mã BIN 970422)" required><input id="a" placeholder="Số tài khoản" required><input id="n" placeholder="Tên chủ tài khoản" required><button>Đổi tài khoản</button></form>${reauthNote}`;
       $('#f').onsubmit = async e => { e.preventDefault();
         if (!confirm('Đổi tài khoản nhận tiền? Nạp xu sẽ tạm đóng tới khi xác minh.')) return;
-        try { const r = await call('adminSetPayment', { provider: $('#pv').value, bankCode: $('#b').value, accountNumber: $('#a').value, accountName: $('#n').value }); toast('Đã lưu, chờ xác minh: ' + r.verifyContent); show('tk'); } catch (err) { toast(err.message); } };
+        try { const r = await call('adminSetPayment', { provider: $('#pv').value, bankCode: $('#b').value, accountNumber: $('#a').value, accountName: $('#n').value }); toast(r.verifyLink ? 'Đã lưu, quét QR 2.000đ để xác minh' : 'Đã lưu, chờ xác minh: ' + r.verifyContent); show('tk'); } catch (err) { toast(err.message); } };
     },
     async canh() {
       const a = await call('adminAlerts');
