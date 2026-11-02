@@ -27,10 +27,18 @@
   const fmt = n => n.toLocaleString('vi-VN');
 
   /* ---------- Co giãn sân khấu ---------- */
+  /* Chế độ phát live TikTok: ?live=doc (khung dọc 9:16, máy quay theo nhân vật) · ?live=ngang (khung ngang) */
+  const LIVE = (() => { const v = (new URLSearchParams(location.search).get('live') || '').toLowerCase();
+    return !v ? '' : /^(ngang|16:?9|h)$/.test(v) ? 'ngang' : 'doc'; })();
+  if (LIVE) document.body.classList.add('live', 'live-' + LIVE);
+  const vp = $('#viewport');
   function fit() {
-    const s = Math.min(innerWidth / W, innerHeight / H);
+    const r = LIVE ? vp.getBoundingClientRect() : { width: innerWidth, height: innerHeight };
+    // live dọc: phủ kín khung (cắt hai bên); bình thường: vừa khít cả cảnh
+    const s = LIVE === 'doc' && !fit.modal ? Math.max(r.width / W, r.height / H) : Math.min(r.width / W, r.height / H);
     stage.style.transform = `translate(${-W * s / 2}px, ${-H * s / 2}px) scale(${s})`;
-    stage.dataset.scale = s;
+    stage.dataset.scale = s; fit.visW = Math.min(W, r.width / s); fit.visH = Math.min(H, r.height / s);
+    if (typeof applyCam === 'function' && window.LiveHook) applyCam();
   }
   addEventListener('resize', fit); fit();
 
@@ -45,11 +53,12 @@
   const cam = { ...VIEWS.all };
   function applyCam() {
     cam.s = Math.max(1, Math.min(3.2, cam.s));
-    const hw = W / 2 / cam.s, hh = H / 2 / cam.s;
+    const hw = (fit.visW || W) / 2 / cam.s, hh = (fit.visH || H) / 2 / cam.s;
     cam.x = Math.max(hw, Math.min(W - hw, cam.x));
     cam.y = Math.max(hh, Math.min(H - hh, cam.y));
     scene.style.transform = `translate(${W / 2 - cam.x * cam.s}px, ${H / 2 - cam.y * cam.s}px) scale(${cam.s})`;
   }
+  window.LiveHook = { mode: LIVE, cam, applyCam: () => applyCam(), W, H, setModal: on => { if (fit.modal !== on) { fit.modal = on; fit(); } } };
   function setView(name) {
     Object.assign(cam, VIEWS[name]); applyCam();
     $$('#views [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
@@ -79,7 +88,7 @@
   }
   function chatAdd(m, broadcast = true) {
     const k = m.key || chatKey(); const list = store.get(k, []); list.push({ who: m.who, text: m.text, me: m.me, sys: m.sys, t: Date.now() });
-    store.set(k, list.slice(-60)); if (k === chatKey()) chatPaint();
+    store.set(k, list.slice(-60)); if (k === chatKey()) { chatPaint(); dispatchEvent(new CustomEvent('chua-chat', { detail: { who: m.who, text: m.text, sys: !!m.sys } })); }
     if (state.chatHidden && !m.me && !m.sys) { const b = document.getElementById('chat-show'); b && b.classList.add('new'); }
     if (broadcast && chat.bc) chat.bc.postMessage({ key: k, who: m.who, text: m.text });
   }
@@ -273,6 +282,7 @@
   let toastT;
   function toast(msg, ms = 2400) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    dispatchEvent(new CustomEvent('chua-toast', { detail: msg }));
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
   }
   const status = (msg) => { const s = $('#status'); if (msg) { s.textContent = msg; s.hidden = false; } else s.hidden = true; };
