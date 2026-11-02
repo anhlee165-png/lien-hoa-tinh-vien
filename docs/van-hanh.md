@@ -9,7 +9,8 @@ Trình duyệt (GitHub Pages)                         Firebase (asia-southeast1)
         ── gọi hàm (ID token) ───────────────▶  Cloud Functions ──▶ Firestore (ghi)
  quan-tri.html ── hàm quản trị (claim admin) ─▶  Cloud Functions
  presence.js ── hiện diện ───────────────────▶  Realtime Database (presence/<uid>)
-Ngân hàng ─▶ SePay ── webhook ký HMAC ───────▶  sepayWebhook (Cloud Functions)
+Ngân hàng ─▶ Casso ── webhook V2 ký HMAC-SHA512 ▶  cassoWebhook (Cloud Functions)
+Ngân hàng ─▶ SePay ── webhook ký HMAC-SHA256 ▶  sepayWebhook (dự phòng)
 ```
 
 Web chỉ hiển thị. Mọi việc đụng tới xu, giá, đơn, quyền đều chạy ở Cloud Functions bằng Admin SDK.
@@ -20,7 +21,8 @@ Firestore Rules chặn mọi lệnh ghi từ trình duyệt.
 | `auth-service.js` (AuthService) | Xác thực người gọi, kiểm khoá tài khoản, quyền admin/owner bằng custom claims, đòi đăng nhập lại cho thao tác nhạy cảm |
 | `wallet-service.js` (WalletService) | Số dư, sổ cái chỉ-thêm, tiêu xu chống trừ hai lần (opId), hoàn xu, điều chỉnh tay |
 | `payment-service.js` (PaymentService) | Gói xu phía máy chủ, tạo đơn (mã LHTV + 8 ký tự ngẫu nhiên), hết hạn 30 phút, giới hạn tần suất |
-| `providers/sepay.js` (PaymentProviderAdapter) | QR VietQR theo đơn, xác thực HMAC-SHA256, chuẩn hoá payload. Thêm payOS = thêm một file cùng giao diện |
+| `providers/casso.js` (PaymentProviderAdapter, mặc định) | QR VietQR động (img.vietqr.io), xác thực `X-Casso-Signature` (HMAC-SHA512 trên body đã sắp xếp key), chuẩn hoá payload Webhook V2 |
+| `providers/sepay.js` (PaymentProviderAdapter, dự phòng) | QR SePay, xác thực HMAC-SHA256. Đổi cổng ở Quản trị › Tài khoản nhận tiền |
 | `webhook-handler.js` (WebhookHandler) | Xác thực, ghép đơn, kiểm 7 điều kiện, cộng xu trong 1 transaction, đưa sai lệch vào đối soát |
 | `admin-service.js` (AdminService) | Thống kê doanh thu, người dùng, khoá/mở, gói & giá, tài khoản nhận tiền, đối soát, xuất CSV |
 | `notification-service.js` (NotificationService) | Chuyển cảnh báo ra ngoài (n8n/Zalo/email) qua URL bí mật, chỉ để báo tin |
@@ -48,12 +50,12 @@ Xu cũ trong localStorage KHÔNG được chuyển thành số dư thật.
 
 1. Khách đăng nhập (Gmail/Facebook) → `hello` tạo hồ sơ + ví 0 xu.
 2. Chọn gói → `createTopup(packId)`; máy chủ lấy giá từ `config/packs` (bỏ qua số trình duyệt gửi), tạo đơn `LHTVxxxxxxxx`, hạn 30 phút, trả QR VietQR có đúng tài khoản, số tiền, nội dung.
-3. Khách chuyển khoản. SePay gửi webhook → `sepayWebhook`:
+3. Khách chuyển khoản. Casso gửi webhook → `cassoWebhook` (hoặc SePay → `sepayWebhook`):
    - chữ ký HMAC hợp lệ, lệch giờ ≤ 5 phút (sai → 401, ghi log, cảnh báo nếu lặp lại);
    - tiền VÀO, đúng tài khoản cấu hình, VND;
    - nội dung chứa mã đơn tồn tại, đơn còn PENDING và chưa hết hạn;
    - số tiền đúng bằng giá đơn;
-   - mã giao dịch SePay chưa từng dùng.
+   - mã giao dịch của cổng (Casso/SePay) chưa từng dùng.
 4. Đủ điều kiện → trong MỘT transaction: đánh dấu giao dịch đã dùng, đơn → PAID, cộng xu, ghi sổ cái, cảnh báo “nạp thành công”. Web đang mở (mọi thiết bị) thấy số dư đổi ngay, hiện “Nạp xu thành công +N xu”.
 5. Sai bất kỳ điều kiện → KHÔNG cộng; vào `reconcile` với lý do; chủ chùa xử lý ở trang Quản trị › Đối soát (cộng xu cho UID cụ thể kèm lý do, hoặc đóng). Mỗi giao dịch chỉ xử lý được một lần.
 
@@ -67,10 +69,10 @@ Xu cũ trong localStorage KHÔNG được chuyển thành số dư thật.
 | Khách đóng web khi đang trả | Webhook vẫn cộng xu; lần sau mở web thấy số dư |
 | Webhook trùng (2, 5, 10 lần) | `bank_tx` đã có → trả 200, không cộng nữa (đã kiểm thử 10 lần song song) |
 | Webhook đến chậm | Đơn còn hạn → cộng; quá hạn → `LATE_PAYMENT` đối soát |
-| Webhook không đến | Đơn hết hạn sau 30 phút; tiền vẫn ở ngân hàng → đối chiếu sao kê SePay, cộng tay ở Đối soát |
+| Webhook không đến | Đơn hết hạn sau 30 phút; tiền vẫn ở ngân hàng → đối chiếu sao kê trên Casso, cộng tay ở Đối soát |
 | Đăng nhập máy khác | Số dư lưu theo UID trên máy chủ, mọi máy thấy như nhau |
 | Hoàn tiền / tranh chấp (tiền ra) | `OUTGOING_FOR_ORDER` → đối soát; chủ chùa trừ xu bằng Điều chỉnh (không âm) |
-| Mất kết nối DB giữa chừng | Transaction không ghi gì; trả 500 để SePay gửi lại; xử lý idempotent |
+| Mất kết nối DB giữa chừng | Transaction không ghi gì; trả 500 để cổng thanh toán gửi lại; xử lý idempotent |
 | Trả lần hai cho đơn đã PAID | `ORDER_ALREADY_PAID` → đối soát |
 
 ## 4. Quyền quản trị
@@ -83,7 +85,7 @@ Xu cũ trong localStorage KHÔNG được chuyển thành số dư thật.
 
 ## 5. Bảo vệ khác
 
-- Không có bí mật trong mã nguồn web. `apiKey` Firebase là định danh công khai (an toàn khi Rules đúng). Bí mật SePay nằm trong Secret Manager (`SEPAY_WEBHOOK_SECRET`).
+- Không có bí mật trong mã nguồn web. `apiKey` Firebase là định danh công khai (an toàn khi Rules đúng). Key bảo mật Casso / SePay nằm trong Secret Manager (`CASSO_WEBHOOK_SECRET`, `SEPAY_WEBHOOK_SECRET`).
 - App Check: điền khoá reCAPTCHA v3 vào `APP_CHECK_SITE_KEY` (auth.js), rồi đặt `ENFORCE_APP_CHECK=true` trong `functions/.env` và triển khai lại.
 - Giới hạn tần suất: tạo đơn 10/giờ, tối đa 3 đơn chờ; tiêu xu 30/phút; webhook sai chữ ký cảnh báo.
 - XSS: biệt danh chặn `< > & " ' \``; trang quản trị escape mọi dữ liệu; CSV chống công thức Excel (`=`, `+`, `-`, `@`); trang quản trị có Content-Security-Policy.
@@ -105,21 +107,23 @@ Xu cũ trong localStorage KHÔNG được chuyển thành số dư thật.
 
 Thêm: đổi gói chỉ áp dụng đơn mới; đổi tài khoản → đóng nạp tới khi xác minh; điều chỉnh tay idempotent; đổi biệt danh 20 xu trong 24 giờ, chặn tên giả nhà chùa và ký tự HTML.
 
-Chưa kiểm thử với SePay và ngân hàng thật: cần làm sau khi triển khai (mục 7).
+Chữ ký Casso đã khớp mẫu chính thức của Casso (github.com/CassoHQ/casso-webhook-v2-verify-signature). Chưa kiểm thử với Casso và ngân hàng thật: cần làm sau khi triển khai (mục 7).
 
 ## 7. Việc chủ chùa cần làm để chạy thật
 
 1. Firebase Console › nâng gói **Blaze** (trả theo dùng; Cloud Functions bắt buộc Blaze; lưu lượng nhỏ thường nằm trong hạn mức miễn phí). Đặt cảnh báo ngân sách (vd. 50.000đ/tháng).
 2. Firebase Console › Build › **Firestore Database** › Create (vùng `asia-southeast1`, chế độ production).
 3. Firebase Console › Build › **Realtime Database** › Create (Singapore).
-4. Đăng ký **SePay** (my.sepay.vn), liên kết tài khoản ngân hàng nhận tiền. Tạo Webhook:
-   - URL: `https://asia-southeast1-lien-hoa-tinh-vien.cloudfunctions.net/sepayWebhook`
-   - Xác thực: **HMAC-SHA256**, lưu lại Secret Key.
+4. **Casso** (casso.vn) › liên kết tài khoản ngân hàng nhận tiền (nếu chưa) › Tích hợp › **Webhook V2** › Thêm:
+   - Webhook URL: `https://asia-southeast1-lien-hoa-tinh-vien.cloudfunctions.net/cassoWebhook`
+   - Tạo **Key bảo mật**, lưu lại (không gửi qua chat công khai).
+   - Ghi lại đúng *số tài khoản* Casso hiển thị cho tài khoản này (dùng ở bước 8).
+   (Dùng SePay thay thế: webhook `.../sepayWebhook`, HMAC-SHA256, secret `SEPAY_WEBHOOK_SECRET`.)
 5. Google Cloud Console › IAM › Service Accounts › tạo khoá JSON cho tài khoản có quyền Firebase Admin + Cloud Functions Admin + Secret Manager Admin + Service Account User.
 6. GitHub repo › Settings › Secrets and variables › Actions › thêm:
    - `FIREBASE_SERVICE_ACCOUNT` = nội dung file JSON ở bước 5
-   - `SEPAY_WEBHOOK_SECRET` = Secret Key ở bước 4
+   - `CASSO_WEBHOOK_SECRET` = Key bảo mật Webhook V2 ở bước 4
    - (tuỳ chọn) `NOTIFY_WEBHOOK_URL` = URL n8n/Zalo nhận cảnh báo
 7. GitHub › Actions › “Firebase backend” › Run workflow, ô `owner_email` = Gmail chủ chùa → triển khai + cấp quyền chủ chùa. Đăng xuất, đăng nhập lại.
-8. Trang Quản trị (`/quan-tri.html`) › Tài khoản nhận tiền › nhập ngân hàng + số tài khoản (đã liên kết SePay) › chuyển thử 2.000đ với nội dung xác minh hiển thị.
+8. Trang Quản trị (`/quan-tri.html`) › Tài khoản nhận tiền › chọn **Casso**, nhập mã ngân hàng kiểu VietQR (vd. `MB`, `VCB`, `TCB`, `ACB` hoặc mã BIN), số tài khoản, tên chủ tài khoản › chuyển thử 2.000đ với nội dung xác minh hiển thị. Casso báo có → nạp xu tự mở.
 9. Nạp thử gói nhỏ nhất bằng tài khoản Gmail khác; kiểm tra xu, sổ cái, Dashboard.

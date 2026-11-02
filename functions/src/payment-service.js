@@ -1,8 +1,9 @@
 /* PaymentService: tạo đơn nạp xu. Giá và số xu lấy từ máy chủ (config/packs), không tin số liệu trình duyệt gửi. */
 const { db, now, fail, randomCode, rateLimit, Timestamp } = require('./core');
 const sepay = require('./providers/sepay');
+const casso = require('./providers/casso');
 
-const PROVIDERS = { sepay };
+const PROVIDERS = { sepay, casso };
 const ORDER_TTL_MS = 30 * 60e3;                                              // đơn hết hạn sau 30 phút
 const CODE_PREFIX = 'LHTV';
 const CODE_RE = /LHTV[A-HJ-NP-Z2-9]{8}/;

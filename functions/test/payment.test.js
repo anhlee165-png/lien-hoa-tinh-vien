@@ -105,7 +105,7 @@ test('5. Ghi thẳng vào ví/sổ cái từ trình duyệt bị chặn (Firesto
 test('6. Khách giả quyền admin không sửa được giá, số dư, tài khoản nhận tiền', async () => {
   await assert.rejects(call('adminSetPacks', { packs: [{ id: 'p1', vnd: 2000, xu: 999999 }] }, A.token), /quyền/);
   await assert.rejects(call('adminAdjust', { uid: A.uid, xu: 100000, reason: 'tu cong', opId: opId() }, A.token), /quyền/);
-  await assert.rejects(call('adminSetPayment', { bankCode: 'VCB', accountNumber: '999', accountName: 'KE GIAN' }, A.token), /quyền/);
+  await assert.rejects(call('adminSetPayment', { provider: 'sepay', bankCode: 'VCB', accountNumber: '999', accountName: 'KE GIAN' }, A.token), /quyền/);
   const r = await fetch(`${FS}/config/payment`, { method: 'PATCH', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + A.token }, body: JSON.stringify({ fields: { accountNumber: { stringValue: '999' } } }) });
   assert.equal(r.status, 403);
   assert.equal((await db.collection('config').doc('payment').get()).data().accountNumber, ACC);
@@ -172,7 +172,7 @@ test('Chủ chùa: đổi gói chỉ áp dụng đơn mới; đổi tài khoản
   await hook(sepayBody({ id: 9001, amount: 18990, content: old.code }));            // đơn cũ vẫn theo giá cũ
   assert.equal(await bal(A.uid), before + 1680);
   // đổi tài khoản → đóng nạp tới khi xác minh
-  const r = await call('adminSetPayment', { bankCode: 'VCB', accountNumber: '1122334455', accountName: 'Chua Lien Hoa' }, OWNER.token);
+  const r = await call('adminSetPayment', { provider: 'sepay', bankCode: 'VCB', accountNumber: '1122334455', accountName: 'Chua Lien Hoa' }, OWNER.token);
   await assert.rejects(call('createTopup', { packId: 'p2' }, B.token), /chưa mở nạp/);
   await hook(sepayBody({ id: 9002, amount: 2000, content: 'xac minh ' + r.verifyContent, acc: '1122334455' }));
   const cfg = (await db.collection('config').doc('payment').get()).data();
@@ -200,4 +200,57 @@ test('Đổi biệt danh: lần đầu miễn phí, trong 24 giờ mất 20 xu',
   assert.equal(r2.cost, 20); assert.equal(await bal(E.uid), 5);
   await assert.rejects(call('spend', { kind: 'rename', opId: opId(), payload: { nick: 'Thầy Giả', sex: 'nam' } }, E.token), /dành riêng/);
   await assert.rejects(call('spend', { kind: 'rename', opId: opId(), payload: { nick: '<img src=x>', sex: 'nam' } }, E.token), /ký tự/);
+});
+
+/* ---------- Casso (Webhook V2) ---------- */
+const casso = require('../src/providers/casso');
+async function cassoHook(data, { secret = SECRET, ts = Date.now(), sig, error = 0 } = {}) {
+  const body = { error, data };
+  const raw = JSON.stringify(body);
+  const h = sig || `t=${ts},v1=${casso.sign(body, String(ts), secret)}`;
+  const r = await fetch(`${FN}/cassoWebhook`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-casso-signature': h }, body: raw });
+  return r.status;
+}
+const cassoTx = o => ({ id: o.id, reference: 'FT' + o.id, description: o.content, amount: o.amount, runningBalance: 1000000, transactionDateTime: '2026-11-02 11:00:00',
+  accountNumber: o.acc || '88880000', bankName: 'MBBank', bankAbbreviation: 'MBB', virtualAccountNumber: '', virtualAccountName: '',
+  counterAccountName: 'NGUYEN VAN A', counterAccountNumber: '0001', counterAccountBankId: '970415', counterAccountBankName: 'VietinBank' });
+
+test('Casso: chữ ký khớp mẫu chính thức của Casso, sai key thì từ chối', () => {
+  const body = { error: 0, data: { id: 0, reference: 'MA_GIAO_DICH_THU_NGHIEM', description: 'giao dich thu nghiem', amount: 599000, runningBalance: 25000000,
+    transactionDateTime: '2024-10-03 15:06:37', accountNumber: '88888888', bankName: 'VPBank', bankAbbreviation: 'VPB', virtualAccountNumber: '', virtualAccountName: '',
+    counterAccountName: 'NGUYEN VAN A', counterAccountNumber: '8888888888', counterAccountBankId: '970415', counterAccountBankName: 'VietinBank' } };
+  const key = 'mgExMrjj4i7a1p8Cs6LmFbpCd8lbw4sSX4LZXPag7TKazeIogtR90tvWYTkwQbvs';   // key mẫu công khai trong tài liệu Casso
+  const h = { 'x-casso-signature': 't=1727948258788,v1=ed0a4bd2e826d5cb69988cdb141e6c1a080e21f3b57eb72cd78192220042b9e7dde0868fc667faea8e224900fa7904e7c88dfa098032fb2d6b6996856e8b7ff3' };
+  assert.deepEqual(casso.verify(Buffer.from(JSON.stringify(body)), h, key, 1727948258788), { ok: true });
+  assert.equal(casso.verify(Buffer.from(JSON.stringify(body)), h, key + 'x', 1727948258788).why, 'BAD_SIGNATURE');
+  assert.equal(casso.verify(Buffer.from(JSON.stringify(body)), h, key, 1727948258788 + 3600e3).why, 'STALE_TIMESTAMP');
+  const p = casso.parse({ error: 0, data: { ...body.data, amount: -50000 } });
+  assert.equal(p.direction, 'out'); assert.equal(p.amount, 50000);
+});
+
+test('Casso: xác minh tài khoản, nạp đúng cộng 1 lần, gửi lại 5 lần không cộng thêm, chữ ký giả bị chặn', async () => {
+  const r = await call('adminSetPayment', { provider: 'casso', bankCode: 'MB', accountNumber: '88880000', accountName: 'Chua Lien Hoa' }, OWNER.token);
+  await assert.rejects(call('createTopup', { packId: 'p2' }, A.token), /chưa mở nạp/);
+  assert.equal(await cassoHook(cassoTx({ id: 31001, amount: 2000, content: 'MBVCB.123 ' + r.verifyContent + ' FT123' })), 200);
+  assert.equal((await db.collection('config').doc('payment').get()).data().verified, true);
+  const o = await call('createTopup', { packId: 'p2' }, A.token);
+  assert.match(o.qrUrl, /^https:\/\/img\.vietqr\.io\/image\/MB-88880000-compact2\.png\?amount=48990&addInfo=LHTV/);
+  const before = await bal(A.uid);
+  assert.equal(await cassoHook(cassoTx({ id: 31002, amount: 48990, content: 'CK ' + o.code.toLowerCase() })), 200);
+  for (let i = 0; i < 5; i++) assert.equal(await cassoHook(cassoTx({ id: 31002, amount: 48990, content: 'CK ' + o.code })), 200);
+  assert.equal(await bal(A.uid), before + 5099);
+  assert.equal((await db.collection('orders').doc(o.code).get()).data().status, 'PAID');
+  // chữ ký giả / key sai / không chữ ký
+  const o2 = await call('createTopup', { packId: 'p1' }, A.token);
+  assert.equal(await cassoHook(cassoTx({ id: 31003, amount: 18990, content: o2.code }), { secret: 'key-gia' }), 401);
+  assert.equal(await cassoHook(cassoTx({ id: 31004, amount: 18990, content: o2.code }), { sig: 'bua' }), 401);
+  assert.equal(await cassoHook(cassoTx({ id: 31005, amount: 18990, content: o2.code }), { ts: Date.now() - 2 * 3600e3 }), 401);
+  assert.equal(await bal(A.uid), before + 5099);
+  // tiền ra mang mã đơn → đối soát, không cộng; thiếu tiền → đối soát
+  await cassoHook(cassoTx({ id: 31006, amount: -18990, content: o2.code }));
+  const o3 = await call('createTopup', { packId: 'p1' }, A.token);
+  await cassoHook(cassoTx({ id: 31007, amount: 18000, content: o3.code }));
+  assert.equal((await db.collection('reconcile').doc('casso_31006').get()).data().reason, 'OUTGOING_FOR_ORDER');
+  assert.equal((await db.collection('reconcile').doc('casso_31007').get()).data().reason, 'UNDERPAID');
+  assert.equal(await bal(A.uid), before + 5099);
 });

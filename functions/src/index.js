@@ -14,6 +14,7 @@ const notify = require('./notification-service');
 const backup = require('./backup');
 
 const SEPAY_WEBHOOK_SECRET = defineSecret('SEPAY_WEBHOOK_SECRET');
+const CASSO_WEBHOOK_SECRET = defineSecret('CASSO_WEBHOOK_SECRET');   // "Key bảo mật" của tích hợp Webhook V2 trên Casso
 const NOTIFY_WEBHOOK_URL = defineSecret('NOTIFY_WEBHOOK_URL');
 const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === 'true';   // bật trong functions/.env khi web đã gắn App Check
 const BACKUP_BUCKET = defineString('BACKUP_BUCKET', { default: '' });
@@ -63,6 +64,11 @@ exports.cancelTopup = call(async req => {
 exports.sepayWebhook = onRequest({ region: REGION, secrets: [SEPAY_WEBHOOK_SECRET], maxInstances: 5, cors: false }, async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
   return webhook.handle(pay.PROVIDERS.sepay, req, res, SEPAY_WEBHOOK_SECRET.value());
+});
+
+exports.cassoWebhook = onRequest({ region: REGION, secrets: [CASSO_WEBHOOK_SECRET], maxInstances: 5, cors: false }, async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).end();
+  return webhook.handle(pay.PROVIDERS.casso, req, res, CASSO_WEBHOOK_SECRET.value());
 });
 
 /* ---------- Quản trị ---------- */

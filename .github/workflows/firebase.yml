@@ -46,14 +46,22 @@ jobs:
       - if: env.HAS_KEY == 'true'
         uses: google-github-actions/auth@v2
         with: { credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' }
-      - name: Bí mật SePay → Secret Manager
+      - name: Bí mật webhook (Casso / SePay) → Secret Manager
         if: env.HAS_KEY == 'true'
         env:
+          CASSO: ${{ secrets.CASSO_WEBHOOK_SECRET }}
           SEPAY: ${{ secrets.SEPAY_WEBHOOK_SECRET }}
           NOTIFY: ${{ secrets.NOTIFY_WEBHOOK_URL }}
         run: |
-          [ -n "$SEPAY" ] && printf '%s' "$SEPAY" | firebase functions:secrets:set SEPAY_WEBHOOK_SECRET --data-file=- --project lien-hoa-tinh-vien --force || true
-          printf '%s' "${NOTIFY:-none}" | firebase functions:secrets:set NOTIFY_WEBHOOK_URL --data-file=- --project lien-hoa-tinh-vien --force || true
+          P=lien-hoa-tinh-vien
+          # Có giá trị trong GitHub Secrets → ghi vào Secret Manager.
+          # Chưa có và Secret Manager cũng chưa có → đặt chuỗi ngẫu nhiên không ai biết (hàm vẫn triển khai được, webhook của cổng đó luôn bị từ chối).
+          put() { name=$1 val=$2
+            if [ -n "$val" ]; then printf '%s' "$val" | firebase functions:secrets:set "$name" --data-file=- --project $P --force
+            elif ! firebase functions:secrets:access "$name" --project $P >/dev/null 2>&1; then openssl rand -hex 32 | tr -d '\n' | firebase functions:secrets:set "$name" --data-file=- --project $P --force; fi; }
+          put CASSO_WEBHOOK_SECRET "$CASSO"
+          put SEPAY_WEBHOOK_SECRET "$SEPAY"
+          printf '%s' "${NOTIFY:-none}" | firebase functions:secrets:set NOTIFY_WEBHOOK_URL --data-file=- --project $P --force
       - name: Triển khai Functions + Rules
         if: env.HAS_KEY == 'true'
         run: firebase deploy --only functions,firestore,database --project lien-hoa-tinh-vien --force --non-interactive

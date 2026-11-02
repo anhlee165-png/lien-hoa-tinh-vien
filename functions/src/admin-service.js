@@ -107,13 +107,15 @@ async function setPrices(actor, p) {
 async function setPaymentConfig(actor, c) {
   const bankCode = String(c.bankCode || '').trim(), accountNumber = String(c.accountNumber || '').replace(/\s/g, ''), accountName = String(c.accountName || '').trim().toUpperCase();
   if (!/^[A-Za-z0-9]{2,20}$/.test(bankCode) || !/^[0-9A-Za-z]{4,25}$/.test(accountNumber) || accountName.length < 3 || accountName.length > 60) fail('invalid-argument', 'Thông tin tài khoản không hợp lệ');
+  const provider = String(c.provider || 'casso');
+  if (!['casso', 'sepay'].includes(provider)) fail('invalid-argument', 'Cổng thanh toán không hợp lệ');
   const before = await paymentConfig(), verifyCode = randomCode(6);
-  const after = { provider: 'sepay', bankCode, accountNumber, accountName, enabled: false, verified: false, verifyCode, updatedAt: now(), updatedBy: actor };
+  const after = { provider, bankCode, accountNumber, accountName, enabled: false, verified: false, verifyCode, updatedAt: now(), updatedBy: actor };
   await db.collection('config').doc('payment').set(after);
   const hide = o => { if (!o) return null; const { verifyCode, ...rest } = o; return rest; };
   await audit(actor, 'set_payment_config', { before: hide(before), after: hide(after) });
   await alert('payment_config', `Tài khoản nhận tiền vừa đổi sang ${bankCode} ${accountNumber} (${accountName}), đang chờ xác minh`);
-  return { verifyContent: 'LHTVXM' + verifyCode, bankCode, accountNumber, accountName };
+  return { verifyContent: 'LHTVXM' + verifyCode, provider, bankCode, accountNumber, accountName };
 }
 
 async function getPaymentConfig() {
