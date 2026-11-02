@@ -717,7 +717,7 @@
     chime(660, .15);
     if (window.Dien3D && Dien3D.active()) { Dien3D.hide(); paintXoay(); return; }
     if (state.outside) { goInside(); await new Promise(r => setTimeout(r, 450)); }
-    if (!window.Dien3D || !Dien3D.show()) { toast('Máy này chưa hỗ trợ đồ họa 3D'); return; }
+    if (!window.Dien3D || !Dien3D.show()) { toast('Máy này chưa xem được mặt sau'); return; }
     Dien3D.reset(); paintXoay();
   });
 
