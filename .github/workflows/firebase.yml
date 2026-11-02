@@ -63,9 +63,9 @@ jobs:
       - name: Bí mật cổng thanh toán (payOS / Casso / SePay) → Secret Manager
         if: env.HAS_KEY == 'true'
         env:
-          PAYOS_ID: ${{ secrets.PAYOS_CLIENT_ID }}
-          PAYOS_KEY: ${{ secrets.PAYOS_API_KEY }}
-          PAYOS_SUM: ${{ secrets.PAYOS_CHECKSUM_KEY }}
+          PAYOS_ID: ${{ secrets.PAYOS_CLIENT_ID2 || secrets.PAYOS_CLIENT_ID }}
+          PAYOS_KEY: ${{ secrets.PAYOS_API_KEY2 || secrets.PAYOS_API_KEY }}
+          PAYOS_SUM: ${{ secrets.PAYOS_CHECKSUM_KEY2 || secrets.PAYOS_CHECKSUM_KEY }}
           CASSO: ${{ secrets.CASSO_WEBHOOK_SECRET }}
           SEPAY: ${{ secrets.SEPAY_WEBHOOK_SECRET }}
           NOTIFY: ${{ secrets.NOTIFY_WEBHOOK_URL }}
