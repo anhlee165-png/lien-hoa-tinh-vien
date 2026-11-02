@@ -150,7 +150,7 @@
   let hallId = 1, realList = [];
   const noise = id => { const v = Math.sin(id * 12.9898) * 43758.5453; return v - Math.floor(v); };
   const baseAo = id => id === 1 ? aoCount : Math.round(aoCount * (.45 + .55 * noise(id)));
-  const realsIn = id => realList.filter(r => (r.hall | 0) === id).length;
+  const realsIn = id => id !== hallId && window.Presence && Presence.countIn ? Presence.countIn(id) : realList.filter(r => (r.hall | 0) === id).length;
   const aoTarget = id => { const n = realsIn(id); return Math.max(0, Math.min(baseAo(id) - 2 * n, CAP - 1 - n)); };   // số đếm
   const aoShown = id => { const n = realsIn(id); return Math.max(0, Math.min(baseAo(id) - n, CAP - 1 - n)); };       // trên màn hình
   const hallCount = id => aoTarget(id) + realsIn(id) + (id === hallId ? 1 : 0);
