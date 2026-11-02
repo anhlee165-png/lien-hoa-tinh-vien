@@ -11,7 +11,6 @@
     set(k, v) { try { localStorage.setItem('lhtv:' + k, JSON.stringify(v)); } catch {} }
   };
   const state = {
-    xu: store.get('xu', 0),
     role: store.get('role', ''),                 // '' chưa vào · 'guest' khách · 'admin' quản trị
     user: store.get('user', null),
     merit: store.get('merit', 0),
@@ -23,7 +22,7 @@
     log: store.get('log', []),
     outside: false
   };
-  const save = () => ['role', 'user', 'xu', 'merit', 'beads', 'hall', 'volume', 'muted', 'ambient', 'log'].forEach(k => store.set(k, state[k]));
+  const save = () => ['role', 'user', 'merit', 'beads', 'hall', 'volume', 'muted', 'ambient', 'log'].forEach(k => store.set(k, state[k]));
   const fmt = n => n.toLocaleString('vi-VN');
 
   /* ---------- Co giãn sân khấu ---------- */
@@ -295,12 +294,24 @@
   function logIt(text, merit = 0) {
     state.log.unshift({ t: Date.now(), text, merit }); state.log = state.log.slice(0, 60); save();
   }
-  const isAdmin = () => state.role === 'admin';
-  const GIA_HUONG = 50;                                                   // xu mỗi lần thắp hương (3 nén)
-  const GIA_HOA = 150;                                                    // xu mỗi bông hoa dâng lên Phật
-  const xuText = () => isAdmin() ? '∞' : fmt(state.xu);
+  // Quyền quản trị = custom claim đã ký trong ID token (máy chủ cấp), KHÔNG dựa vào localStorage hay email
+  const isAdmin = () => state.role === 'admin' && !!window.Vi && Vi.isAdmin();
+  const xu = () => window.Vi ? Vi.balance() : 0;
+  const GIA = () => Object.assign({ incense: 50, flower: 150, rename: 20 }, window.Vi && Vi.prices());
+  const GIA_HUONG = 50;                                                   // chỉ để hiển thị khi chưa tải giá từ máy chủ
+  const xuText = () => isAdmin() ? '∞' : fmt(xu());
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
   paintWallet();
+  const needLogin = what => { toast(`Mời đạo hữu đăng nhập Gmail hoặc Facebook để ${what} 🙏`); showLogin(); };
+  addEventListener('vi-change', () => {
+    paintWallet(); const vb = $('#v-bal'); if (vb) vb.textContent = xuText() + ' xu';
+    // vai Quản trị chỉ giữ được khi máy chủ xác nhận claim admin
+    if (state.role === 'admin' && window.Vi && Vi.signedIn() && !Vi.isAdmin()) { state.role = 'guest'; save(); window.Nguoi && Nguoi.abbotLeave(); }
+    const p = window.Vi && Vi.profile();
+    if (p && p.nick && (!state.nick || state.nick.name !== p.nick || state.nick.sex !== p.sex)) { state.nick = { name: p.nick, sex: p.sex, t: p.nickAt || 0 }; store.set(nickKey(), state.nick); applyNick(); }
+    if (window.Vi && Vi.signedIn() && Vi.online() && p && !p.nick && state.role && !isAdmin() && !$('#nick-in')) nickModal(true);
+    paintRole();
+  });
 
   /* ---------- Hành động ---------- */
   const aura = $('#me-aura');
@@ -341,49 +352,49 @@
       if (state.beads === 108) { bell(); petals(24); addMerit(10, 'Tròn một chuỗi 108 hạt'); toast('Viên mãn một chuỗi 108 hạt 🙏'); }
       save();
     },
-    thaphuong() {
-      // mỗi lần thắp hương cúng dường 50 xu (quản trị không mất xu); thắp không thành thì hoàn lại
-      const pay = () => {
-        if (isAdmin()) return true;
-        if (state.xu < GIA_HUONG) { toast(`Mỗi lần thắp hương cúng dường ${GIA_HUONG} xu. Đạo hữu còn ${fmt(state.xu)} xu, mời nạp thêm 🙏`); PANELS.wallet(true); return false; }
-        state.xu -= GIA_HUONG; save(); paintWallet(); return true;
-      };
-      const refund = () => { if (!isAdmin()) { state.xu += GIA_HUONG; save(); paintWallet(); } };
-      const book = () => { const L = store.get('ledger', []); L.unshift({ who: myName(), xu: isAdmin() ? 0 : GIA_HUONG, kind: 'cung', what: 'Thắp hương', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500)); };
-      if (window.Dien3D && Dien3D.active()) {
-        if (!pay()) return; book();
-        Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
-      } else if (window.Nguoi && Nguoi.abbotHere && Nguoi.abbotHere()) {
-        toast('Thầy trụ trì đang ngồi giữa điện, xin thắp hương sau khi thầy rời điện 🙏'); return;
-      } else if (window.Nguoi) {
+    async thaphuong() {
+      if (window.Nguoi && !(window.Dien3D && Dien3D.active())) {
+        if (Nguoi.abbotHere && Nguoi.abbotHere()) { toast('Thầy trụ trì đang ngồi giữa điện, xin thắp hương sau khi thầy rời điện 🙏'); return; }
         const ci = Nguoi.canIncense(); if (ci !== true) { if (ci === 'nourn') toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); return; }
-        if (!pay()) return;
-        Nguoi.incense().then(ok => { if (ok === false || ok === 'abbot') { refund(); if (ok === false && !busyIncense()) toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); } else { book(); if (!isAdmin()) toast(`Đã cúng dường ${GIA_HUONG} xu thắp hương 🙏`); } });
+      }
+      if (!window.Vi || !Vi.signedIn()) return needLogin('thắp hương');
+      if (thapBusy) return; thapBusy = true;
+      let paid;
+      try { paid = await Vi.spend('incense'); }
+      catch (e) { thapBusy = false; toast(e.message); if (/đủ xu/.test(e.message)) PANELS.wallet(true); return; }
+      thapBusy = false;
+      if (window.Dien3D && Dien3D.active()) {
+        Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
+      } else if (window.Nguoi) {
         floatText('Thắp nén tâm hương', 843, 520, true);
+        const ok = await Nguoi.incense();
+        if (ok === false || ok === 'abbot') { Vi.refund(paid.opId).then(() => toast('Chưa thắp được hương, đã hoàn xu')).catch(() => {}); return; }
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
+      if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu thắp hương 🙏`);
       chime(1040, 2.5, .2);
     },
-    danghoa() {
-      // mỗi bông hoa cúng dường 150 xu (quản trị không mất xu); dâng không thành thì hoàn lại
-      const pay = () => {
-        if (isAdmin()) return true;
-        if (state.xu < GIA_HOA) { toast(`Mỗi bông hoa dâng Phật cúng dường ${GIA_HOA} xu. Đạo hữu còn ${fmt(state.xu)} xu, mời nạp thêm 🙏`); PANELS.wallet(true); return false; }
-        state.xu -= GIA_HOA; save(); paintWallet(); return true;
-      };
-      const refund = () => { if (!isAdmin()) { state.xu += GIA_HOA; save(); paintWallet(); } };
-      const book = () => { const L = store.get('ledger', []); L.unshift({ who: myName(), xu: isAdmin() ? 0 : GIA_HOA, kind: 'cung', what: 'Dâng hoa', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500)); };
-      const done = () => { book(); addMerit(3, 'Dâng hoa'); if (!isAdmin()) toast(`Đã cúng dường ${GIA_HOA} xu dâng hoa 🙏`); };
-      if (window.Dien3D && Dien3D.active()) {
-        if (!pay()) return; Dien3D.flower(); done(); floatText('Nguyện hoa tâm thanh tịnh dâng lên chư Phật', 843, 560, true);
-      } else if (window.Nguoi) {
+    async danghoa() {
+      // mỗi bông hoa cúng dường theo giá máy chủ (mặc định 150 xu); trừ xu ở máy chủ, dâng không thành thì máy chủ hoàn lại
+      if (window.Nguoi && !(window.Dien3D && Dien3D.active())) {
         const ok = Nguoi.canFlower();
         if (ok === 'abbot') { toast('Thầy trụ trì đang ngồi giữa điện, xin dâng hoa sau khi thầy rời điện 🙏'); return; }
         if (ok === 'novase') { toast('Hãy vào chánh điện để dâng hoa lên bàn thờ Phật'); return; }
         if (ok !== true) return;
-        if (!pay()) return;
-        Nguoi.flower().then(r => { if (!r) refund(); else done(); });
-        floatText('Dâng hoa cúng Phật', 843, 520, true);
       }
+      if (!window.Vi || !Vi.signedIn()) return needLogin('dâng hoa');
+      if (thapBusy) return; thapBusy = true;
+      let paid;
+      try { paid = await Vi.spend('flower'); }
+      catch (err) { thapBusy = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; }
+      thapBusy = false;
+      if (window.Dien3D && Dien3D.active()) { Dien3D.flower(); floatText('Nguyện hoa tâm thanh tịnh dâng lên chư Phật', 843, 560, true); }
+      else if (window.Nguoi) {
+        floatText('Dâng hoa cúng Phật', 843, 520, true);
+        const r = await Nguoi.flower();
+        if (!r) { Vi.refund(paid.opId).then(() => toast('Chưa dâng được hoa, đã hoàn xu')).catch(() => {}); return; }
+      }
+      addMerit(3, 'Dâng hoa');
+      if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu dâng hoa 🙏`);
       chime(1180, 2.5, .2);
     },
     rangoai() { state.outside ? goInside() : goOutside(); }
@@ -398,6 +409,7 @@
   }));
 
   const busyIncense = () => false;
+  let thapBusy = false;
   function goOutside() { stopContinuous(); window.Nguoi && Nguoi.go('cua'); }
   function goInside() { window.Nguoi && Nguoi.go('hall'); }
   addEventListener('chua-room', e => {
@@ -486,7 +498,7 @@
     const ns = getNotes();
     bellMenu.innerHTML = (ns.length ? ns.map(n => `<div class="item">${esc(n.text)}<small>${new Date(n.t).toLocaleDateString('vi-VN')}</small></div>`).join('') : '<div class="item">Chưa có thông báo</div>')
       + (isAdmin() ? '<button id="note-new">＋ Đăng thông báo mới</button>' : '');
-    const nb = $('#note-new', bellMenu); if (nb) nb.addEventListener('click', ev => { ev.stopPropagation(); bellMenu.hidden = true; adminPanel('notes'); });
+    const nb = $('#note-new', bellMenu); if (nb) nb.addEventListener('click', ev => { ev.stopPropagation(); bellMenu.hidden = true; adminPanel(); });
     store.set('notesSeen', Date.now());
     bellMenu.style.left = '1340px'; bellMenu.style.minWidth = '320px'; bellMenu.hidden = !bellMenu.hidden; hallMenu.hidden = true;
     paintBellDot();
@@ -509,55 +521,76 @@
     },
     hall() { closeModal(); setView('all'); if (state.outside) goInside(); },
     wallet(open) {
-      // Nạp xu: giá tiền (đồng) → số xu nhận được. Khách quét QR của chùa, quản trị xác nhận rồi xu mới vào ví.
-      const PACKS = [[18990, 1680], [48990, 5099], [99000, 10900], [199000, 21900]];
-      const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
-      openModal('Ví xu', `<p>Số dư</p><p class="big">${xuText()} xu</p>
-        ${isAdmin() ? '<p class="note">Tài khoản quản trị có xu vô hạn.</p>' : `<p class="note">Thắp hương (3 nén) ${GIA_HUONG} xu · dâng hoa ${GIA_HOA} xu một bông.</p>
+      if (isAdmin()) return openModal('Ví xu', '<p>Số dư</p><p class="big">∞ xu</p><p class="note">Tài khoản chủ chùa không mất xu. Doanh thu và đối soát xem ở trang Quản trị.</p><a class="btn nap" href="quan-tri.html" target="_blank" rel="noopener">Mở trang Quản trị</a>');
+      if (!window.Vi || !Vi.signedIn()) return openModal('Ví xu', '<p>Ví xu gắn với tài khoản, dùng được trên mọi máy.</p><p class="note">Đạo hữu vẫn tham quan miễn phí. Muốn nạp xu, thắp hương hay cúng dường, mời đăng nhập.</p><button class="btn nap" id="v-login">Đăng nhập Gmail / Facebook</button>',
+        body => $('#v-login', body).addEventListener('click', () => { closeModal(); showLogin(); }));
+      const packs = Vi.packs();
+      openModal('Ví xu', `<p>Số dư</p><p class="big" id="v-bal">${xuText()} xu</p>
+        <p class="note">Thắp hương (3 nén) ${GIA().incense} xu · dâng hoa ${GIA().flower} xu một bông. Xu chỉ dùng trong chùa, không đổi lại thành tiền.</p>
         <button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>
-        <div id="packs"${open ? '' : ' hidden'}><p>Chọn gói nạp:</p>
-        <div class="grid">${PACKS.map(([d, x]) => `<button data-x="${x}" data-d="${d}"><b>${fmt(x)} xu</b><small>${fmt(d)} đ</small></button>`).join('')}</div></div>
-        <div id="pay" hidden></div>`}`,
-        body => body.addEventListener('click', e => {
-          if (e.target.closest('#nap-btn')) { $('#nap-btn', body).hidden = true; $('#packs', body).hidden = false; return; }
-          const b = e.target.closest('[data-x]');
-          if (b) {
-            const x = +b.dataset.x, d = +b.dataset.d, code = 'LHTV' + Date.now().toString(36).toUpperCase().slice(-6);
-            const pay = $('#pay', body); pay.hidden = false;
-            pay.innerHTML = qr ? `<p>Quét mã để chuyển <b>${fmt(d)} đ</b>, nội dung: <b>${code}</b></p><img class="qr" src="${qr}" alt="Mã QR thanh toán của chùa">
-              <button class="btn nap" id="paid" data-x="${x}" data-d="${d}" data-c="${code}">Tôi đã chuyển khoản</button>`
-              : '<p class="note">Chùa chưa cài mã QR thanh toán. Vui lòng quay lại sau.</p>';
-            return;
-          }
-          const pd = e.target.closest('#paid'); if (!pd) return;
-          const L = store.get('ledger', []);
-          L.unshift({ id: pd.dataset.c, who: myName(), xu: +pd.dataset.x, d: +pd.dataset.d, kind: 'nap', status: 'cho', t: Date.now() });
-          store.set('ledger', L.slice(0, 500)); closeModal();
-          toast('Đã gửi yêu cầu nạp xu. Xu sẽ vào ví khi chùa xác nhận 🙏'); logIt(`Yêu cầu nạp ${fmt(+pd.dataset.x)} xu`);
-        }));
+        <div id="packs"${open ? '' : ' hidden'}>${packs.length ? `<p>Chọn gói nạp:</p>
+          <div class="grid">${packs.map(p => `<button data-pack="${esc(p.id)}"><b>${fmt(p.xu)} xu</b><small>${fmt(p.vnd)} đ</small></button>`).join('')}</div>` : '<p class="note">Máy chủ nạp xu chưa sẵn sàng, xin quay lại sau.</p>'}</div>
+        <div id="pay" hidden></div>`,
+        body => {
+          let stop = null, timer = null;
+          const clean = () => { stop && stop(); clearInterval(timer); };
+          new MutationObserver((m, o) => { if (modal.hidden) { clean(); o.disconnect(); } }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+          body.addEventListener('click', async e => {
+            if (e.target.closest('#nap-btn')) { $('#nap-btn', body).hidden = true; $('#packs', body).hidden = false; return; }
+            const b = e.target.closest('[data-pack]');
+            if (b) {
+              const pay = $('#pay', body); pay.hidden = false; pay.innerHTML = '<p class="note">Đang tạo đơn nạp…</p>';
+              let o; try { o = await Vi.createTopup(b.dataset.pack); } catch (err) { pay.innerHTML = `<p class="note">${esc(err.message)}</p>`; return; }
+              $('#packs', body).hidden = true; clean();
+              pay.innerHTML = `<p>Quét mã bằng ứng dụng ngân hàng để chuyển <b>${fmt(o.vnd)} đ</b> (nhận ${fmt(o.xu)} xu)</p>
+                <img class="qr" src="${esc(o.qrUrl)}" alt="Mã VietQR của đơn ${esc(o.code)}">
+                <p class="note">Nội dung chuyển khoản phải giữ đúng: <b>${esc(o.code)}</b><br>${esc(o.bank.code)} · ${esc(o.bank.account)} · ${esc(o.bank.holder)}</p>
+                ${/^https:\/\/pay\.payos\.vn\//.test(o.checkoutUrl || '') ? `<p><a class="btn nap" href="${esc(o.checkoutUrl)}" target="_blank" rel="noopener">Mở trang thanh toán payOS</a></p>` : ''}
+                <p id="o-st">Đang chờ ngân hàng báo có… <span id="o-left"></span></p>
+                <p class="note">Xu tự vào ví khi ngân hàng báo có, có thể đóng cửa sổ này. Chuyển thiếu, thừa hay sai nội dung sẽ được nhà chùa đối soát.</p>
+                <button class="btn nap" id="o-cancel">Huỷ đơn</button>`;
+              timer = setInterval(() => { const l = o.expiresAt - Date.now(), el = $('#o-left', body); if (el) el.textContent = l > 0 ? `(còn ${Math.floor(l / 60e3)}:${String(Math.floor(l % 60e3 / 1e3)).padStart(2, '0')})` : '(đơn đã hết hạn)'; }, 1000);
+              stop = Vi.watchOrder(o.orderId, d => {
+                const st = $('#o-st', body); if (!st) return;
+                if (d.status === 'PAID') { clean(); st.innerHTML = `<b>Nạp xu thành công +${fmt(d.xu)} xu 🙏</b>`; $('#o-cancel', body).hidden = true; bell(); petals(16); toast(`Nạp xu thành công +${fmt(d.xu)} xu`); logIt(`Nạp ${fmt(d.xu)} xu`); }
+                else if (d.status === 'REVIEW') st.textContent = 'Đã nhận giao dịch nhưng cần nhà chùa đối soát (sai số tiền hoặc trễ hạn). Xu sẽ được xử lý sớm.';
+                else if (d.status === 'EXPIRED') st.textContent = 'Đơn đã hết hạn. Nếu đã chuyển tiền, nhà chùa sẽ đối soát và xử lý.';
+                else if (d.status === 'CANCELLED') st.textContent = 'Đã huỷ đơn.';
+              });
+              $('#o-cancel', body).addEventListener('click', async () => { try { await Vi.cancelTopup(o.orderId); } catch (err) { toast(err.message); } });
+            }
+          });
+        });
     },
     merit() {
-      const opts = [[200, 'Cúng hoa sen'], [500, 'Cúng đèn'], [1000, 'Cúng dường Tam Bảo'], [2000, 'Ấn tống kinh']];
+      const of = GIA().offers || { sen: { xu: 200, name: 'Cúng hoa sen' }, den: { xu: 500, name: 'Cúng đèn' }, tambao: { xu: 1000, name: 'Cúng dường Tam Bảo' }, kinh: { xu: 2000, name: 'Ấn tống kinh' } };
+      const opts = Object.entries(of).map(([k, o]) => [o.xu, o.name, k]);
       openModal('Công đức', `<p>Công đức tích lũy</p><p class="big" id="m-pt">${fmt(state.merit)}</p>
         <p>Cúng dường bằng xu (đang có ${xuText()} xu):</p>
-        <div class="grid">${opts.map(([v, t]) => `<button data-v="${v}" data-t="${t}">${t}<small>${fmt(v)} xu</small></button>`).join('')}</div>`,
-        body => body.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return;
-          const v = +b.dataset.v; if (!isAdmin() && state.xu < v) { toast('Không đủ xu, hãy nạp thêm'); PANELS.wallet(true); return; }
-          if (!isAdmin()) state.xu -= v;
-          const L = store.get('ledger', []); L.unshift({ who: myName(), xu: v, kind: 'cung', what: b.dataset.t, status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500));
-          save(); paintWallet(); addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
+        <div class="grid">${opts.map(([v, t, k]) => `<button data-v="${v}" data-t="${esc(t)}" data-k="${esc(k)}">${esc(t)}<small>${fmt(v)} xu</small></button>`).join('')}</div>`,
+        body => body.addEventListener('click', async e => { const b = e.target.closest('[data-v]'); if (!b || b.disabled) return;
+          const v = +b.dataset.v;
+          if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('cúng dường'); }
+          b.disabled = true;
+          try { await Vi.spend('offer', { item: b.dataset.k }); }
+          catch (err) { b.disabled = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; } addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
           $('#m-pt', body).textContent = fmt(state.merit); closeModal(); toast(`Tùy hỷ công đức: ${b.dataset.t} 🙏`); }));
     },
-    book() {
+    async book() {
+      let xuRows = '';
+      if (window.Vi && Vi.signedIn()) {
+        try { const L = await Vi.ledger(30); const T = { TOPUP: 'Nạp xu', TOPUP_MANUAL: 'Nạp xu (đối soát)', SPEND: 'Dùng xu', ADJUST: 'Điều chỉnh', REFUND: 'Hoàn xu' };
+          xuRows = `<h3>Lịch sử xu</h3><ul>${L.map(x => `<li><span>${T[x.type] || x.type}${x.reason ? ' · ' + esc(x.reason) : ''} <b>${x.xu > 0 ? '+' : ''}${fmt(x.xu)}</b></span><small>${new Date(x.at).toLocaleString('vi-VN')}</small></li>`).join('') || '<li>Chưa có.</li>'}</ul>`; } catch {}
+      }
       const items = state.log.length ? state.log.map(l => `<li><span>${l.text}${l.merit ? ` <small>+${l.merit}</small>` : ''}</span><small>${new Date(l.t).toLocaleString('vi-VN')}</small></li>`).join('') : '<li>Chưa có ghi chép. Hãy chắp tay, niệm Phật hay thắp hương.</li>';
-      openModal('Sổ tu tập', `<p>Chuỗi hạt: <b>${state.beads}/108</b> · Công đức: <b>${fmt(state.merit)}</b></p><ul>${items}</ul>`);
+      openModal('Sổ tu tập', `<p>Chuỗi hạt: <b>${state.beads}/108</b> · Công đức: <b>${fmt(state.merit)}</b></p>${xuRows}<h3>Tu tập</h3><ul>${items}</ul>`);
     }
   };
   $$('[data-open]').forEach(b => b.addEventListener('click', () => {
     if (b.closest('#nav')) { $$('#nav button').forEach(x => x.classList.toggle('on', x === b)); }
     PANELS[b.dataset.open]();
   }));
-  $('#topup') && $('#topup').addEventListener('click', () => { if (!isAdmin()) PANELS.wallet(true); });
+  $('#topup') && $('#topup').addEventListener('click', () => PANELS.wallet(true));
   modal.addEventListener('transitionend', () => {});
   const navReset = new MutationObserver(() => { if (modal.hidden) $$('#nav button').forEach(x => x.classList.toggle('on', x.dataset.open === 'hall')); });
   navReset.observe(modal, { attributes: true, attributeFilter: ['hidden'] });
@@ -571,58 +604,27 @@
         <button data-ao="-10">− 10</button><button data-ao="-1">− 1</button><button data-ao="1">+ 1</button><button data-ao="10">+ 10</button>
       </div>
       <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><button id="a-lay">Mời đại chúng lạy Phật</button><button id="a-full">Đầy chánh điện</button></div>
-      <button id="a-panel" style="margin-top:8px;width:100%">Sổ công đức · Mã QR · Thông báo</button></div>`,
+      <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><a class="btn" href="quan-tri.html" target="_blank" rel="noopener" style="text-align:center">Trang Quản trị (doanh thu, đối soát)</a><button id="a-panel">Thông báo</button></div></div>`,
       body => {
         $('#s-amb', body).addEventListener('change', e => { state.ambient = e.target.checked; save(); });
         const upd = n => { $('#a-n', body).textContent = n; paintHall(); };
         $$('[data-ao]', body).forEach(b => b.addEventListener('click', () => upd(Nguoi.setAo(Nguoi.ao() + +b.dataset.ao))));
         $('#a-full', body).addEventListener('click', () => upd(Nguoi.setAo(Nguoi.maxAo())));
-        $('#a-panel', body).addEventListener('click', () => adminPanel('so'));
+        $('#a-panel', body).addEventListener('click', () => adminPanel('notes'));
         $('#a-lay', body).addEventListener('click', () => { closeModal(); bell(); Nguoi.allLay(); floatText('Đại chúng đồng lạy Phật'); });
       });
   });
 
   /* ---------- Quản trị: thông báo, mã QR, sổ công đức ---------- */
-  function adminPanel(tab = 'so') {
+  function adminPanel() {
     if (!isAdmin()) return;
-    const L = store.get('ledger', []);
-    const nap = L.filter(x => x.kind === 'nap'), cung = L.filter(x => x.kind === 'cung');
-    const tong = nap.filter(x => x.status === 'ok').reduce((a, x) => a + x.d, 0);
-    const cho = nap.filter(x => x.status === 'cho');
-    const qr = store.get('qr', null) || 'assets/qr-nap.jpg';
-    const tabs = { so: 'Sổ công đức', qr: 'Mã QR', notes: 'Thông báo' };
-    openModal('Quản trị', `<div class="tabs">${Object.entries(tabs).map(([k, v]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${v}</button>`).join('')}</div>
-      ${tab === 'so' ? `<p>Đã nhận: <b class="big-inline">${fmt(tong)} đ</b> · ${nap.filter(x => x.status === 'ok').length} lượt nạp · ${cung.length} lượt cúng dường (${fmt(cung.reduce((a, x) => a + x.xu, 0))} xu)</p>
-        <h3>Chờ xác nhận (${cho.length})</h3>
-        <ul>${cho.length ? cho.map(x => `<li><span>${esc(x.who)} · ${fmt(x.d)} đ → ${fmt(x.xu)} xu · <b>${x.id}</b></span><span><button data-ok="${x.id}">Đã nhận tiền</button> <button data-no="${x.id}">Từ chối</button></span></li>`).join('') : '<li>Không có yêu cầu nào.</li>'}</ul>
-        <h3>Lịch sử</h3>
-        <ul>${L.filter(x => x.status !== 'cho').slice(0, 40).map(x => `<li><span>${esc(x.who)} · ${x.kind === 'nap' ? `nạp ${fmt(x.d)} đ (${x.status === 'ok' ? 'đã nhận' : 'từ chối'})` : `${esc(x.what)} ${fmt(x.xu)} xu`}</span><small>${new Date(x.t).toLocaleString('vi-VN')}</small></li>`).join('') || '<li>Chưa có.</li>'}</ul>`
-      : tab === 'qr' ? `<p>Mã QR chuyển khoản hiện ra khi Phật tử nạp xu.</p>
-        ${qr ? `<img class="qr" src="${qr}" alt="Mã QR hiện tại">` : '<p class="note">Chưa có mã QR.</p>'}
-        <label class="file">${qr ? 'Đổi mã QR' : 'Thêm mã QR'}<input type="file" id="qr-in" accept="image/*" hidden></label>
-        ${store.get('qr', null) ? '<button id="qr-del">Về mã QR mặc định</button>' : ''}`
-      : `<textarea id="note-in" rows="3" maxlength="300" placeholder="Nội dung thông báo cho Phật tử…"></textarea><button id="note-post">Đăng thông báo</button>
-        <ul>${getNotes().map((n, i) => `<li><span>${esc(n.text)}</span><button data-del="${i}">Xoá</button></li>`).join('')}</ul>`}`,
+    openModal('Thông báo', `<p class="note">Doanh thu, ví xu, gói nạp, tài khoản nhận tiền và đối soát nằm ở <a href="quan-tri.html" target="_blank" rel="noopener">trang Quản trị</a>.</p>
+      <textarea id="note-in" rows="3" maxlength="300" placeholder="Nội dung thông báo cho Phật tử…"></textarea><button id="note-post">Đăng thông báo</button>
+      <ul>${getNotes().map((n, i) => `<li><span>${esc(n.text)}</span><button data-del="${i}">Xoá</button></li>`).join('')}</ul>`,
       body => {
-        $$('[data-tab]', body).forEach(b => b.addEventListener('click', () => adminPanel(b.dataset.tab)));
-        body.addEventListener('click', e => {
-          const ok = e.target.closest('[data-ok]'), no = e.target.closest('[data-no]'), del = e.target.closest('[data-del]');
-          if (ok || no) {
-            const L2 = store.get('ledger', []), x = L2.find(x => x.id === (ok || no).dataset[ok ? 'ok' : 'no']);
-            if (x) { x.status = ok ? 'ok' : 'tu-choi'; store.set('ledger', L2); if (ok) { toast(`Đã cộng ${fmt(x.xu)} xu cho ${x.who}`); if (!isAdmin()) {} } }
-            adminPanel('so');
-          }
-          if (del) { const ns = getNotes(); ns.splice(+del.dataset.del, 1); store.set('notes', ns); adminPanel('notes'); }
-        });
-        const qi = $('#qr-in', body);
-        if (qi) qi.addEventListener('change', () => { const f = qi.files[0]; if (!f) return; const r = new FileReader();
-          r.onload = () => { const img = new Image(); img.onload = () => { const c = document.createElement('canvas'), k = Math.min(1, 600 / Math.max(img.width, img.height));
-            c.width = img.width * k; c.height = img.height * k; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-            store.set('qr', c.toDataURL('image/jpeg', .9)); toast('Đã lưu mã QR'); adminPanel('qr'); }; img.src = r.result; }; r.readAsDataURL(f); });
-        const qd = $('#qr-del', body); if (qd) qd.addEventListener('click', () => { store.set('qr', null); adminPanel('qr'); });
-        const np = $('#note-post', body);
-        if (np) np.addEventListener('click', () => { const v = $('#note-in', body).value.trim(); if (!v) return;
-          const ns = getNotes(); ns.unshift({ text: v, t: Date.now() }); store.set('notes', ns.slice(0, 30)); paintBellDot(); toast('Đã đăng thông báo'); adminPanel('notes'); });
+        body.addEventListener('click', e => { const del = e.target.closest('[data-del]'); if (del) { const ns = getNotes(); ns.splice(+del.dataset.del, 1); store.set('notes', ns); adminPanel(); } });
+        $('#note-post', body).addEventListener('click', () => { const v = $('#note-in', body).value.trim(); if (!v) return;
+          const ns = getNotes(); ns.unshift({ text: v, t: Date.now() }); store.set('notes', ns.slice(0, 30)); paintBellDot(); toast('Đã đăng thông báo'); adminPanel(); });
       });
   }
 
@@ -655,7 +657,7 @@
     paintRole();
   }
   function nickModal(first) {
-    const n = state.nick, wait = n ? n.t + CHO_DOI - Date.now() : 0, free = first || !n || wait <= 0 || isAdmin();
+    const n = state.nick, wait = n ? n.t + CHO_DOI - Date.now() : 0, server = !!(window.Vi && Vi.signedIn() && Vi.online()), free = first || !n || wait <= 0 || isAdmin() || !server;
     const mins = Math.ceil(wait / 60e3), left = wait > 0 ? (mins >= 60 ? `${mins / 60 | 0} giờ ` : '') + `${mins % 60} phút` : '';
     openModal(first ? 'Đặt biệt danh' : 'Đổi biệt danh', `
       ${first ? '<p>Mời đạo hữu đặt biệt danh và chọn giới tính để vào chùa.</p>' : ''}
@@ -663,22 +665,23 @@
       <p style="margin:10px 0 6px">Giới tính</p>
       <div class="grid sex" style="grid-template-columns:1fr 1fr">
         <button data-sex="nu" class="${n && n.sex === 'nu' ? 'on' : ''}">Nữ</button><button data-sex="nam" class="${n && n.sex === 'nam' ? 'on' : ''}">Nam</button></div>
-      <p class="note" id="nick-msg">${free ? (first ? '' : 'Lần đổi này miễn phí.') : `Mỗi lần đổi biệt danh cúng dường ${GIA_DOI_TEN} xu, hoặc chờ ${left} nữa để đổi miễn phí.`}</p>
-      <button class="btn nap" id="nick-ok">${free ? 'Xác nhận' : `Đổi ngay (${GIA_DOI_TEN} xu)`}</button>`,
+      <p class="note" id="nick-msg">${free ? (first ? '' : 'Lần đổi này miễn phí.') : `Mỗi lần đổi biệt danh cúng dường ${GIA().rename} xu, hoặc chờ ${left} nữa để đổi miễn phí.`}</p>
+      <button class="btn nap" id="nick-ok">${free ? 'Xác nhận' : `Đổi ngay (${GIA().rename} xu)`}</button>`,
       body => {
         let sex = n ? n.sex : null;
         if (first) { nickRequired = true; const x = $('#modal .close'); if (x) x.hidden = true; }
         $$('[data-sex]', body).forEach(b => b.addEventListener('click', () => { sex = b.dataset.sex; $$('[data-sex]', body).forEach(x => x.classList.toggle('on', x === b)); }));
-        $('#nick-ok', body).addEventListener('click', () => {
+        $('#nick-ok', body).addEventListener('click', async e => {
+          if (e.currentTarget.disabled) return;
           const name = $('#nick-in', body).value.trim().replace(/\s+/g, ' '), msg = $('#nick-msg', body);
           if (name.length < 2) { msg.textContent = 'Biệt danh cần ít nhất 2 chữ.'; return; }
           if (RESERVED.test(name) && !isAdmin()) { msg.textContent = 'Biệt danh này dành riêng cho nhà chùa, mời chọn tên khác.'; return; }
           if (!sex) { msg.textContent = 'Mời chọn giới tính Nữ hoặc Nam.'; return; }
           if (n && n.name === name && n.sex === sex) { closeModal(); return; }
-          if (!free) {
-            if (state.xu < GIA_DOI_TEN) { msg.textContent = `Đạo hữu còn ${fmt(state.xu)} xu, chưa đủ ${GIA_DOI_TEN} xu. Hãy nạp thêm hoặc chờ ${left} nữa để đổi miễn phí.`; return; }
-            state.xu -= GIA_DOI_TEN; paintWallet();
-            const L = store.get('ledger', []); L.unshift({ who: name, xu: GIA_DOI_TEN, kind: 'cung', what: 'Đổi biệt danh', status: 'ok', t: Date.now() }); store.set('ledger', L.slice(0, 500));
+          if (server) {
+            const btn = $('#nick-ok', body); btn.disabled = true;
+            try { await Vi.spend('rename', { nick: name, sex }); }
+            catch (err) { btn.disabled = false; msg.textContent = /đủ xu/.test(err.message) ? `${err.message}. Hãy nạp thêm hoặc chờ ${left} nữa để đổi miễn phí.` : err.message; return; }
           }
           state.nick = { name, sex, t: Date.now() }; store.set(nickKey(), state.nick); save(); nickRequired = false;
           const x = $('#modal .close'); if (x) x.hidden = false;
@@ -694,7 +697,8 @@
     const k = b.dataset.login;
     if (k === 'guest') return setRole('guest');
     if (!window.Auth || !Auth.ready()) { toast('Đăng nhập ' + (k === 'google' ? 'Gmail' : 'Facebook') + ' chưa mở, mời vào với tư cách khách'); return; }
-    try { const u = await Auth.signIn(k); setRole(u.admin ? 'admin' : 'guest', { name: u.name, email: u.email, admin: u.admin }); }
+    try { const u = await Auth.signIn(k); await Auth.settled(); if (window.Vi) await Vi.hello();
+      setRole(window.Vi && Vi.isAdmin() ? 'admin' : 'guest', { name: u.name, email: u.email }); }
     catch (err) { toast('Đăng nhập không thành công: ' + (err && err.message || err)); }
   }));
   $('#acct').addEventListener('click', () => {
@@ -704,15 +708,15 @@
       body => {
         const sw = $('#sw-role', body); if (sw) sw.addEventListener('click', () => { closeModal(); setRole(isAdmin() ? 'guest' : 'admin', state.user); });
         $('#nick-ch', body).addEventListener('click', () => nickModal(!state.nick));
-        const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => adminPanel('so'));
-        $('#logout', body).addEventListener('click', () => { closeModal(); window.Auth && Auth.ready() && Auth.signOut(); state.role = ''; state.user = null; save(); window.Nguoi && Nguoi.abbotLeave(); paintRole(); paintWallet(); showLogin(); });
+        const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => window.open('quan-tri.html', '_blank', 'noopener'));
+        $('#logout', body).addEventListener('click', () => { closeModal(); window.Auth && Auth.ready() && Auth.signOut(); state.nick = null; state.role = ''; state.user = null; save(); window.Nguoi && Nguoi.abbotLeave(); paintRole(); paintWallet(); showLogin(); });
       });
   });
   // chỉ tài khoản Gmail quản trị mới giữ được vai Quản trị (bỏ vai quản trị tạm thời cũ)
-  if (state.role === 'admin' && !(state.user && window.Auth && Auth.isAdminEmail && Auth.isAdminEmail(state.user.email))) { state.role = ''; state.user = null; save(); }
+  // vai Quản trị lưu trong máy chỉ là lựa chọn giao diện; quyền thật kiểm bằng claim (isAdmin) và ở máy chủ
   // quản trị có thể đổi sang vai khách và quay lại
   function roleSwitch() {
-    if (!(state.user && window.Auth && Auth.isAdminEmail && Auth.isAdminEmail(state.user.email))) return '';
+    if (!(window.Vi && Vi.isAdmin())) return '';
     return `<button id="sw-role">${isAdmin() ? 'Vào vai Khách' : 'Vào vai Quản trị'}</button>`;
   }
   window.__roleSwitch = roleSwitch;

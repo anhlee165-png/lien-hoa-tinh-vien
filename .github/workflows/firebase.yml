@@ -1,0 +1,82 @@
+# Máy chủ Firebase: kiểm thử trên Emulator ở mọi PR; triển khai khi merge vào main (nếu đã cấu hình khoá).
+name: Firebase backend
+on:
+  pull_request:
+    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'database.rules.json', 'firebase.json', '.github/workflows/firebase.yml']
+  push:
+    branches: [main]
+    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'database.rules.json', 'firebase.json', '.github/workflows/firebase.yml']
+  workflow_dispatch:
+    inputs:
+      owner_email:
+        description: 'Cấp quyền chủ chùa cho Gmail này (để trống nếu chỉ triển khai)'
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: firebase-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm i -g firebase-tools@13
+      - run: bash scripts/test-backend.sh
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: env.HAS_KEY != 'true'
+        run: echo "Chưa có secret FIREBASE_SERVICE_ACCOUNT, bỏ qua triển khai." && exit 0
+      - uses: actions/setup-node@v4
+        if: env.HAS_KEY == 'true'
+        with: { node-version: 22 }
+      - if: env.HAS_KEY == 'true'
+        run: npm i -g firebase-tools@13 && (cd functions && npm ci --no-audit --no-fund)
+      - if: env.HAS_KEY == 'true'
+        uses: google-github-actions/auth@v2
+        with: { credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' }
+      - name: Bí mật cổng thanh toán (payOS / Casso / SePay) → Secret Manager
+        if: env.HAS_KEY == 'true'
+        env:
+          PAYOS_ID: ${{ secrets.PAYOS_CLIENT_ID }}
+          PAYOS_KEY: ${{ secrets.PAYOS_API_KEY }}
+          PAYOS_SUM: ${{ secrets.PAYOS_CHECKSUM_KEY }}
+          CASSO: ${{ secrets.CASSO_WEBHOOK_SECRET }}
+          SEPAY: ${{ secrets.SEPAY_WEBHOOK_SECRET }}
+          NOTIFY: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+        run: |
+          P=lien-hoa-tinh-vien
+          # Có giá trị trong GitHub Secrets → ghi vào Secret Manager.
+          # Chưa có và Secret Manager cũng chưa có → đặt chuỗi ngẫu nhiên không ai biết (hàm vẫn triển khai được, webhook của cổng đó luôn bị từ chối).
+          put() { name=$1 val=$2
+            if [ -n "$val" ]; then printf '%s' "$val" | firebase functions:secrets:set "$name" --data-file=- --project $P --force
+            elif ! firebase functions:secrets:access "$name" --project $P >/dev/null 2>&1; then openssl rand -hex 32 | tr -d '\n' | firebase functions:secrets:set "$name" --data-file=- --project $P --force; fi; }
+          put PAYOS_CLIENT_ID "$PAYOS_ID"
+          put PAYOS_API_KEY "$PAYOS_KEY"
+          put PAYOS_CHECKSUM_KEY "$PAYOS_SUM"
+          put CASSO_WEBHOOK_SECRET "$CASSO"
+          put SEPAY_WEBHOOK_SECRET "$SEPAY"
+          printf '%s' "${NOTIFY:-none}" | firebase functions:secrets:set NOTIFY_WEBHOOK_URL --data-file=- --project $P --force
+      - name: Bật Cloud Billing API (Firebase CLI cần để kiểm tra gói Blaze)
+        if: env.HAS_KEY == 'true'
+        run: |
+          gcloud services enable cloudbilling.googleapis.com --project lien-hoa-tinh-vien
+          sleep 30
+      - name: Triển khai Functions + Rules
+        if: env.HAS_KEY == 'true'
+        run: firebase deploy --only functions,firestore,database --project lien-hoa-tinh-vien --force --non-interactive
+      - name: Cấp quyền chủ chùa
+        if: env.HAS_KEY == 'true' && github.event.inputs.owner_email != ''
+        env: { OWNER_EMAIL: '${{ github.event.inputs.owner_email }}' }
+        run: FIREBASE_PROJECT=lien-hoa-tinh-vien node scripts/set-owner.js "$OWNER_EMAIL"

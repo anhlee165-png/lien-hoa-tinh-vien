@@ -1,0 +1,18 @@
+rules_version = '2';
+// Quyền tối thiểu: trình duyệt CHỈ được đọc dữ liệu của chính mình và cấu hình công khai.
+// Mọi ghi (ví, sổ cái, đơn, quyền, giá) chỉ do Cloud Functions (Admin SDK) thực hiện.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+
+    match /wallets/{uid} { allow read: if signedIn() && request.auth.uid == uid; allow write: if false; }
+    match /users/{uid}   { allow read: if signedIn() && request.auth.uid == uid; allow write: if false; }
+    match /orders/{id}   { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
+    match /ledger/{id}   { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
+    match /config/{doc}  { allow read: if doc in ['packs', 'prices']; allow write: if false; }
+    match /alerts/{id}   { allow read: if isAdmin(); allow write: if false; }
+    // ops, bank_tx, reconcile, audit, ratelimits, config/payment, config/owner: chỉ máy chủ
+    match /{document=**} { allow read, write: if false; }
+  }
+}
