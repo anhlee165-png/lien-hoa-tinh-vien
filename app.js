@@ -445,6 +445,7 @@
   const emptiest = except => halls.filter(h => h.id !== except && !fullOf(h.id)).sort((a, b) => a.n - b.n)[0];
   const hallMenu = $('#hall-menu'), bellMenu = $('#bell-menu');
   function openHallMenu() {
+    window.Presence && Presence.refreshCounts && Presence.refreshCounts();
     hallMenu.innerHTML = halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Chánh điện ${h.id}<small>${hallLabel(h)}</small></button>`).join('');
     hallMenu.style.left = '622px'; hallMenu.hidden = false; bellMenu.hidden = true;
   }
@@ -492,6 +493,7 @@
 
   const PANELS = {
     rooms() {
+      window.Presence && Presence.refreshCounts && Presence.refreshCounts();
       openModal(N_HALLS + ' chánh điện', `<div class="grid">${halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Điện ${h.id}<small>${hallLabel(h)} người</small></button>`).join('')}</div>`,
         body => body.addEventListener('click', e => { const b = e.target.closest('[data-h]'); if (b) { joinHall(+b.dataset.h); closeModal(); } }));
     },
