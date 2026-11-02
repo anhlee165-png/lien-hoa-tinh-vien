@@ -411,7 +411,17 @@
     toast(name); logIt('Đến ' + name); chime(660, .3, .15);
     chatRoom(room, room === 'hall' ? 'Chánh điện ' + state.hall : name);
   });
-  addEventListener('chua-soon', e => toast(`${e.detail} đang được xây, sắp mở 🙏`));
+  // lối chưa mở (Đường làng, Vườn Thiền…): báo đang xây, mời góp ý; chỉ hiện bảng một lần mỗi lối, lần sau nhắc ngắn
+  const soonSeen = new Set();
+  addEventListener('chua-soon', e => {
+    const name = e.detail;
+    if (soonSeen.has(name) || !modal.hidden) { toast(`${name}: khu vực đang được xây dựng 🙏`); return; }
+    soonSeen.add(name);
+    openModal('Khu vực đang được xây dựng', `<p><b>${esc(name)}</b> đang được xây dựng.</p>
+      <p>Vui lòng góp ý cho nhà chùa để khu vực này sớm hoàn thiện 🙏</p>
+      <p class="note">Đạo hữu có thể nhắn góp ý trong khung Trò chuyện.</p>
+      <button class="btn" id="soon-ok">Quay lại</button>`, body => $('#soon-ok', body).addEventListener('click', closeModal));
+  });
   addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });
   addEventListener('chua-act', e => {
     const kind = e.detail;

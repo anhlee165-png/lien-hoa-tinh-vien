@@ -62,7 +62,7 @@
       urn: { stand: [874, 905], face: 'up', plant: [874, 676], len: 62 } },
     'tam-quan': { name: 'Cổng Tam Quan', img: 'assets/ngoai/tam-quan.jpg', hz: 520, k: .62,
       floor: [[300, 941], [1380, 941], [1380, 702], [1230, 672], [440, 672], [300, 702]],
-      exits: [[[300, 930, 1380, 941], 'san-gan', [836, 905], 'up'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
+      exits: [[[300, 930, 1380, 941], 'san-gan', [836, 600], 'down'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
     'mat-tien': { lu: { src: 'assets/ngoai/lu-mat-tien.png', at: [699, 529, 272, 301] }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
       floor: [[332, 941], [1338, 941], [1338, 642], [1098, 626], [1090, 522], [580, 522], [572, 626], [332, 642]],
       block: [[716, 766, 954, 836]],
@@ -592,19 +592,23 @@
       // ra khỏi cảnh?
       for (const [r, to, at, face] of R().exits) {
         if (inRect(nx, ny, r)) {
-          if (to.startsWith('soon:')) { if (!me.soonShown) { me.soonShown = true; dispatchEvent(new CustomEvent('chua-soon', { detail: to.slice(5) })); setTimeout(() => me.soonShown = false, 4000); } break; }
+          if (to.startsWith('soon:')) { if (!me.soonShown) { me.soonShown = true; dispatchEvent(new CustomEvent('chua-soon', { detail: to.slice(5) })); setTimeout(() => me.soonShown = false, 4000); } input = { x: 0, y: 0 }; me.fy += 12; return; }   // dừng lại, lùi một bước
           return go(to, at, face);
         }
       }
       if (walkable(nx, ny)) { me.fx = nx; me.fy = ny; }
       else if (walkable(nx, me.fy) && Math.abs(input.x) > .3) me.fx = nx;
       else if (walkable(me.fx, ny)) me.fy = ny;
-      else {                                                                // vướng vật cản: tự lách sang bên
-        const b = (R().block || []).find(b => inRect(nx, ny, b));
-        if (b) { const sx = me.fx < (b[0] + b[2]) / 2 ? -1 : 1, x2 = me.fx + sx * v * 1.2; if (walkable(x2, me.fy)) me.fx = x2; }
-        else {                                                              // chạm mép: trượt theo mép về phía giữa
-          const x2 = me.fx + Math.sign(836 - me.fx) * v; if (walkable(x2, ny)) { me.fx = x2; me.fy = ny; } else if (walkable(x2, me.fy)) me.fx = x2;
+      else {                                                                // vướng lư hương, đèn đá, mép sân…: tự lách sang bên gần nhất còn lối đi
+        const dy = ny - me.fy, look = Math.sign(dy) * 70;                 // dò trước ~70px theo hướng đang đi: phải thông suốt cả đoạn
+        const ok = (x, y) => walkable(x, y) || R().exits.some(e => inRect(x, y, e[0])) || y < Math.min(...R().floor.map(p => p[1])) + 6 || y > H;   // lối ra / quá mép sân cũng tính là thông
+        const free = x => walkable(x, me.fy) && ok(x, me.fy + look * .3) && (ok(x, me.fy + look / 2) || ok(x, me.fy + look));
+        let sx = 0;
+        for (let d = 8; d <= 900 && !sx; d += 8) {
+          const L = free(me.fx - d) && walkable(me.fx - Math.min(d, v * 1.3), me.fy), Rr = free(me.fx + d) && walkable(me.fx + Math.min(d, v * 1.3), me.fy);
+          if (L && Rr) sx = input.x ? Math.sign(input.x) : (me.lastSide || -1); else if (L) sx = -1; else if (Rr) sx = 1;
         }
+        if (sx) { me.lastSide = sx; const x2 = me.fx + sx * v * 1.3; if (walkable(x2, ny)) { me.fx = x2; me.fy = ny; } else me.fx = x2; }
       }
       me.dir = dirOf(input.x, input.y * .8); me.walkT += dt;
       const a = R().act;
@@ -630,7 +634,13 @@
     strollers.splice(0).forEach(p => { p.room = 'gone'; const i = people.indexOf(p); i >= 0 && people.splice(i, 1); });
     room = to; me.room = to; me.mode = 'pose'; me.target = null;
     [me.fx, me.fy] = at || [836, 900]; me.dir = face; me.frame = face === 'up' ? F.up : F.stand;
-    if (!walkable(me.fx, me.fy)) { const c = R().floor; me.fx = 836; me.fy = 900; if (!walkable(me.fx, me.fy)) [me.fx, me.fy] = c[0]; }
+    if (!walkable(me.fx, me.fy)) {                                          // chỗ hẹn rơi vào lư, đèn đá…: tìm chỗ trống gần nhất, không nằm trên lối ra
+      const x0 = me.fx, y0 = me.fy, inExit = (x, y) => R().exits.some(e => inRect(x, y, e[0]));
+      search: for (let r = 10; r < 900; r += 10) for (let a = 0; a < 6.283; a += 6 / r) {
+        const x = x0 + Math.cos(a) * r, y = y0 + Math.sin(a) * r;
+        if (walkable(x, y) && walkable(x - 40, y) && walkable(x + 40, y) && walkable(x, y - 30) && !inExit(x, y) && !inExit(x, y - 20) && !inExit(x, y + 20)) { me.fx = x; me.fy = y; break search; }
+      }
+    }
     if (to !== 'hall') {                                                    // vài Phật tử đang dạo ngoài sân
       const nReal = realList.filter(r => (r.hall | 0) === hallId && r.room === to).length;
       const n = Math.max(0, ((Math.random() * 3) | 0) + 1 - 2 * nReal);
@@ -761,15 +771,11 @@
     beat() { bowOnce(me, 380); for (let i = 0; i < 4; i++) { const p = pick(hallNpcs()); p && bowOnce(p, 380); } },
     abbotHere: () => !!abbot && room === 'hall',
     // cho cảnh mặt sau: những người đang ngồi trong chánh điện (chỗ ngồi, áo, hướng)
-    seated: () => people.filter(p => p.room === 'hall' && p.mode === 'seat' && (p.seat || p.abbot)).map(p => { const s = p.abbot ? ABBOT_SEAT : p.seat; return { x: s.x, y: s.y, sheet: p.sheet, flip: p.flip, me: !!p.me, abbot: !!p.abbot, name: p.name }; }),
+    seated: () => people.filter(p => p.room === 'hall' && p.mode === 'seat' && (p.seat || p.abbot)).map(p => { const s = p.abbot ? ABBOT_SEAT : p.seat; return { x: s.x, y: s.y, sheet: p.sheet, flip: p.flip, me: !!p.me, abbot: !!p.abbot, name: p.name, bow: p.frame === F.prostrate ? 1 : p.frame === F.sitBow ? .4 : 0 }; }),
     sheets: () => SHEETS,
     async layPhat(times = 3) {
-      if (abbot && room === 'hall') {                                       // thầy đang ngồi: chỉ ngồi chắp tay cúi đầu, không lạy rạp
-        hallNpcs().filter(p => !p.busy && p.mode === 'seat').forEach(p => setTimeout(() => bowOnce(p, 1200), rnd(100, 700)));
-        if (me.mode === 'seat') bowOnce(me, 1200); return 'abbot';
-      }
-      if (room === 'hall') hallNpcs().filter(p => !p.busy && p.mode === 'seat').forEach(p => { p.busy = true; setTimeout(() => prostrate(p, times).then(() => p.busy = false), rnd(100, 700)); });
-      strollers.forEach(p => p.mode !== 'walk' && prostrate(p, 1));
+      // chỉ người bấm lạy; mỗi Phật tử khác tự lạy theo nhịp riêng của mình
+      if (abbot && room === 'hall') { if (me.mode === 'seat') bowOnce(me, 1200); return 'abbot'; }   // thầy đang ngồi: chỉ cúi đầu
       if (meBusy) return; meBusy = true; me.busy = true;
       try { if (R().shrine) await prostrateUp(me, times); else await prostrate(me, times); } finally { me.busy = false; meBusy = false; }
     },
