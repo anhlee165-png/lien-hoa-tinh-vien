@@ -2,9 +2,11 @@
    Chạy phía máy chủ với service account (GitHub Actions "Cấp quyền chủ chùa" hoặc máy quản trị):
      GOOGLE_APPLICATION_CREDENTIALS=sa.json node scripts/set-owner.js anhlee165@gmail.com
    Quyền KHÔNG dựa vào email trong JavaScript của web; web chỉ đọc claim đã ký trong ID token. */
-const { initializeApp } = require('../functions/node_modules/firebase-admin/app');
-const { getAuth } = require('../functions/node_modules/firebase-admin/auth');
-const { getFirestore, Timestamp } = require('../functions/node_modules/firebase-admin/firestore');
+// nạp firebase-admin từ thư mục functions qua tên gói (đường dẫn thẳng vào node_modules không khớp bảng "exports" của gói)
+const req = require('module').createRequire(require('path').join(__dirname, '../functions/package.json'));
+const { initializeApp } = req('firebase-admin/app');
+const { getAuth } = req('firebase-admin/auth');
+const { getFirestore, Timestamp } = req('firebase-admin/firestore');
 
 (async () => {
   const email = (process.argv[2] || '').toLowerCase();
