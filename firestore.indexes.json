@@ -1,5 +1,7 @@
 {
   "indexes": [
+    { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "vnd", "order": "ASCENDING" } ] },
+    { "collectionGroup": "ledger", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "type", "order": "ASCENDING" }, { "fieldPath": "xu", "order": "ASCENDING" } ] },
     { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "expiresAt", "order": "ASCENDING" } ] },
     { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "paidAt", "order": "DESCENDING" } ] },
     { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "uid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ] },
