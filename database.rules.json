@@ -3,12 +3,18 @@
     ".read": false,
     ".write": false,
     "presence": {
-      ".read": true,
-      "$uid": {
-        ".write": "auth != null && auth.uid === $uid",
-        ".validate": "newData.hasChildren(['name', 'hall', 'room', 't']) && newData.child('name').isString() && newData.child('name').val().length <= 40 && newData.child('hall').isNumber() && newData.child('hall').val() >= 1 && newData.child('hall').val() <= 20 && newData.child('room').isString() && newData.child('room').val().length <= 20 && newData.child('t').val() <= now + 60000",
-        "sheet": { ".validate": "newData.val() === 'nu' || newData.val() === 'nam'" },
-        "$other": { ".validate": "$other === 'name' || $other === 'hall' || $other === 'room' || $other === 't' || $other === 'sheet'" }
+      "$hall": {
+        ".read": "$hall.matches(/^h([1-9]|1[0-9]|20)$/)",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && $hall.matches(/^h([1-9]|1[0-9]|20)$/)",
+          ".validate": "newData.hasChildren(['name', 'room', 't']) && newData.child('name').isString() && newData.child('name').val().length <= 40 && newData.child('room').isString() && newData.child('room').val().length <= 20 && newData.child('t').val() <= now + 60000",
+          "sheet": {
+            ".validate": "newData.val() === 'nu' || newData.val() === 'nam'"
+          },
+          "$other": {
+            ".validate": "$other === 'name' || $other === 'room' || $other === 't' || $other === 'sheet'"
+          }
+        }
       }
     }
   }
