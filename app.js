@@ -92,7 +92,7 @@
     if (broadcast && chat.bc) chat.bc.postMessage({ key: k, who: m.who, text: m.text });
   }
   if (chat.bc) chat.bc.onmessage = e => chatAdd({ ...e.data, me: false }, false);
-  const BOT = ['Chị Ba Xôi Gấc', 'Anh Ba Khó Ngủ', 'Ni Cô Trà Sữa', 'Bà Tám Chánh Niệm', 'Cô Út Hiền Khô', 'Chú Tư Xe Ôm', 'Thích Ngồi Thiền', 'Bé Su Kem'];
+  const BOT = ['Thích Tàu Hủ', 'Thích Ngồi Thiền', 'Thích Sống Ảo', 'Thích Nhiều Chuyện', 'Thích Trà Sữa', 'Thích Trúng Số', 'Thích Niệm Phật', 'Thích Ăn Vặt'];
   const BOT_SAY = ['A Di Đà Phật 🙏', 'Chúc đạo hữu một ngày an lạc', 'Hôm nay chùa thanh tịnh quá', 'Nam Mô Bổn Sư Thích Ca Mâu Ni Phật',
     'Mọi người cùng niệm Phật nhé', 'Hương trầm thơm quá', 'Tùy hỷ công đức đạo hữu 🙏', 'Nguyện cho tất cả chúng sinh được bình an'];
   const pick = a => a[Math.random() * a.length | 0];
