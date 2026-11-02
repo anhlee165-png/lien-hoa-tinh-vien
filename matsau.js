@@ -58,7 +58,7 @@
     if (!S || !S.img) return;
     const { x, y } = place(p), h = K * (y - HZ) * (p.abbot ? 1.4 : 1), s = h / S.stand;
     const f = BACK_SIT, col = f % 4, row = (f / 4) | 0, dw = S.cw * s, dh = S.ch * s;
-    const k = t - bowT - (i % 7) * .08, b = !p.abbot && k > 0 && k < 6 ? Math.max(0, Math.sin(k / 2 * Math.PI)) : 0;
+    const k = t - bowT, b = p.me ? (k > 0 && k < 6 ? Math.max(0, Math.sin(k / 2 * Math.PI)) : 0) : p.bow || 0;   // ai lạy người nấy
     ctx.save(); ctx.translate(x, y);
     ctx.fillStyle = 'rgba(30,14,6,.30)'; ctx.beginPath(); ctx.ellipse(0, -h * .02, h * .34, h * .07, 0, 0, 7); ctx.fill();
     if (p.flip) ctx.scale(-1, 1);
