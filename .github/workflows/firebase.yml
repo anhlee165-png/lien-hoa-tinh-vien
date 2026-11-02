@@ -68,6 +68,11 @@ jobs:
           put CASSO_WEBHOOK_SECRET "$CASSO"
           put SEPAY_WEBHOOK_SECRET "$SEPAY"
           printf '%s' "${NOTIFY:-none}" | firebase functions:secrets:set NOTIFY_WEBHOOK_URL --data-file=- --project $P --force
+      - name: Bật Cloud Billing API (Firebase CLI cần để kiểm tra gói Blaze)
+        if: env.HAS_KEY == 'true'
+        run: |
+          gcloud services enable cloudbilling.googleapis.com --project lien-hoa-tinh-vien
+          sleep 30
       - name: Triển khai Functions + Rules
         if: env.HAS_KEY == 'true'
         run: firebase deploy --only functions,firestore,database --project lien-hoa-tinh-vien --force --non-interactive
