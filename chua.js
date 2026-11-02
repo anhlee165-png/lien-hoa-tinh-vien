@@ -97,27 +97,15 @@
   const carpetX = y => { const t = (y - 548) / (790 - 548); return [790 + (675 - 790) * t, 882 + (997 - 882) * t]; };
   const LANE = 748;                                                       // lối đi ngang trước hàng ghế đầu, sát bàn thờ
   const NAMES = {};                                                       // tên cố định cho hàng ghế đầu (điện 1)
-  const FRONT_NAMES = [['Chị Ba Xôi Gấc', 'nu'], ['Ni Cô Trà Sữa', 'nu'], ['Anh Ba Khó Ngủ', 'nam'], ['Bà Tám Chánh Niệm', 'nu'], ['Cô Út Hiền Khô', 'nu'], ['Chú Tư Xe Ôm', 'nam']];
-  // biệt danh vui, độc lạ cho mọi Phật tử ảo (không trùng trong cùng một điện)
-  const TEN = {
-    nu: ['Cô Tấm Hiện Đại', 'Mơ Ngủ Nướng', 'Bé Mít Ướt', 'Chị Hai Bánh Bèo', 'Cô Ba Đậu Hũ', 'Dì Năm Chè Đậu', 'Hoa Hậu Chùa Làng', 'Chị Đẹp Niệm Phật',
-         'Bé Na Lém Lỉnh', 'Cô Nàng Thiền Định', 'Cô Ba Sài Gòn', 'Chị Tư Bánh Ít', 'Mẹ Bỉm Tu Tại Gia', 'Cô Chín Nhang Thơm', 'Bé Bơ Tu Hú',
-         'Chị Sáu Bông Sen', 'Thỏ Ngọc Ăn Chay', 'Cô Bảy Mứt Gừng', 'Nữ Hoàng Lạy Phật', 'Chị Ba Cà Phê Sữa', 'Cô Sáu Chuỗi Hạt', 'Bé Su Kem',
-         'Cô Mây Lang Thang', 'Thích Chụp Ảnh', 'Thích Trà Đá', 'Thích Ngủ Trưa', 'Thích Hoa Sen', 'Bà Ngoại Siêng Năng', 'Chị Bông Bí',
-         'Cô Hai Bún Riêu', 'Bé Mận Hậu', 'Dì Tư Nhiều Chuyện', 'Cô Ba Mắm Ruốc', 'Chị Cả Đảm Đang', 'Cô Bé Quàng Khăn Lam', 'Thím Sáu Bánh Xèo',
-         'Mợ Hai Hay Cười', 'Cô Năm Bánh Tét', 'Bé Hạt Tiêu', 'Chị Tơ Hồng'],
-    nam: ['Thích Ngồi Thiền', 'Thích Bánh Chưng', 'Anh Hai Hiền Lành', 'Ông Sáu Râu Bạc', 'Thích Đi Lễ Sớm', 'Bác Bảy Nhang Vòng', 'Cậu Út Ham Ăn',
-          'Thích Uống Trà', 'Anh Tư Lúa Mới', 'Chú Mười Chuông Đồng', 'Thích Câu Cá', 'Anh Tèo Chánh Niệm', 'Thích Ăn Xôi', 'Chú Bé Đánh Trống',
-          'Anh Ba Đậu Phộng', 'Thích Nghe Kinh', 'Ông Tám Mõ Gỗ', 'Thích Ngủ Gật', 'Thợ Hồ Tu Tâm', 'Cậu Ba Lúa Non', 'Thích Đạp Xe',
-          'Anh Hai Bánh Mì', 'Chú Năm Bồ Đề', 'Ông Bụt Mini', 'Hiền Như Bụt', 'Tèo Em Niệm Phật', 'Bác Ba Phi', 'Chú Tễu Vui Vẻ',
-          'Anh Cả Bánh Đa', 'Cậu Vàng Ăn Chay', 'Ông Năm Cờ Tướng', 'Chú Lùn Tốt Bụng', 'Anh Bảy Xe Lôi', 'Cậu Hai Ốc Luộc']
-  };
+  // biệt danh kiểu "Thích …" (theo trend đi chùa online) cho mọi Phật tử ảo, không trùng trong cùng một điện
+  const THICH = ['Tàu Hủ', 'Sống Ảo', 'Tùm Lum', 'Ngồi Thiền', 'Trúng Số', 'Nhiều Chuyện', 'Ăn Vặt', 'Im Lặng', 'Niệm Phật', 'Ngủ Nướng', 'Trà Sữa', 'Ăn Xôi', 'Tào Lao', 'Chiều Chuộng', 'Đủ Thứ', 'Bánh Chưng', 'Ăn Chay', 'Ngủ Gật', 'Hóng Hớt', 'Selfie', 'Lướt TikTok', 'Đi Chợ', 'Cà Phê', 'Trà Đá', 'Câu Cá', 'Đạp Xe', 'Hát Karaoke', 'Nấu Chè', 'Ăn Bánh Bèo', 'Đi Lễ Sớm', 'Thắp Hương', 'Gõ Mõ', 'Nghe Kinh', 'Bún Riêu', 'Bánh Mì', 'Xem Bói', 'Ăn Kem', 'Chụp Ảnh', 'Đếm Sao', 'Tưới Cây', 'Hoa Sen', 'Mít Ướt', 'Cười Mỉm', 'Nằm Võng', 'Nhường Nhịn', 'Đọc Truyện', 'Ăn Ngon', 'Đi Bộ', 'Làm Biếng', 'Tám Chuyện', 'Nói Nhỏ', 'Than Thở', 'Order Online', 'Săn Sale', 'Bánh Tét', 'Mứt Gừng', 'Chè Đậu', 'Đồ Chay', 'Yên Tĩnh', 'Vui Vẻ', 'Hiền Lành', 'Lạy Phật', 'Chuỗi Hạt', 'Đi Trễ', 'Về Sớm', 'Ăn Mặn', 'Ngắm Trăng', 'Thả Thính', 'Ăn Ké', 'Bóng Đá', 'Cờ Tướng', 'Đánh Trống', 'Gõ Chuông', 'Mì Gói', 'Trái Cây', 'Xem Phim', 'Lẩu Nấm', 'Khoai Lang', 'Bắp Nướng', 'Ngủ Trưa', 'Dậy Sớm', 'Thức Khuya', 'Cà Kê', 'Phát Tâm', 'Bố Thí', 'Tụng Kinh', 'Ăn Chè', 'Mưa Bay', 'Gió Mát'];
+  const FRONT_NAMES = [['Thích Tàu Hủ', 'nu'], ['Thích Sống Ảo', 'nu'], ['Thích Ngồi Thiền', 'nam'], ['Thích Nhiều Chuyện', 'nu'], ['Thích Trà Sữa', 'nu'], ['Thích Trúng Số', 'nam']];
+  const TEN = { nu: THICH.map(w => 'Thích ' + w), nam: THICH.map(w => 'Thích ' + w) };
   function nameFor(sheet) {
     const used = new Set(people.map(p => p.name));
     const free = TEN[sheet].filter(n => !used.has(n));
     if (free.length) return pick(free);
-    const A = TEN[sheet].map(n => n.split(' ').slice(0, 2).join(' ')), B = TEN[sheet].map(n => n.split(' ').slice(2).join(' ')).filter(Boolean);
-    for (let k = 0; k < 400; k++) { const n = pick(A) + ' ' + pick(B); if (!used.has(n)) return n; }
+    for (let k = 0; k < 400; k++) { const n = 'Thích ' + pick(THICH).split(' ')[0] + ' ' + pick(THICH).split(' ').slice(-1)[0]; if (!used.has(n)) return n; }
     for (let i = 2; ; i++) { const n = pick(TEN[sheet]) + ' ' + i; if (!used.has(n)) return n; }
   }
   const SEATS = [];
