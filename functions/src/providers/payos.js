@@ -50,7 +50,7 @@ async function createLink(keys, { orderCode, amount, description, expiredAt }) {
 function qrFromLink(link, amount) {
   const q = new URLSearchParams({ amount: String(amount), addInfo: link.description });
   if (link.accountName) q.set('accountName', link.accountName);
-  return `https://img.vietqr.io/image/${encodeURIComponent(link.bin)}-${encodeURIComponent(link.accountNumber)}-compact2.png?` + q.toString();
+  return `https://img.vietqr.io/image/${encodeURIComponent(link.bin)}-${encodeURIComponent(link.accountNumber)}-qr_only.png?` + q.toString();
 }
 const qrUrl = () => '';   // payOS: QR lấy từ link thanh toán (qrFromLink), không tự dựng
 
