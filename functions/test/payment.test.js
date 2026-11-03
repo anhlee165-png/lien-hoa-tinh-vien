@@ -173,6 +173,7 @@ test('Bật/tắt thu phí: chỉ quản trị đổi được; tắt thì thắ
 
 test('Công đức tùy tâm: số tiền tự chọn, tiền về đúng đơn thì ghi sổ, không cộng xu; số tiền sai bị chặn', async () => {
   await assert.rejects(call('createDonation', { vnd: 1000 }, A.token), /Số tiền/);
+  await assert.rejects(call('createDonation', { vnd: 1999 }, A.token), /Số tiền/);
   await assert.rejects(call('createDonation', { vnd: 50000 }), /đăng nhập/);
   const before = await bal(A.uid);
   const o = await call('createDonation', { vnd: 50000 }, A.token);
@@ -186,6 +187,50 @@ test('Công đức tùy tâm: số tiền tự chọn, tiền về đúng đơn 
   const o2 = await call('createDonation', { vnd: 20000 }, A.token);
   assert.equal(await hook(sepayBody({ amount: 10000, content: `CT ${o2.code}` })), 200);
   assert.equal((await db.collection('orders').doc(o2.orderId).get()).data().status, 'REVIEW');
+});
+
+test('Hòm Công đức: nhận thêm bằng xu, thắp hương/cúng dường dùng đồ trong hòm trước, hết mới trừ xu, hoàn trả lại đồ', async () => {
+  const C = await signUp('hom@vd.vn'); await call('hello', {}, C.token);
+  await call('adminAdjust', { uid: C.uid, xu: 1000, reason: 'Thử Hòm Công đức', opId: opId() }, OWNER.token);
+  await assert.rejects(call('spend', { kind: 'buy', opId: opId(), payload: { item: 'huong', qty: 0 } }, C.token), /Số lượng/);
+  await assert.rejects(call('spend', { kind: 'buy', opId: opId(), payload: { item: 'vang', qty: 1 } }, C.token), /không có/);
+  let r = await call('spend', { kind: 'buy', opId: opId(), payload: { item: 'huong', qty: 3 } }, C.token);
+  assert.equal(r.cost, 150); assert.equal(r.items.huong, 3); assert.equal(await bal(C.uid), 850);
+  const hid = opId();
+  r = await call('spend', { kind: 'incense', opId: hid }, C.token);
+  assert.equal(r.cost, 0); assert.equal(r.used, 'huong'); assert.equal(r.items.huong, 2); assert.equal(await bal(C.uid), 850);
+  r = await call('refundSpend', { opId: hid }, C.token); assert.equal(r.returned, 'huong');
+  assert.equal(((await db.collection('wallets').doc(C.uid).get()).data().items || {}).huong, 3);
+  r = await call('spend', { kind: 'offer', opId: opId(), payload: { item: 'sen' } }, C.token);
+  assert.equal(r.cost, 200); assert.equal(await bal(C.uid), 650);                    // chưa có hoa sen trong hòm: trừ xu
+  await call('spend', { kind: 'buy', opId: opId(), payload: { item: 'sen', qty: 1 } }, C.token);
+  r = await call('spend', { kind: 'offer', opId: opId(), payload: { item: 'sen' } }, C.token);
+  assert.equal(r.cost, 0); assert.equal(r.used, 'sen'); assert.equal(await bal(C.uid), 450);
+  await assert.rejects(call('spend', { kind: 'buy', opId: opId(), payload: { item: 'kinh', qty: 1 } }, C.token), /đủ xu/);
+  const r2 = await fetch(`${FS}/wallets/${C.uid}?updateMask.fieldPaths=items.huong`, { method: 'PATCH', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + C.token },
+    body: JSON.stringify({ fields: { items: { mapValue: { fields: { huong: { integerValue: '999' } } } } } }) });
+  assert.equal(r2.status, 403);                                                      // không tự sửa số trong hòm
+});
+
+test('Tâm sự kín: cần đăng nhập, tên lấy từ máy chủ (hoặc Ẩn danh), ai cũng đọc được nhưng không ghi thẳng; nhà chùa trả lời và gỡ được', async () => {
+  await assert.rejects(call('storyPost', { text: 'Xin chào mọi người' }), /đăng nhập/);
+  await assert.rejects(call('storyPost', { text: 'ab' }, A.token), /ít nhất/);
+  const { id } = await call('storyPost', { text: 'Con xin kể một câu chuyện <b>nhỏ</b>', name: 'Giả làm Nhà chùa' }, A.token);
+  const s = (await db.collection('stories').doc(id).get()).data();
+  assert.notEqual(s.name, 'Giả làm Nhà chùa'); assert.equal(s.admin, false);
+  const anon = await call('storyPost', { text: 'Tâm sự giấu tên', anon: true }, B.token);
+  assert.equal((await db.collection('stories').doc(anon.id).get()).data().name, 'Ẩn danh');
+  await call('storyReply', { id, text: 'Tùy hỷ đạo hữu' }, B.token);
+  await call('storyReply', { id, text: 'A Di Đà Phật' }, OWNER.token);
+  const reps = await db.collection('stories').doc(id).collection('replies').orderBy('at').get();
+  assert.equal(reps.size, 2); assert.equal(reps.docs[1].data().name, 'Nhà chùa'); assert.equal(reps.docs[1].data().admin, true);
+  assert.equal((await db.collection('stories').doc(id).get()).data().replies, 2);
+  assert.equal((await fetch(`${FS}/stories/${id}`)).status, 200);                        // đọc công khai
+  const w = await fetch(`${FS}/stories`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + A.token }, body: JSON.stringify({ fields: { text: { stringValue: 'ghi thẳng' } } }) });
+  assert.equal(w.status, 403);
+  await assert.rejects(call('adminStoryRemove', { id }, A.token), /quyền/);
+  await call('adminStoryRemove', { id: anon.id }, OWNER.token);
+  assert.equal((await db.collection('stories').doc(anon.id).get()).exists, false);
 });
 
 test('10. Thiếu/thừa tiền, trả sau khi hết hạn, sai tài khoản → không cộng, vào đối soát; hoàn tất thủ công có ghi log', async () => {

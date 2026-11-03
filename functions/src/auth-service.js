@@ -41,7 +41,7 @@ async function ensureProfile(uid, token) {
     else tx.update(uref, { lastSeen: now() });
     if (!w.exists) tx.set(wref, { balance: 0, updatedAt: now() });
     const ud = u.exists ? u.data() : { nick: null, sex: null, nickAt: null };
-    return { nick: ud.nick, sex: ud.sex, nickAt: ud.nickAt ? ud.nickAt.toMillis() : null, balance: w.exists ? w.data().balance : 0 };
+    return { nick: ud.nick, sex: ud.sex, nickAt: ud.nickAt ? ud.nickAt.toMillis() : null, balance: w.exists ? w.data().balance : 0, items: (w.exists && w.data().items) || {} };
   });
 }
 

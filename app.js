@@ -298,6 +298,7 @@
   const isAdmin = () => state.role === 'admin' && !!window.Vi && Vi.isAdmin();
   const xu = () => window.Vi ? Vi.balance() : 0;
   const GIA = () => Object.assign({ incense: 50, flower: 150, rename: 20 }, window.Vi && Vi.prices());
+  const OFFERS = [['sen', 'Cúng hoa sen', 20, 200], ['den', 'Cúng đèn', 50, 500], ['tambao', 'Cúng dường Tam Bảo', 100, 1000], ['kinh', 'Ấn tống kinh', 200, 2000]];   // [mã, tên, công đức, xu mặc định]
   const GIA_HUONG = 50;                                                   // chỉ để hiển thị khi chưa tải giá từ máy chủ
   const xuText = () => isAdmin() ? '∞' : fmt(xu());
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
@@ -362,16 +363,17 @@
       if (thapBusy) return; thapBusy = true;
       let paid = { cost: 0, opId: null };
       try { if (Vi.signedIn()) paid = await Vi.spend('incense'); }
-      catch (e) { thapBusy = false; toast(e.message); if (/đủ xu/.test(e.message)) PANELS.wallet(true); return; }
+      catch (e) { thapBusy = false; toast(e.message); if (/đủ xu/.test(e.message)) PANELS.hom(true); return; }
       thapBusy = false;
       if (window.Dien3D && Dien3D.active()) {
         Dien3D.incense(); addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true);
       } else if (window.Nguoi) {
         floatText('Thắp nén tâm hương', 843, 520, true);
         const ok = await Nguoi.incense();
-        if (ok === false || ok === 'abbot') { if (!paid.opId) return; Vi.refund(paid.opId).then(() => toast('Chưa thắp được hương, đã hoàn xu')).catch(() => {}); return; }
+        if (ok === false || ok === 'abbot') { if (!paid.opId) return; Vi.refund(paid.opId).then(() => toast(paid.used ? 'Chưa thắp được hương, đã trả lại Hương vào hòm' : 'Chưa thắp được hương, đã hoàn xu')).catch(() => {}); return; }
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
-      if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu thắp hương 🙏`);
+      if (paid.used) toast(`Đã dùng 1 phần Hương trong Hòm Công đức (còn ${fmt((paid.items || {}).huong || 0)}) 🙏`);
+      else if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu thắp hương 🙏`);
       chime(1040, 2.5, .2);
     },
     async danghoa() {
@@ -561,59 +563,149 @@
         });
     },
     merit() {
-      // Quản trị bật thu phí: cúng dường bằng xu (máy chủ trừ). Tắt thu phí: các nút công đức miễn phí.
+      // Tiếp sức Liên Hoa. Bật thu phí: mỗi lễ dùng 1 phần trong Hòm Công đức, hết thì trừ xu (máy chủ quyết định). Tắt thu phí: miễn phí.
       const charging = !(window.Vi && !Vi.charging());
-      const of = GIA().offers || { sen: { xu: 200, name: 'Cúng hoa sen' }, den: { xu: 500, name: 'Cúng đèn' }, tambao: { xu: 1000, name: 'Cúng dường Tam Bảo' }, kinh: { xu: 2000, name: 'Ấn tống kinh' } };
-      const opts = Object.entries(of).map(([k, o]) => [o.xu, o.name, k]);
-      const FREE = [[20, 'Niệm Phật'], [50, 'Cúng hoa sen'], [100, 'Cúng đèn'], [200, 'Cúng dường Tam Bảo']];
-      const TAM = [20000, 50000, 100000, 200000];
-      openModal('Công đức', `<p>Công đức tích lũy</p><p class="big" id="m-pt">${fmt(state.merit)}</p>
-        ${charging ? `<p>Cúng dường bằng xu (đang có ${xuText()} xu):</p>
-        <div class="grid">${opts.map(([v, t, k]) => `<button data-v="${v}" data-t="${esc(t)}" data-k="${esc(k)}">${esc(t)}<small>${fmt(v)} xu</small></button>`).join('')}</div>`
-        : `<p>Hôm nay nhà chùa mở miễn phí, mời đạo hữu phát tâm:</p>
-        <div class="grid">${FREE.map(([v, t]) => `<button data-free="${v}" data-t="${esc(t)}"><b>+${v} công đức</b><small>${esc(t)}</small></button>`).join('')}</div>`}
-        <h3 style="margin:16px 0 6px">Công đức tùy tâm</h3>
-        <p class="note">Gửi tịnh tài cúng dường nhà chùa bằng chuyển khoản, số tiền tùy tâm (không đổi ra xu).</p>
-        <div class="grid" id="tam">${TAM.map(v => `<button data-vnd="${v}">${fmt(v)} đ</button>`).join('')}</div>
-        <div style="display:flex;gap:8px;margin-top:8px"><input id="tam-in" type="number" min="5000" step="1000" inputmode="numeric" placeholder="Số tiền khác (đ)" style="flex:1;min-width:0"><button class="btn" id="tam-go">Tạo mã QR</button></div>
-        <div id="tam-pay" hidden></div>`,
+      const of = GIA().offers || {};
+      const items = (window.Vi && Vi.signedIn() && Vi.items()) || {};
+      const opts = OFFERS.map(([k, name, m]) => [k, (of[k] && of[k].name) || name, m]);
+      openModal('Tiếp sức Liên Hoa', `<p>Công đức tích lũy</p><p class="big" id="m-pt">${fmt(state.merit)}</p>
+        <p>Cúng dường</p>
+        <div class="grid">${opts.map(([k, t, m]) => `<button data-k="${esc(k)}" data-t="${esc(t)}" data-m="${m}">${esc(t)}<small>+${m} công đức${charging && items[k] > 0 ? ` · còn ${fmt(items[k])}` : ''}</small></button>`).join('')}</div>
+        <div class="ung-ho">
+          <div class="uh-ic">💝</div>
+          <h3>Ủng hộ nhà phát triển</h3>
+          <p class="note">Tùy tâm, không bắt buộc. Ủng hộ để cùng duy trì và phát triển không gian Liên Hoa Tịnh Viện. Khoản này không đổi ra xu.</p>
+          <div class="uh-row"><input id="tam-in" type="number" min="2000" step="1000" inputmode="numeric" placeholder="Số tiền tùy tâm (đ)"><button class="btn" id="tam-go">Ủng hộ</button></div>
+          <div id="tam-pay" hidden></div>
+        </div>`,
         body => {
           let stop = null;
           new MutationObserver((m, o) => { if (modal.hidden) { stop && stop(); o.disconnect(); } }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
           const donate = async vnd => {
-            if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('gửi công đức tùy tâm'); }
+            if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('ủng hộ'); }
             vnd = Math.round(+vnd || 0);
-            if (vnd < 5000) return toast('Số tiền tối thiểu 5.000 đ');
+            if (vnd < 2000) return toast('Mời nhập số tiền ủng hộ (từ 2.000 đ)');
             const pay = $('#tam-pay', body); pay.hidden = false; pay.innerHTML = '<p class="note">Đang tạo mã QR…</p>';
             let o; try { o = await Vi.createDonation(vnd); } catch (err) { pay.innerHTML = `<p class="note">${esc(err.message)}</p>`; return; }
             stop && stop();
-            pay.innerHTML = `<p style="text-align:center"><b>${fmt(o.vnd)} đ</b></p><img class="qr" src="${esc(o.qrUrl)}" alt="Mã QR công đức tùy tâm"><p id="t-st"></p>`;
+            pay.innerHTML = `<p style="text-align:center;margin:10px 0 0"><b>${fmt(o.vnd)} đ</b></p><img class="qr" src="${esc(o.qrUrl)}" alt="Mã QR ủng hộ"><p id="t-st"></p>`;
             stop = Vi.watchOrder(o.orderId, d => {
               const st = $('#t-st', body); if (!st) return;
-              if (d.status === 'PAID') { stop && stop(); st.innerHTML = `<b>Nhà chùa đã nhận ${fmt(d.vnd)} đ công đức. A Di Đà Phật 🙏</b>`; bell(); petals(24); addMerit(Math.max(1, Math.round(d.vnd / 1000)), 'Công đức tùy tâm'); toast('Tùy hỷ công đức 🙏'); }
+              if (d.status === 'PAID') { stop && stop(); st.innerHTML = `<b>Đã nhận ${fmt(d.vnd)} đ ủng hộ. Xin cảm ơn đạo hữu 🙏</b>`; bell(); petals(24); toast('Cảm ơn đạo hữu đã ủng hộ 🙏'); }
               else if (d.status === 'REVIEW') st.textContent = 'Đã nhận giao dịch, nhà chùa sẽ đối soát.';
-              else if (d.status === 'EXPIRED') st.textContent = 'Mã QR đã hết hạn, mời tạo mã mới.';
+              else if (d.status === 'EXPIRED') st.textContent = 'Mã QR đã hết hạn, mời bấm Ủng hộ lại.';
             });
           };
           body.addEventListener('click', async e => {
-            const fv = e.target.closest('[data-vnd]'); if (fv) return donate(fv.dataset.vnd);
             if (e.target.closest('#tam-go')) return donate($('#tam-in', body).value);
-            const fr = e.target.closest('[data-free]');
-            if (fr) {
-              if (window.Vi && Vi.charging()) { closeModal(); return toast('Nhà chùa vừa bật lại cúng dường bằng xu'); }
-              addMerit(+fr.dataset.free, fr.dataset.t); bell(); petals(12);
-              $('#m-pt', body).textContent = fmt(state.merit); toast(`Tùy hỷ công đức +${fr.dataset.free} 🙏`); return;
-            }
-            const b = e.target.closest('[data-v]'); if (!b || b.disabled) return;
-            const v = +b.dataset.v;
+            const b = e.target.closest('[data-k]'); if (!b || b.disabled) return;
+            const m = +b.dataset.m, t = b.dataset.t;
+            const done = () => { addMerit(m, t); bell(); petals(16); $('#m-pt', body).textContent = fmt(state.merit); toast(`Tùy hỷ công đức: ${t} +${m} 🙏`); };
+            if (window.Vi && !Vi.charging() && !Vi.signedIn()) return done();          // miễn phí: không cần đăng nhập
             if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('cúng dường'); }
             b.disabled = true;
-            try { await Vi.spend('offer', { item: b.dataset.k }); }
-            catch (err) { b.disabled = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; } addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
-            $('#m-pt', body).textContent = fmt(state.merit); closeModal(); toast(`Tùy hỷ công đức: ${b.dataset.t} 🙏`);
+            let r; try { r = await Vi.spend('offer', { item: b.dataset.k }); }
+            catch (err) { b.disabled = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.hom(true); return; }
+            b.disabled = false; done();
+            if (r.used) { const sm = b.querySelector('small'); if (sm) sm.textContent = `+${m} công đức · còn ${fmt((r.items || {})[r.used] || 0)}`; }
           });
         });
     },
+    guide() {
+      openModal('Hướng dẫn', `<div class="guide">
+        <h3>🚶 Đi lại</h3><p>Kéo joystick (góc trái dưới) hoặc dùng phím mũi tên / WASD để đưa nhân vật "Bạn" đi khắp chùa. Đi qua cửa chính, cửa hông hay ra mép cảnh là sang khu kế bên. Đứng yên trên một thảm trống thì Bạn tự ngồi xuống.</p>
+        <h3>🔄 Góc nhìn</h3><p>Nút <b>Mặt trước / Mặt sau</b> bên phải đổi giữa nhìn từ bàn thờ ra và nhìn từ sau lưng đại chúng lên Phật. "Điểm nhìn nhanh" phóng tới các góc trong điện.</p>
+        <h3>🙏 Hành lễ</h3><p>Thanh dưới cùng: Chắp tay, Cúi chào, Lạy Phật, Niệm Phật, Thiền, Nghe kinh, Chuỗi hạt, <b>Thắp hương</b> (đến gần lư hương) và <b>Dâng hoa</b> (đến bên bình sen trên bàn thờ).</p>
+        <h3>🪷 Tiếp sức Liên Hoa</h3><p>Bấm vào <b>biệt danh</b> ở góc phải trên để mở menu: Ví xu, Nạp xu, Tiếp sức Liên Hoa (cúng dường, tích công đức), Hòm Công đức, Sổ tu tập, Tài khoản.</p>
+        <h3>🎁 Hòm Công đức</h3><p>Giữ số Hương, Hoa sen, Đèn, Cúng dường Tam Bảo, Ấn tống kinh đạo hữu đã nhận. Bấm <b>Nhận thêm</b> để nhận thêm bằng xu; mỗi lần thắp hương hay cúng dường sẽ dùng 1 phần.</p>
+        <h3>💌 Tâm sự kín</h3><p>Nơi gửi tâm sự, câu chuyện của mình (có thể ẩn danh). Mọi người và nhà chùa có thể vào từng tâm sự để trả lời, chia sẻ.</p>
+        <h3>💬 Trò chuyện</h3><p>Khung bên phải để nhắn với đạo hữu cùng phòng. Có thể ẩn bằng dấu ✕.</p>
+        <p class="note">Tham quan miễn phí. Thắp hương, cúng dường, ủng hộ cần đăng nhập Gmail hoặc Facebook để lưu xu và công đức trên mọi máy.</p></div>`);
+    },
+    tamsu() {
+      // Tâm sự kín: danh sách tâm sự của mọi người; vào từng tâm sự để xem và trả lời (khung chat con)
+      if (!window.Vi || !Vi.ready()) return openModal('Tâm sự kín', '<p class="note">Máy chủ chưa sẵn sàng, xin thử lại sau.</p>');
+      let stop = null;
+      const ago = t => { if (!t) return ''; const m = Math.floor((Date.now() - t) / 60e3); return m < 1 ? 'vừa xong' : m < 60 ? `${m} phút trước` : m < 1440 ? `${Math.floor(m / 60)} giờ trước` : new Date(t).toLocaleDateString('vi-VN'); };
+      const who = x => `<b class="${x.admin ? 'ts-admin' : ''}">${esc(x.name || 'Phật tử')}</b>`;
+      const text = t => esc(t).replace(/\n/g, '<br>');
+      const form = (ph, btn) => Vi.signedIn() ? `<form class="ts-form"><textarea maxlength="${btn === 'Gửi tâm sự' ? 2000 : 1000}" rows="3" placeholder="${ph}" required></textarea>
+        <div class="ts-act"><label><input type="checkbox" class="ts-anon"> Ẩn danh</label><button class="btn">${btn}</button></div></form>`
+        : `<p class="note">Mời <a href="#" class="ts-login">đăng nhập</a> để ${btn === 'Gửi tâm sự' ? 'gửi tâm sự' : 'trả lời'}.</p>`;
+      const list = async body => {
+        stop && stop(); stop = null;
+        body.innerHTML = `<p class="note" style="margin-top:0">Gửi những tâm sự, câu chuyện của mình. Mọi người và nhà chùa có thể trả lời, sẻ chia. Xin giữ lời hay ý đẹp 🙏</p>
+          ${form('Viết tâm sự của đạo hữu…', 'Gửi tâm sự')}<div class="ts-list"><p class="note">Đang tải…</p></div>`;
+        let L; try { L = await Vi.stories.list(); } catch (e) { $('.ts-list', body).innerHTML = `<p class="note">Chưa tải được tâm sự (${esc(e.message)}).</p>`; return; }
+        $('.ts-list', body).innerHTML = L.length ? L.map(x => `<button class="ts-item" data-sid="${esc(x.id)}">${who(x)}<small>${ago(x.lastAt || x.at)}</small>
+          <span class="ts-pre">${esc(String(x.text || '').slice(0, 140))}${String(x.text || '').length > 140 ? '…' : ''}</span><small>💬 ${fmt(x.replies || 0)} trả lời</small></button>`).join('')
+          : '<p class="note">Chưa có tâm sự nào. Đạo hữu hãy là người đầu tiên.</p>';
+      };
+      const detail = (body, id) => {
+        body.innerHTML = `<button class="ts-back">← Tất cả tâm sự</button><div class="ts-story"></div><div class="ts-replies"></div>${form('Viết lời trả lời…', 'Trả lời')}`;
+        body.dataset.sid = id;
+        stop && stop();
+        stop = Vi.stories.watch(id, d => {
+          if ('story' in d) $('.ts-story', body).innerHTML = d.story ? `<div class="ts-head">${who(d.story)}<small>${ago(d.story.at)}</small>${isAdmin() ? `<button class="ts-del" data-del="${esc(id)}">Gỡ</button>` : ''}</div><p>${text(d.story.text)}</p>` : '<p class="note">Tâm sự này đã được gỡ.</p>';
+          if (d.replies) { const box = $('.ts-replies', body); box.innerHTML = d.replies.map(r => `<div class="ts-rep ${r.admin ? 'ts-adm' : ''}"><div class="ts-head">${who(r)}<small>${ago(r.at)}</small>${isAdmin() ? `<button class="ts-del" data-del="${esc(id)}" data-rid="${esc(r.id)}">Gỡ</button>` : ''}</div><p>${text(r.text)}</p></div>`).join('') || '<p class="note">Chưa có trả lời.</p>'; box.scrollTop = box.scrollHeight; }
+        });
+      };
+      openModal('Tâm sự kín', '<div id="ts"></div>', root => {
+        const body = $('#ts', root); list(body);
+        new MutationObserver((m, o) => { if (modal.hidden) { stop && stop(); o.disconnect(); } }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+        body.addEventListener('click', async e => {
+          if (e.target.closest('.ts-login')) { e.preventDefault(); closeModal(); return showLogin(); }
+          if (e.target.closest('.ts-back')) { delete body.dataset.sid; return list(body); }
+          const it = e.target.closest('[data-sid]'); if (it) return detail(body, it.dataset.sid);
+          const del = e.target.closest('[data-del]');
+          if (del && confirm('Gỡ nội dung này?')) { try { await Vi.stories.remove(del.dataset.del, del.dataset.rid); toast('Đã gỡ'); if (!del.dataset.rid) { delete body.dataset.sid; list(body); } } catch (err) { toast(err.message); } }
+        });
+        body.addEventListener('submit', async e => {
+          e.preventDefault(); const f = e.target, ta = $('textarea', f), b = $('button', f), anon = $('.ts-anon', f).checked;
+          const v = ta.value.trim(); if (!v) return;
+          b.disabled = true;
+          try {
+            if (body.dataset.sid) { await Vi.stories.reply(body.dataset.sid, v, anon); ta.value = ''; }
+            else { const r = await Vi.stories.post(v, anon); toast('Đã gửi tâm sự 🙏'); detail(body, r.id); }
+          } catch (err) { toast(err.message); } finally { b.disabled = false; }
+        });
+      });
+    },
+    hom(buy) {
+      // Hòm Công đức: số Hương và lễ cúng dường đạo hữu đã nhận (máy chủ giữ số), "Nhận thêm" bằng xu
+      if (!window.Vi || !Vi.signedIn()) return openModal('Hòm Công đức', '<p>Hòm Công đức giữ số Hương, Hoa sen, Đèn… đạo hữu đã nhận, dùng được trên mọi máy.</p><button class="btn nap" id="v-login">Đăng nhập Gmail / Facebook</button>',
+        body => $('#v-login', body).addEventListener('click', () => { closeModal(); showLogin(); }));
+      const pr = GIA(), of = pr.offers || {};
+      const ROWS = [['huong', 'Hương (3 nén)', pr.incense, '🪔'], ...OFFERS.map(([k, n, , x]) => [k, (of[k] && of[k].name) || n, (of[k] || {}).xu || x, { sen: '🪷', den: '🏮', tambao: '🙏', kinh: '📜' }[k]])];
+      const paint = body => {
+        const it = Vi.items() || {};
+        $('#hom-list', body).innerHTML = ROWS.map(([k, n, , ic]) => `<li><span>${ic} ${esc(n)}</span><b>${fmt(it[k] || 0)}</b></li>`).join('');
+        $('#hom-xu', body).textContent = xuText();
+      };
+      openModal('Hòm Công đức', `<ul class="hom" id="hom-list"></ul>
+        <p class="note">${Vi.charging() ? 'Mỗi lần thắp hương hay cúng dường sẽ dùng 1 phần trong hòm; hết thì trừ xu.' : 'Nhà chùa đang mở miễn phí, chưa cần dùng đến hòm.'} Đang có <b id="hom-xu"></b> xu.</p>
+        <button class="btn nap" id="hom-more"${buy ? ' hidden' : ''}>＋ Nhận thêm</button>
+        <div id="hom-buy"${buy ? '' : ' hidden'}>${ROWS.map(([k, n, x]) => `<div class="hom-row"><span>${esc(n)}<small>${fmt(x || 0)} xu / phần</small></span>
+          <span class="qty"><button data-d="-1" data-q="${k}">−</button><input data-n="${k}" type="number" min="1" max="100" value="1"><button data-d="1" data-q="${k}">+</button></span>
+          <button class="btn" data-buy="${k}">Nhận</button></div>`).join('')}</div>`,
+        body => {
+          paint(body);
+          const on = () => paint(body); addEventListener('vi-change', on);
+          new MutationObserver((m, o) => { if (modal.hidden) { removeEventListener('vi-change', on); o.disconnect(); } }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+          body.addEventListener('click', async e => {
+            if (e.target.closest('#hom-more')) { $('#hom-more', body).hidden = true; $('#hom-buy', body).hidden = false; return; }
+            const d = e.target.closest('[data-d]');
+            if (d) { const inp = $(`[data-n="${d.dataset.q}"]`, body); inp.value = Math.max(1, Math.min(100, (+inp.value || 1) + +d.dataset.d)); return; }
+            const b = e.target.closest('[data-buy]'); if (!b || b.disabled) return;
+            const k = b.dataset.buy, q = Math.max(1, Math.min(100, +$(`[data-n="${k}"]`, body).value || 1));
+            b.disabled = true;
+            try { const r = await Vi.buy(k, q); toast(`Đã nhận thêm ${q} ${ROWS.find(x => x[0] === k)[1]}${r.cost ? ` (−${fmt(r.cost)} xu)` : ''} 🙏`); paint(body); }
+            catch (err) { toast(err.message); if (/đủ xu/.test(err.message)) { closeModal(); PANELS.wallet(true); } }
+            finally { b.disabled = false; }
+          });
+        });
+    },
+
 
     async book() {
       let xuRows = '';
@@ -747,7 +839,8 @@
     if (!acctMenu.hidden) { acctMenu.hidden = true; return; }
     acctMenu.innerHTML = `<button data-am="wallet"><span>💰 Ví</span><small>${esc(xuText())} xu</small></button>
       <button data-am="topup"><span>➕ Nạp xu</span></button>
-      <button data-am="merit"><span>🪷 Công đức</span><small>${fmt(state.merit)}</small></button>
+      <button data-am="merit"><span>🪷 Tiếp sức Liên Hoa</span><small>${fmt(state.merit)}</small></button>
+      <button data-am="hom"><span>🎁 Hòm Công đức</span></button>
       <button data-am="book"><span>📖 Sổ tu tập</span></button>
       <button data-am="acct"><span>👤 Tài khoản</span><small>${esc(isAdmin() ? 'Quản trị' : myName())}</small></button>`;
     acctMenu.style.left = '1333px'; acctMenu.style.minWidth = '260px';

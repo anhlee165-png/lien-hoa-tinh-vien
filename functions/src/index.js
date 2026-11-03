@@ -12,6 +12,7 @@ const webhook = require('./webhook-handler');
 const admin = require('./admin-service');
 const notify = require('./notification-service');
 const backup = require('./backup');
+const story = require('./story-service');
 
 const SEPAY_WEBHOOK_SECRET = defineSecret('SEPAY_WEBHOOK_SECRET');
 const PAYOS_CLIENT_ID = defineSecret('PAYOS_CLIENT_ID');            // payOS › Kênh thanh toán › Client ID / Api Key / Checksum Key
@@ -64,6 +65,11 @@ exports.createDonation = call(async req => {                         // công đ
   const { uid } = await authSvc.requireUser(req);
   return pay.createDonation(uid, (req.data || {}).vnd, payosKeys());
 }, { secrets: PAYOS });
+
+/* ---------- Tâm sự kín ---------- */
+exports.storyPost = call(async req => { const { uid, token } = await authSvc.requireUser(req); return story.post(uid, token.admin === true, req.data || {}); });
+exports.storyReply = call(async req => { const { uid, token } = await authSvc.requireUser(req); return story.reply(uid, token.admin === true, req.data || {}); });
+exports.adminStoryRemove = adminCall((d, by) => story.remove(by, d));
 
 exports.cancelTopup = call(async req => {
   const { uid } = await authSvc.requireUser(req);

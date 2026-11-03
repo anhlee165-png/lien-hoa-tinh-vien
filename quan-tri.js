@@ -41,13 +41,15 @@
           <small>${on ? 'Khách cần xu để thắp hương, dâng hoa, cúng dường.' : 'Mọi người thắp hương, dâng hoa, cúng dường miễn phí; mục Công đức hiện nút +20 / +50 / +100 / +200.'} Khách vẫn có thể gửi công đức tùy tâm bằng QR.</small></div>
           <button id="sw-btn">${on ? 'Tắt thu phí' : 'Bật thu phí'}</button></div>
         <div class="cards">
-        <div class="card"><small>Tổng tiền nạp thành công</small><b>${fmt(s.revenue)} đ</b><small>${fmt(s.paidCount)} đơn</small></div>
+        <div class="card"><small>Tổng tiền nhận (nạp xu + ủng hộ)</small><b>${fmt(s.revenue)} đ</b><small>${fmt(s.paidCount)} đơn</small></div>
+        <div class="card"><small>Ủng hộ nhà phát triển</small><b>${fmt(s.donateVnd)} đ</b><small>${fmt(s.donateCount)} lượt</small></div>
         <div class="card"><small>Xu đã cấp</small><b>${fmt(s.xuGranted)}</b></div>
         <div class="card"><small>Xu đã dùng</small><b>${fmt(s.xuSpent)}</b></div>
         <div class="card"><small>Tài khoản</small><b>${fmt(s.users)}</b><small>${fmt(s.active24h)} hoạt động 24 giờ</small></div>
         <div class="card"><small>Đơn chờ thanh toán</small><b>${fmt(s.pending)}</b></div>
         <div class="card"><small>Cần đối soát</small><b class="${s.reconcileOpen ? 'bad' : ''}">${fmt(s.reconcileOpen)}</b></div></div>
         <h2>Doanh thu 30 ngày</h2><div class="bar">${days.map(([d, v]) => `<i style="height:${(v / max * 100).toFixed(1)}%" title="${esc(d)}: ${fmt(v)} đ"></i>`).join('') || '<span class="note">Chưa có</span>'}</div>
+        <h2>Ủng hộ nhà phát triển gần đây</h2>${table(['Thời gian', 'Số tiền', 'Người ủng hộ', 'Mã đơn'], (s.donations || []).map(x => [dt(x.at), fmt(x.vnd) + ' đ', `${esc(x.nick || '')}<br><small>${esc(x.email || x.uid)}</small>`, esc(x.orderId)]), true)}
         <h2>Theo tuần</h2>${table(['Tuần bắt đầu', 'Doanh thu'], Object.entries(s.byWeek).sort().reverse().slice(0, 12).map(([k, v]) => [k, fmt(v) + ' đ']))}
         <h2>Theo tháng</h2>${table(['Tháng', 'Doanh thu'], Object.entries(s.byMonth).sort().reverse().map(([k, v]) => [k, fmt(v) + ' đ']))}`;
       $('#sw-btn').addEventListener('click', async e => {
