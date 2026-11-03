@@ -36,6 +36,11 @@
     } catch { return; }
     db = firebase.app().database(DB);
     listen(); Presence._write = write; write(); refreshCounts();
+    // điện thoại tắt màn hình / đổi mạng: kết nối rớt thì máy chủ xoá mình khỏi điện (onDisconnect);
+    // khi nối lại phải ghi lại, nếu không người khác sẽ không thấy mình nữa dù mình vẫn chat được
+    let wasOn = false;
+    db.ref('.info/connected').on('value', s => { const on = s.val() === true; if (on && wasOn === false && ref) write(); wasOn = on; });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ref) ref.once('value').then(v => { if (!v.exists()) write(); }).catch(() => {}); });
   }
   // chỉ nghe điện của mình; đổi điện thì bỏ nghe điện cũ
   function listen() {
@@ -53,9 +58,10 @@
   function write() {
     if (!db) return;
     const u = firebase.auth().currentUser;
-    if (ref) { ref.onDisconnect().cancel(); ref.remove(); ref = null; }
+    const path = u ? `presence/h${mine.hall}/${u.uid}` : null;
+    if (ref && (!path || ref.toString() !== db.ref(path).toString())) { ref.onDisconnect().cancel(); ref.remove(); ref = null; }
     if (!u || !who) return;
-    ref = db.ref(`presence/h${mine.hall}/${u.uid}`); ref.onDisconnect().remove();
+    ref = db.ref(path); ref.onDisconnect().remove();
     ref.set({ name: who.name.slice(0, 40), sheet: who.sheet, room: mine.room, t: firebase.database.ServerValue.TIMESTAMP })
       .then(() => { if (mine.abbot && ref) return ref.child('abbot').set(true); }).catch(() => {});
   }

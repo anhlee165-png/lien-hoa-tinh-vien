@@ -33,10 +33,11 @@
     label = document.createElement('div'); label.id = 'dien3d-tag'; canvas.after(label);
     ctx = canvas.getContext('2d'); if (!ctx) { failed = true; return false; }
     img = new Image(); img.src = 'assets/song/sau.jpg';
-    canvas.addEventListener('pointerdown', e => { view.drag = { x: e.clientX, vx: view.x }; canvas.setPointerCapture(e.pointerId); });
+    const P = e => window.LHV ? LHV.pt(e) : { x: e.clientX, y: e.clientY }, RC = () => window.LHV ? LHV.rect(canvas) : canvas.getBoundingClientRect();
+    canvas.addEventListener('pointerdown', e => { view.drag = { x: P(e).x, vx: view.x }; canvas.setPointerCapture(e.pointerId); });
     canvas.addEventListener('pointermove', e => {
-      const r = canvas.getBoundingClientRect(); view.tx = (e.clientX - r.left) / r.width - .5; view.ty = (e.clientY - r.top) / r.height - .5;
-      if (view.drag) view.x = Math.max(-1, Math.min(1, view.drag.vx - (e.clientX - view.drag.x) / r.width * 2));
+      const r = RC(), p = P(e); view.tx = (p.x - r.left) / r.width - .5; view.ty = (p.y - r.top) / r.height - .5;
+      if (view.drag) view.x = Math.max(-1, Math.min(1, view.drag.vx - (p.x - view.drag.x) / r.width * 2));
     });
     const up = () => view.drag = null; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('wheel', e => { e.preventDefault(); view.z = Math.max(0, Math.min(1, view.z - e.deltaY * .001)); }, { passive: false });

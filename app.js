@@ -32,7 +32,8 @@
   if (LIVE) document.body.classList.add('live', 'live-' + LIVE);
   const vp = $('#viewport');
   function fit() {
-    const r = LIVE ? vp.getBoundingClientRect() : { width: innerWidth, height: innerHeight };
+    const land = document.documentElement.classList.contains('force-land');
+    const r = LIVE ? vp.getBoundingClientRect() : land ? { width: innerHeight, height: innerWidth } : { width: innerWidth, height: innerHeight };
     // live dọc: phủ kín khung (cắt hai bên); bình thường: vừa khít cả cảnh
     const s = LIVE === 'doc' && !fit.modal ? Math.max(r.width / W, r.height / H) : Math.min(r.width / W, r.height / H);
     stage.style.transform = `translate(${-W * s / 2}px, ${-H * s / 2}px) scale(${s})`;
@@ -40,6 +41,24 @@
     if (typeof applyCam === 'function' && window.LiveHook) applyCam();
   }
   addEventListener('resize', fit); fit();
+  // Nút "Xoay ngang" (chỉ hiện khi điện thoại đang dựng dọc): Android thì vào toàn màn hình + khoá ngang;
+  // iPhone / máy khoá xoay thì quay cả khung chùa 90° bằng CSS. Máy tự xoay ngang thật thì bỏ chế độ quay CSS.
+  const html = document.documentElement, land = () => html.classList.contains('force-land');
+  function setLand(on) { html.classList.toggle('force-land', on); const b = $('#rotate-btn'); if (b) b.textContent = on ? '↩ Thôi xoay' : '🔄 Xoay ngang'; fit(); }
+  $('#rotate-btn') && $('#rotate-btn').addEventListener('click', async () => {
+    if (land()) return setLand(false);
+    try {
+      if (screen.orientation && screen.orientation.lock && document.documentElement.requestFullscreen) {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+        await screen.orientation.lock('landscape');
+        await new Promise(r => setTimeout(r, 600));
+        if (matchMedia('(orientation: landscape)').matches) return;            // máy đã xoay thật
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      }
+    } catch { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+    setLand(true);
+  });
+  matchMedia('(orientation: landscape)').addEventListener('change', e => { if (e.matches && land()) setLand(false); });
 
   /* ---------- Camera ---------- */
   const VIEWS = {
@@ -150,8 +169,8 @@
   const joy = $('#joy'), knob = $('#knob');
   let jv = { x: 0, y: 0 }, dragging = false, raf = 0;
   function joyMove(e) {
-    const r = joy.getBoundingClientRect(), sc = r.width / 182;
-    let dx = (e.clientX - (r.left + r.width / 2)) / sc, dy = (e.clientY - (r.top + r.height / 2)) / sc;
+    const r = LHV.rect(joy), p = LHV.pt(e), sc = r.width / 182;
+    let dx = (p.x - (r.left + r.width / 2)) / sc, dy = (p.y - (r.top + r.height / 2)) / sc;
     const d = Math.hypot(dx, dy), max = 56;
     if (d > max) { dx *= max / d; dy *= max / d; }
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
