@@ -79,12 +79,36 @@
   try { chat.bc = new BroadcastChannel('lhtv-chat'); } catch {}
   const chatKey = () => `chat:${state.hall}:${chat.room}`;
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Có máy chủ (chat.js): mọi máy cùng điện, cùng cảnh dùng chung một khung chat; net = danh sách tin từ máy chủ
+  let net = null, netIds = null;
+  const netOn = () => !!(window.ChatNet && ChatNet.on());
   function chatPaint() {
-    const list = store.get(chatKey(), []), log = $('#chat-log');
-    log.innerHTML = list.length ? list.map(m => `<div class="m ${m.me ? 'me' : ''} ${m.sys ? 'sys' : ''}">${m.sys ? '' : `<b>${esc(m.who)}</b>`}${esc(m.text)}</div>`).join('')
+    const log = $('#chat-log'), myUid = net && ChatNet.uid(), mod = !!(net && window.Vi && Vi.isAdmin());
+    const list = net ? net.map(m => ({ who: m.name, text: m.text, me: !!myUid && m.uid === myUid, admin: !!m.admin, id: m.id })) : store.get(chatKey(), []);
+    log.innerHTML = list.length ? list.map(m => `<div class="m ${m.me ? 'me' : ''} ${m.sys ? 'sys' : ''} ${m.admin ? 'admin' : ''}">${m.sys ? '' : `<b>${esc(m.who)}</b>`}${esc(m.text)}${mod && m.id ? `<button class="m-del" data-cid="${esc(m.id)}" title="Gỡ tin">✕</button>` : ''}</div>`).join('')
       : '<div class="m sys">Chưa có tin nhắn. Hãy chào đại chúng 🙏</div>';
+    if (net && !myUid) log.insertAdjacentHTML('beforeend', '<div class="m sys">Đăng nhập Gmail / Facebook để trò chuyện cùng đại chúng.</div>');
     log.scrollTop = log.scrollHeight;
   }
+  function chatWatch() {
+    if (!netOn()) return;
+    netIds = null;
+    ChatNet.watch(state.hall, chat.room, list => {
+      if (!list) { net = null; chatPaint(); return; }                      // mất quyền đọc / mất mạng: quay về khung cục bộ
+      const myUid = ChatNet.uid(), fresh = netIds ? list.filter(m => !netIds.has(m.id)) : [];
+      net = list; netIds = new Set(list.map(m => m.id)); chatPaint();
+      fresh.forEach(m => {
+        dispatchEvent(new CustomEvent('chua-chat', { detail: { who: m.name, text: m.text, sys: false } }));
+        if (state.chatHidden && m.uid !== myUid) { const b = document.getElementById('chat-show'); b && b.classList.add('new'); }
+      });
+    });
+  }
+  addEventListener('chatnet-ready', () => chatWatch());
+  addEventListener('auth-user', () => { if (net) chatPaint(); });
+  $('#chat-log').addEventListener('click', e => {
+    const b = e.target.closest('[data-cid]'); if (!b || !netOn()) return;
+    ChatNet.remove(state.hall, chat.room, b.dataset.cid).catch(() => toast('Chưa gỡ được tin này'));
+  });
   function chatAdd(m, broadcast = true) {
     const k = m.key || chatKey(); const list = store.get(k, []); list.push({ who: m.who, text: m.text, me: m.me, sys: m.sys, t: Date.now() });
     store.set(k, list.slice(-60)); if (k === chatKey()) { chatPaint(); dispatchEvent(new CustomEvent('chua-chat', { detail: { who: m.who, text: m.text, sys: !!m.sys } })); }
@@ -97,12 +121,19 @@
     'Mọi người cùng niệm Phật nhé', 'Hương trầm thơm quá', 'Tùy hỷ công đức đạo hữu 🙏', 'Nguyện cho tất cả chúng sinh được bình an'];
   const pick = a => a[Math.random() * a.length | 0];
   function botTalk(reply) {
-    if (!window.Nguoi || Nguoi.count() < 2) return;
+    if (netOn() || !window.Nguoi || Nguoi.count() < 2) return;           // khung chat chung: không chen tin của đạo hữu ảo
     chatAdd({ who: pick(BOT), text: reply ? pick(['A Di Đà Phật 🙏', 'Chào đạo hữu 🙏', 'Tùy hỷ, tùy hỷ', 'Cảm ơn đạo hữu, chúc an lạc']) : pick(BOT_SAY), me: false }, false);
   }
   (function ambient() { chat.timer = setTimeout(() => { if (Math.random() < .6) botTalk(false); ambient(); }, 35000 + Math.random() * 50000); })();
   $('#chat-form').addEventListener('submit', e => {
     e.preventDefault(); const inp = $('#chat-in'), text = inp.value.trim(); if (!text) return;
+    if (netOn()) {
+      if (!ChatNet.uid()) return needLogin('trò chuyện cùng đại chúng');
+      inp.value = ''; inp.blur();
+      ChatNet.send(state.hall, chat.room, { name: isAdmin() ? 'Nhà chùa' : myName(), text, admin: isAdmin() })
+        .catch(() => { inp.value = text; toast('Gửi chậm lại một chút rồi thử lại 🙏'); });
+      return;
+    }
     chatAdd({ who: myName(), text, me: true }); inp.value = ''; inp.blur();
     if (Math.random() < .7) setTimeout(() => botTalk(true), 2500 + Math.random() * 4000);
   });
@@ -112,7 +143,7 @@
   $('#chat-hide').addEventListener('click', () => { state.chatHidden = true; save(); paintChatVis(); });
   $('#chat-show').addEventListener('click', () => { state.chatHidden = false; save(); paintChatVis(); });
   paintChatVis();
-  function chatRoom(room, name) { chat.room = room; $('#chat-room').textContent = name; chatPaint(); }
+  function chatRoom(room, name) { const moved = room !== chat.room || chat.hall !== state.hall; chat.room = room; chat.hall = state.hall; $('#chat-room').textContent = name; if (moved && netOn()) { net = null; chatWatch(); } chatPaint(); }
   chatRoom('hall', 'Chánh điện ' + state.hall);
 
   /* ---------- Joystick + bàn phím ---------- */
