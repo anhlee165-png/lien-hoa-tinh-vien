@@ -25,8 +25,10 @@ async function stats() {
   // Doanh thu theo ngày / tuần / tháng (giờ Việt Nam)
   const vn = t => new Date(t + 7 * 3600e3);
   const byDay = {}, byWeek = {}, byMonth = {};
+  let donateVnd = 0, donateCount = 0; const donations = [];
   recent.docs.forEach(d => {
     const o = d.data(), t = vn(ms(o.paidAt)), k = t.toISOString().slice(0, 10);
+    if (o.kind === 'donate') { donateVnd += o.vnd; donateCount++; if (donations.length < 50) donations.push({ uid: o.uid, vnd: o.vnd, at: ms(o.paidAt), orderId: d.id }); }
     const wk = new Date(t); wk.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
     byDay[k] = (byDay[k] || 0) + o.vnd;
     byWeek[wk.toISOString().slice(0, 10)] = (byWeek[wk.toISOString().slice(0, 10)] || 0) + o.vnd;
@@ -37,7 +39,8 @@ async function stats() {
     xuGranted: topAgg.data().xu || 0, xuSpent: -(spendAgg.data().xu || 0),
     users: nUsers.data().count, active24h: nActive.data().count,
     pending: nPending.data().count, reconcileOpen: nReview.data().count,
-    byDay, byWeek, byMonth
+    byDay, byWeek, byMonth, donateVnd, donateCount,
+    donations: await Promise.all(donations.map(async x => { const u = (await users.doc(x.uid).get()).data() || {}; return { ...x, nick: u.nick || '', email: u.email || '' }; }))
   };
 }
 

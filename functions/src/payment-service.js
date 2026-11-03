@@ -50,13 +50,13 @@ async function createTopup(uid, packId, payosKeys) {
   return createOrder(uid, cfg, { packId: pack.id, vnd: pack.vnd, xu: pack.xu }, payosKeys);
 }
 
-/* Công đức tùy tâm: số tiền do khách chọn (5.000đ – 100.000.000đ), không cộng xu; tiền về đúng đơn thì ghi sổ công đức. */
-const DONATE_MIN = 5000, DONATE_MAX = 100_000_000;
+/* Ủng hộ nhà phát triển (tùy tâm): số tiền do khách chọn (2.000đ – 100.000.000đ), không cộng xu; tiền về đúng đơn thì ghi sổ công đức. */
+const DONATE_MIN = 2000, DONATE_MAX = 100_000_000;
 async function createDonation(uid, vnd, payosKeys) {
   vnd = Math.trunc(Number(vnd));
   if (!Number.isFinite(vnd) || vnd < DONATE_MIN || vnd > DONATE_MAX) fail('invalid-argument', `Số tiền từ ${DONATE_MIN.toLocaleString('vi-VN')}đ đến ${DONATE_MAX.toLocaleString('vi-VN')}đ`);
   const cfg = await paymentConfig();
-  if (!cfg || !cfg.accountNumber || !cfg.bankCode || cfg.enabled === false) fail('failed-precondition', 'Nhà chùa chưa mở nhận công đức, xin quay lại sau');
+  if (!cfg || !cfg.accountNumber || !cfg.bankCode || cfg.enabled === false) fail('failed-precondition', 'Chưa mở nhận ủng hộ, xin quay lại sau');
   return createOrder(uid, cfg, { kind: 'donate', packId: null, vnd, xu: 0 }, payosKeys);
 }
 

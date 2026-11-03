@@ -11,6 +11,9 @@ service cloud.firestore {
     match /orders/{id}   { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
     match /ledger/{id}   { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
     match /config/{doc}  { allow read: if doc in ['packs', 'prices']; allow write: if false; }
+    // Tâm sự kín: ai cũng đọc được; đăng / trả lời / gỡ chỉ qua máy chủ
+    match /stories/{id} { allow read: if true; allow write: if false;
+      match /replies/{rid} { allow read: if true; allow write: if false; } }
     match /alerts/{id}   { allow read: if isAdmin(); allow write: if false; }
     // ops, bank_tx, reconcile, audit, ratelimits, config/payment, config/owner: chỉ máy chủ
     match /{document=**} { allow read, write: if false; }

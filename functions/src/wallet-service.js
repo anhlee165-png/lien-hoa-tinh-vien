@@ -23,10 +23,15 @@ function post(tx, { uid, wallet, delta, type, ref, reason = '', by = 'system', m
   return { balance: bal, entryId: lref.id };
 }
 
+/* Hòm Công đức: khách "nhận thêm" (mua trước bằng xu) Hương và các lễ cúng dường, lưu ở wallets/<uid>.items.
+   Khi thắp hương / cúng dường: còn trong hòm thì dùng 1 (không trừ xu), hết thì trừ xu như cũ. */
+const ITEM_NAMES = { huong: 'Hương', sen: 'Hoa sen', den: 'Đèn', tambao: 'Cúng dường Tam Bảo', kinh: 'Ấn tống kinh' };
+const itemPrice = (pr, k) => k === 'huong' ? pr.incense | 0 : ((pr.offers || {})[k] || {}).xu | 0;
+
 /* Tiêu xu có chống trừ hai lần: opId do web sinh một lần cho mỗi lần bấm; gửi lại cùng opId trả về kết quả cũ. */
 async function spend(uid, isOwner, kind, opId, payload = {}) {
   if (!/^[A-Za-z0-9_-]{8,64}$/.test(opId || '')) fail('invalid-argument', 'Thiếu mã thao tác');
-  if (!['incense', 'flower', 'rename', 'offer'].includes(kind)) fail('invalid-argument', 'Thao tác không hợp lệ');
+  if (!['incense', 'flower', 'rename', 'offer', 'buy'].includes(kind)) fail('invalid-argument', 'Thao tác không hợp lệ');
   let nick, sex;
   if (kind === 'rename') {
     nick = String(payload.nick || '').trim().replace(/\s+/g, ' ');
@@ -41,24 +46,37 @@ async function spend(uid, isOwner, kind, opId, payload = {}) {
   return db.runTransaction(async tx => {
     const [op, w, u, pr] = await Promise.all([tx.get(opRef), tx.get(wref), tx.get(uref), prices(tx)]);
     if (op.exists) return { ...op.data().result, repeated: true };
-    let cost = kind === 'offer' ? 0 : pr[kind] | 0, label = { incense: 'Thắp hương', flower: 'Dâng hoa', rename: 'Đổi biệt danh' }[kind];
-    if (kind === 'offer') {
-      const it = (pr.offers || {})[String(payload.item || '')];
-      if (!it) fail('invalid-argument', 'Lễ cúng dường không có');
-      cost = it.xu | 0; label = it.name;
+    const items = { ...((w.exists && w.data().items) || {}) };
+    let cost = 0, label = { incense: 'Thắp hương', flower: 'Dâng hoa', rename: 'Đổi biệt danh' }[kind], item = null, qty = 1;
+    if (kind === 'incense' || kind === 'flower' || kind === 'rename') cost = pr[kind] | 0;
+    if (kind === 'incense') item = 'huong';
+    if (kind === 'offer' || kind === 'buy') {
+      item = String(payload.item || '');
+      if (!ITEM_NAMES[item] || (kind === 'offer' && item === 'huong')) fail('invalid-argument', 'Lễ cúng dường không có');
+      if (kind === 'offer') { const it = (pr.offers || {})[item]; if (!it) fail('invalid-argument', 'Lễ cúng dường không có'); cost = it.xu | 0; label = it.name; }
+    }
+    if (kind === 'buy') {
+      qty = Math.trunc(Number(payload.qty));
+      if (!(qty >= 1 && qty <= 100)) fail('invalid-argument', 'Số lượng từ 1 đến 100');
+      cost = itemPrice(pr, item) * qty; label = `Nhận thêm ${qty} ${ITEM_NAMES[item]}`;
     }
     if (kind === 'rename') {
       const at = u.exists && u.data().nickAt ? u.data().nickAt.toMillis() : 0;
       if (!u.exists || !u.data().nick || Date.now() - at >= RENAME_FREE_AFTER_MS) cost = 0;   // lần đầu hoặc đã qua 24 giờ: miễn phí
     }
-    if (pr.charging === false && kind !== 'rename') cost = 0;                                 // quản trị tắt thu phí: hương, hoa, cúng dường miễn phí
-    if (isOwner) cost = 0;                                                                     // chủ chùa không mất xu
+    if (pr.charging === false && kind !== 'rename' && kind !== 'buy') cost = 0;              // quản trị tắt thu phí: hương, hoa, cúng dường miễn phí
+    let used = null;
+    if (cost > 0 && item && kind !== 'buy' && (items[item] | 0) > 0) { used = item; cost = 0; }  // còn trong Hòm Công đức: dùng 1
+    if (isOwner) { cost = 0; used = null; }                                                    // chủ chùa không mất xu
     let result = { balance: w.exists ? w.data().balance : 0, cost };
     if (cost > 0) {
       if (result.balance < cost) fail('failed-precondition', `Không đủ xu (cần ${cost} xu)`);
       const r = post(tx, { uid, wallet: w, delta: -cost, type: 'SPEND', ref: `${kind}:${opId}`, reason: label });
       result = { balance: r.balance, cost, entryId: r.entryId };
     }
+    if (kind === 'buy' && !isOwner) items[item] = (items[item] | 0) + qty;
+    if (used) { items[used] = (items[used] | 0) - 1; result.used = used; }
+    if ((kind === 'buy' && !isOwner) || used) { tx.set(wref, { items, updatedAt: now() }, { merge: true }); result.items = items; }
     if (kind === 'rename') tx.set(uref, { nick, sex, nickAt: now() }, { merge: true });
     tx.set(opRef, { uid, kind, result, at: now() });
     return result;
@@ -77,6 +95,8 @@ async function refund(uid, opId) {
     const cost = op.data().result.cost | 0;
     if (Date.now() - op.data().at.toMillis() > 10 * 60e3) fail('failed-precondition', 'Đã quá hạn hoàn xu');
     let result = { balance: w.data().balance, refunded: 0 };
+    const used = op.data().result.used;
+    if (used) { const items = { ...(w.data().items || {}) }; items[used] = (items[used] | 0) + 1; tx.set(wref, { items, updatedAt: now() }, { merge: true }); result = { ...result, returned: used }; }
     if (cost > 0) { const p = post(tx, { uid, wallet: w, delta: cost, type: 'REFUND', ref: `${kind}:${opId}`, reason: 'Hoàn xu ' + label }); result = { balance: p.balance, refunded: cost }; }
     tx.set(rRef, { uid, kind: 'refund', result, at: now() });
     return result;
@@ -102,4 +122,4 @@ async function adjust(adminUid, uid, xu, reason, opId) {
   });
 }
 
-module.exports = { prices, post, spend, refund, adjust, DEFAULT_PRICES };
+module.exports = { prices, post, spend, refund, adjust, DEFAULT_PRICES, ITEM_NAMES };
