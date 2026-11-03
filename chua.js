@@ -110,13 +110,23 @@
   }
   const SEATS = [];
   SEATS.push({ x: 838, y: 732, abbotSeat: true });                       // thầy ngồi trên cùng: trước hàng Phật tử đầu, sát bàn thờ                       // chỗ chính giữa trên thảm đỏ: chỉ thầy trụ trì được ngồi
-  for (const y of [702, 657, 624, 600, 583, 570]) {
-    const h = hallH(y), gap = .66 * h, [cl, cr] = carpetX(y);
-    const l0 = 205 + (460 - 205) * (702 - y) / (702 - 570);              // mép tường trái của khối ghế
-    const lEnd = cl - .32 * h, rStart = cr + .32 * h, rEnd = 1672 - l0 + 20;
-    const nL = Math.max(1, Math.floor((lEnd - l0) / gap) + 1), nR = Math.max(1, Math.floor((rEnd - rStart) / gap) + 1);
-    for (let i = 0; i < nL; i++) SEATS.push({ x: lEnd - i * (lEnd - l0) / Math.max(1, nL - 1), y, front: y === 702 });
-    for (let i = 0; i < nR; i++) SEATS.push({ x: rStart + i * (rEnd - rStart) / Math.max(1, nR - 1), y, front: y === 702 });
+  // mỗi điện đúng HALL_CAP chỗ cho Phật tử (kể cả Bạn): thu hẹp khoảng cách ghế tới khi đủ, chỗ dư bỏ ở hai đầu hàng cuối
+  const HALL_CAP = 100;
+  for (let f = .66; f > .4; f -= .005) {
+    SEATS.length = 1;
+    for (const y of [702, 657, 624, 600, 583, 570]) {
+      const h = hallH(y), gap = f * h, [cl, cr] = carpetX(y);
+      const l0 = 205 + (460 - 205) * (702 - y) / (702 - 570);              // mép tường trái của khối ghế
+      const lEnd = cl - .32 * h, rStart = cr + .32 * h, rEnd = 1672 - l0 + 20;
+      const nL = Math.max(1, Math.floor((lEnd - l0) / gap) + 1), nR = Math.max(1, Math.floor((rEnd - rStart) / gap) + 1);
+      for (let i = 0; i < nL; i++) SEATS.push({ x: lEnd - i * (lEnd - l0) / Math.max(1, nL - 1), y, front: y === 702 });
+      for (let i = 0; i < nR; i++) SEATS.push({ x: rStart + i * (rEnd - rStart) / Math.max(1, nR - 1), y, front: y === 702 });
+    }
+    if (SEATS.length - 1 >= HALL_CAP) break;
+  }
+  while (SEATS.length - 1 > HALL_CAP) {
+    const back = SEATS.filter(s => s.y === 570), far = back.reduce((a, b) => Math.abs(b.x - 838) > Math.abs(a.x - 838) ? b : a);
+    SEATS.splice(SEATS.indexOf(far), 1);
   }
   SEATS.find(s => s.y === 702).mine = true;                              // chỗ của Bạn: hàng đầu, sát thảm đỏ
   { const fr = SEATS.filter(s => s.front && !s.mine).sort((a, b) => Math.abs(a.x - 838) - Math.abs(b.x - 838));

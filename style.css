@@ -389,3 +389,4 @@ body.live-noside #live-side{display:none}
 #guide-btn{left:1149px;width:146px}#tamsu-btn{left:1305px;width:148px}
 body.live #guide-btn,body.live #tamsu-btn{display:none!important}
 #ts a{color:var(--gold-hi)}
+.sheet .ung-ho .uh-sub{margin:0;font-size:13px;opacity:.75;font-style:italic}
