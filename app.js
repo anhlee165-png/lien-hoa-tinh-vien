@@ -639,7 +639,7 @@
         body.innerHTML = `<p class="note" style="margin-top:0">Gửi những tâm sự, câu chuyện của mình. Mọi người và nhà chùa có thể trả lời, sẻ chia. Xin giữ lời hay ý đẹp 🙏</p>
           ${form('Viết tâm sự của đạo hữu…', 'Gửi tâm sự')}<div class="ts-list"><p class="note">Đang tải…</p></div>`;
         let L; try { L = await Vi.stories.list(); } catch (e) { $('.ts-list', body).innerHTML = `<p class="note">Chưa tải được tâm sự (${esc(e.message)}).</p>`; return; }
-        $('.ts-list', body).innerHTML = L.length ? L.map(x => `<button class="ts-item" data-sid="${esc(x.id)}">${who(x)}<small>${ago(x.lastAt || x.at)}</small>
+        $('.ts-list', body).innerHTML = L.length ? L.map(x => `<button class="ts-item" data-story="${esc(x.id)}">${who(x)}<small>${ago(x.lastAt || x.at)}</small>
           <span class="ts-pre">${esc(String(x.text || '').slice(0, 140))}${String(x.text || '').length > 140 ? '…' : ''}</span><small>💬 ${fmt(x.replies || 0)} trả lời</small></button>`).join('')
           : '<p class="note">Chưa có tâm sự nào. Đạo hữu hãy là người đầu tiên.</p>';
       };
@@ -658,7 +658,7 @@
         body.addEventListener('click', async e => {
           if (e.target.closest('.ts-login')) { e.preventDefault(); closeModal(); return showLogin(); }
           if (e.target.closest('.ts-back')) { delete body.dataset.sid; return list(body); }
-          const it = e.target.closest('[data-sid]'); if (it) return detail(body, it.dataset.sid);
+          const it = e.target.closest("[data-story]"); if (it) return detail(body, it.dataset.story);
           const del = e.target.closest('[data-del]');
           if (del && confirm('Gỡ nội dung này?')) { try { await Vi.stories.remove(del.dataset.del, del.dataset.rid); toast('Đã gỡ'); if (!del.dataset.rid) { delete body.dataset.sid; list(body); } } catch (err) { toast(err.message); } }
         });
