@@ -74,9 +74,9 @@ async function spend(uid, isOwner, kind, opId, payload = {}) {
       const r = post(tx, { uid, wallet: w, delta: -cost, type: 'SPEND', ref: `${kind}:${opId}`, reason: label });
       result = { balance: r.balance, cost, entryId: r.entryId };
     }
-    if (kind === 'buy' && !isOwner) items[item] = (items[item] | 0) + qty;
+    if (kind === 'buy') items[item] = (items[item] | 0) + qty;                               // chủ chùa nhận thêm không mất xu nhưng hòm vẫn tăng
     if (used) { items[used] = (items[used] | 0) - 1; result.used = used; }
-    if ((kind === 'buy' && !isOwner) || used) { tx.set(wref, { items, updatedAt: now() }, { merge: true }); result.items = items; }
+    if (kind === 'buy' || used) { tx.set(wref, { items, updatedAt: now() }, { merge: true }); result.items = items; }
     if (kind === 'rename') tx.set(uref, { nick, sex, nickAt: now() }, { merge: true });
     tx.set(opRef, { uid, kind, result, at: now() });
     return result;
