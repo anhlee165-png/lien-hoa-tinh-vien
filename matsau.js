@@ -57,21 +57,37 @@
   // mặt trước: 'up' = đi về phía cửa (về phía máy quay mặt sau) → thấy mặt; 'down' = đi vào phía Phật → thấy lưng
   const FR = { up: 0, down: 4, left: 12, right: 8 }, BACK = 4;
   const tags = [];
+  // đứng quay lưng, hai chân thẳng (ghép sẵn từ khung đi lên + chân của khung đứng): nam/nữ; thầy dùng khung đi lên (áo dài che chân)
+  const LUNG = {};
+  ['nam', 'nu'].forEach(k => { const im = new Image(); im.onload = () => {
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,170,80,.16)'; g.fillRect(0, 0, c.width, c.height);
+    LUNG[k] = c; }; im.src = `assets/song/lung-${k}.png`; });
   function drawPerson(S, p, t, i) {
     if (!S || !S.img) return;
     const { x, y } = place(p), h = K * (y - HZ) * (p.abbot ? 1.4 : 1), s = h / S.stand;
     if (y > H + h * .2) return;                                          // đã ra khỏi cửa
-    let f = BACK_SIT, flip = p.flip;
-    if (!p.sit) { f = p.walk ? FR[p.dir] + ((p.walkT * 8) | 0) % 4 : BACK; flip = false; }
+    // mọi người đứng/quỳ lạy đều quay lưng về máy quay, mặt hướng lên Phật
+    let src = warmed(S), f = BACK_SIT, flip = p.flip, kneel = p.sit || p.kneel;
+    if (p.walk) { f = FR[p.dir] + ((p.walkT * 8) | 0) % 4; flip = false; }
+    else if (!kneel) { f = BACK; flip = false; if (LUNG[p.sheet]) { src = LUNG[p.sheet]; f = 0; } }
+    else if (!p.sit) flip = false;
     const col = f % 4, row = (f / 4) | 0, dw = S.cw * s, dh = S.ch * s;
     const k = t - bowT, b = p.me && k > 0 && k < 6 ? Math.max(0, Math.sin(k / 2 * Math.PI)) : p.bow || 0;   // ai lạy người nấy
     ctx.save(); ctx.translate(x, y);
     ctx.fillStyle = 'rgba(30,14,6,.30)'; ctx.beginPath(); ctx.ellipse(0, -h * .02, h * .34, h * .07, 0, 0, 7); ctx.fill();
     if (flip) ctx.scale(-1, 1);
-    ctx.scale(1, (1 - .34 * b) * (p.sit ? 1 + Math.sin(t * 1.3 + i) * .006 : 1));
-    ctx.drawImage(warmed(S), col * S.cw, row * S.ch, S.cw, S.ch, -dw / 2, -dh, dw, dh);
+    if (p.sit && !b) ctx.scale(1, 1 + Math.sin(t * 1.3 + i) * .006);
+    const sx = col * S.cw, sy = row * S.ch;
+    if (b > 0 && !p.walk) {
+      // cúi lạy: giữ nguyên phần dưới (chân/đùi), gập phần thân trên về phía Phật → đầu hạ thấp, nhìn từ sau chỉ thấy lưng
+      const hip = kneel ? .66 : .6, d = kneel ? .62 * b : .2 * b, hy = S.ch * hip, up = hy * (1 - d);
+      ctx.drawImage(src, sx, sy + hy, S.cw, S.ch - hy, -dw / 2, -dh * (1 - hip), dw, dh * (1 - hip));
+      ctx.drawImage(src, sx, sy, S.cw, hy, -dw / 2 * (1 + .06 * b), -dh * (1 - hip) - up * s, dw * (1 + .06 * b), up * s + 1);
+    } else ctx.drawImage(src, sx, sy, S.cw, S.ch, -dw / 2, -dh, dw, dh);
     ctx.restore();
-    if (p.name) tags.push({ p, x, y: y - h * (p.sit ? .8 : 1.08) * (1 - .3 * b), h });
+    if (p.name) tags.push({ p, x, y: y - h * (kneel ? .8 : 1.08) * (1 - .3 * b), h });
     if (p.sit && !p.me && chant.has(p.id)) chant.get(p.id).at = [x, y - h * .9];
   }
   // tên trên đầu: người gần đứng trước; tên chồng lên nhau thì giữ tên người gần hơn (Bạn, thầy, người thật luôn hiện)
