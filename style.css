@@ -22,7 +22,7 @@ button:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
 #scene.drag{transition:transform .12s linear}
 #bg,#cv{display:block;position:absolute;left:0;top:0;width:1672px;height:941px;pointer-events:none}
 .song-ready #bg{visibility:hidden}
-.tag{position:absolute;transform:translate(-50%,-50%);padding:2px 9px 3px;border-radius:9px;background:rgba(48,36,36,.72);color:#fff;font:600 15px var(--sans);white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.tag{position:absolute;left:0;top:0;transform:translate(-50%,-50%);padding:2px 9px 3px;border-radius:9px;background:rgba(48,36,36,.72);color:#fff;font:600 15px var(--sans);white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .tag.real{background:linear-gradient(#a8741c,#7d5210);border:1.5px solid #ffd77a;color:#fff6dc}
 .tag.me{background:linear-gradient(#2f8a2a,#1e6a1c);border:1.5px solid #a8f07a;color:#eaffcf;font-size:16px;padding:1px 10px 2px}
 .glow{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);border-radius:50%;
