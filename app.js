@@ -469,7 +469,7 @@
   function openHallMenu() {
     window.Presence && Presence.refreshCounts && Presence.refreshCounts();
     hallMenu.innerHTML = halls.map(h => `<button data-h="${h.id}" class="${h.id === state.hall ? 'on' : ''}">Chánh điện ${h.id}<small>${hallLabel(h)}</small></button>`).join('');
-    hallMenu.style.left = '622px'; hallMenu.hidden = false; bellMenu.hidden = true;
+    hallMenu.style.left = '622px'; hallMenu.hidden = false; bellMenu.hidden = true; $('#acct-menu').hidden = true;
   }
   $('#hall-btn').addEventListener('click', e => { e.stopPropagation(); hallMenu.hidden ? openHallMenu() : (hallMenu.hidden = true); });
   hallMenu.addEventListener('click', e => {
@@ -500,10 +500,10 @@
       + (isAdmin() ? '<button id="note-new">＋ Đăng thông báo mới</button>' : '');
     const nb = $('#note-new', bellMenu); if (nb) nb.addEventListener('click', ev => { ev.stopPropagation(); bellMenu.hidden = true; adminPanel(); });
     store.set('notesSeen', Date.now());
-    bellMenu.style.left = '1340px'; bellMenu.style.minWidth = '320px'; bellMenu.hidden = !bellMenu.hidden; hallMenu.hidden = true;
+    bellMenu.style.left = '1340px'; bellMenu.style.minWidth = '320px'; bellMenu.hidden = !bellMenu.hidden; hallMenu.hidden = true; $('#acct-menu').hidden = true;
     paintBellDot();
   });
-  document.addEventListener('click', e => { if (!e.target.closest('.dropdown')) { hallMenu.hidden = true; bellMenu.hidden = true; } });
+  document.addEventListener('click', e => { if (!e.target.closest('.dropdown')) { hallMenu.hidden = true; bellMenu.hidden = true; const am = $('#acct-menu'); if (am) am.hidden = true; } });
 
   /* ---------- Modal ---------- */
   const modal = $('#modal');
@@ -697,7 +697,26 @@
       setRole(window.Vi && Vi.isAdmin() ? 'admin' : 'guest', { name: u.name, email: u.email }); }
     catch (err) { toast('Đăng nhập không thành công: ' + (err && err.message || err)); }
   }));
-  $('#acct').addEventListener('click', () => {
+  // Ví, Công đức, Sổ gom vào nút biệt danh: bấm biệt danh mới hiện
+  const acctMenu = $('#acct-menu');
+  $('#acct').addEventListener('click', e => {
+    e.stopPropagation();
+    if (!acctMenu.hidden) { acctMenu.hidden = true; return; }
+    acctMenu.innerHTML = `<button data-am="wallet"><span>💰 Ví</span><small>${esc(xuText())} xu</small></button>
+      <button data-am="topup"><span>➕ Nạp xu</span></button>
+      <button data-am="merit"><span>🪷 Công đức</span><small>${fmt(state.merit)}</small></button>
+      <button data-am="book"><span>📖 Sổ tu tập</span></button>
+      <button data-am="acct"><span>👤 Tài khoản</span><small>${esc(isAdmin() ? 'Quản trị' : myName())}</small></button>`;
+    acctMenu.style.left = '1333px'; acctMenu.style.minWidth = '260px';
+    acctMenu.hidden = false; hallMenu.hidden = true; bellMenu.hidden = true;
+  });
+  acctMenu.addEventListener('click', e => {
+    const b = e.target.closest('[data-am]'); if (!b) return;
+    acctMenu.hidden = true;
+    const k = b.dataset.am;
+    if (k === 'acct') acctModal(); else if (k === 'topup') PANELS.wallet(true); else PANELS[k]();
+  });
+  function acctModal() {
     openModal('Tài khoản', `<p>Đang vào chùa với vai <b>${isAdmin() ? 'Quản trị' : 'Khách'}</b>${state.user ? ' · ' + esc(state.user.name) : ''}.</p>
       ${state.nick ? `<p>Biệt danh: <b>${esc(state.nick.name)}</b> · ${state.nick.sex === 'nu' ? 'Nữ' : 'Nam'}</p>` : ''}
       <div class="grid" style="grid-template-columns:1fr 1fr"><button id="nick-ch">${state.nick ? 'Đổi biệt danh' : 'Đặt biệt danh'}</button>${isAdmin() ? '<button id="go-admin">Mở trang quản trị</button>' : ''}${window.__roleSwitch ? __roleSwitch() : ''}<button id="logout">Đăng xuất</button></div>`,
@@ -707,7 +726,7 @@
         const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => window.open('quan-tri.html', '_blank', 'noopener'));
         $('#logout', body).addEventListener('click', () => { closeModal(); window.Auth && Auth.ready() && Auth.signOut(); state.nick = null; state.role = ''; state.user = null; save(); window.Nguoi && Nguoi.abbotLeave(); paintRole(); paintWallet(); showLogin(); });
       });
-  });
+ }
   // chỉ tài khoản Gmail quản trị mới giữ được vai Quản trị (bỏ vai quản trị tạm thời cũ)
   // vai Quản trị lưu trong máy chỉ là lựa chọn giao diện; quyền thật kiểm bằng claim (isAdmin) và ở máy chủ
   // quản trị có thể đổi sang vai khách và quay lại
