@@ -2,7 +2,7 @@
    ?live=doc   khung dọc 9:16, máy quay đi theo nhân vật của mình, ẩn nút; góc có mã QR + link chùa; dòng chữ báo sự kiện
    ?live=ngang khung ngang 16:9 toàn cảnh
    &link=...   đổi link hiện trên màn hình (mặc định là địa chỉ web hiện tại)
-   Phím: mũi tên/WASD đi lại · 1–8 hành động · H hiện/ẩn bảng điều khiển bên cạnh · Q ẩn/hiện mã QR · Z đổi độ phóng */
+   Phím: mũi tên/WASD đi lại · 1–8 hành động · H hiện/ẩn bảng điều khiển bên cạnh · Q ẩn/hiện mã QR · Z đổi độ phóng · X mặt trước/mặt sau */
 (() => {
   const L = window.LiveHook;
   if (!L || !L.mode) return;
@@ -86,6 +86,7 @@
     if (k === 'h') document.body.classList.toggle('live-noside');
     else if (k === 'q') $('#lv-qr').classList.toggle('off');
     else if (k === 'z') zi = (zi + 1) % ZOOMS.length;
+    else if (k === 'x') { const x = $('#xoay'); x && x.click(); }
     else if (/^[1-9]$/.test(k)) { const b = document.querySelector(`#actions [data-act="${ACTS[+k - 1]}"]`); b && b.click(); }
   });
 
@@ -95,14 +96,15 @@
   side.innerHTML = `<h3>Điều khiển live</h3>
     <p>Trong TikTok LIVE Studio chỉ quay <b>${L.mode === 'doc' ? 'khung bên trái' : 'khung phía trên'}</b> (cắt bỏ bảng này).</p>
     <div class="grid">${ACTS.map((a, i) => { const b = document.querySelector(`#actions [data-act="${a}"]`); return `<button data-a="${a}"><kbd>${i + 1}</kbd>${esc(b ? b.textContent.trim() : a)}</button>`; }).join('')}</div>
-    <div class="grid2"><button data-k="z">Đổi độ phóng (Z)</button><button data-k="q">Ẩn/hiện QR (Q)</button><button data-k="ra">Ra ngoài / vào điện</button><button data-k="full">Toàn màn hình</button></div>
-    <p class="note">Đi lại bằng phím mũi tên hoặc W A S D.</p>`;
+    <div class="grid2"><button data-k="z">Đổi độ phóng (Z)</button><button data-k="q">Ẩn/hiện QR (Q)</button><button data-k="xoay">Mặt trước / Mặt sau (X)</button><button data-k="ra">Ra ngoài / vào điện</button><button data-k="full">Toàn màn hình</button></div>
+    <p class="note">Đi lại bằng phím mũi tên hoặc W A S D. Ở mặt sau, giữ chuột kéo trái/phải để quay nhìn, lăn chuột để phóng to.</p>`;
   document.body.appendChild(side);
   side.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.a) { const x = document.querySelector(`#actions [data-act="${b.dataset.a}"]`); x && x.click(); }
     else if (b.dataset.k === 'z') zi = (zi + 1) % ZOOMS.length;
     else if (b.dataset.k === 'q') $('#lv-qr').classList.toggle('off');
+    else if (b.dataset.k === 'xoay') { const x = $('#xoay'); x && x.click(); }
     else if (b.dataset.k === 'ra') { const x = document.querySelector('#actions [data-act="rangoai"]'); x && x.click(); }
     else if (b.dataset.k === 'full') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); }
     b.blur();
