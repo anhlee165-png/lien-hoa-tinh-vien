@@ -51,7 +51,7 @@
     'san': { lu: { src: 'assets/ngoai/lu-san.png', at: [682, 512, 307, 337] }, name: 'Sân chùa', img: 'assets/ngoai/san.jpg', hz: 470, k: .6,
       floor: [[0, 941], [1672, 941], [1672, 822], [1112, 560], [1042, 500], [628, 500], [558, 560], [0, 822]],
       block: [[185, 620, 330, 765], [1365, 620, 1510, 765], [350, 600, 462, 670], [1210, 600, 1330, 670], [490, 540, 550, 605], [1125, 540, 1190, 605], [702, 782, 968, 852]],
-      exits: [[[600, 490, 1070, 510], 'san-gan', [560, 905], 'up'], [[0, 924, 1672, 941], 'mat-tien', [836, 905], 'up'],
+      exits: [[[600, 490, 1070, 510], 'tam-quan', [836, 905], 'up'], [[0, 924, 1672, 941], 'mat-tien', [836, 905], 'up'],
               [[0, 800, 12, 941], 'bo-de', [1590, 880], 'left'], [[1660, 800, 1672, 941], 'quan-am', [90, 880], 'right']],
       urn: { stand: [836, 905], face: 'up', plant: [836, 588], len: 50 } },
     'san-gan': { lu: { src: 'assets/ngoai/lu-san-gan.png', at: [677, 584, 395, 357] }, name: 'Sân trước Tam Quan', img: 'assets/ngoai/san-gan.jpg', hz: 470, k: .6,
@@ -62,7 +62,7 @@
       urn: { stand: [874, 905], face: 'up', plant: [874, 676], len: 62 } },
     'tam-quan': { name: 'Cổng Tam Quan', img: 'assets/ngoai/tam-quan.jpg', hz: 520, k: .62,
       floor: [[300, 941], [1380, 941], [1380, 702], [1230, 672], [440, 672], [300, 702]],
-      exits: [[[300, 930, 1380, 941], 'san-gan', [836, 600], 'down'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
+      exits: [[[300, 930, 1380, 941], 'san', [836, 560], 'down'], [[720, 660, 960, 680], 'soon:Đường làng', null]] },
     'mat-tien': { lu: { src: 'assets/ngoai/lu-mat-tien.png', at: [699, 529, 272, 301] }, name: 'Mặt tiền Chánh điện', img: 'assets/ngoai/mat-tien.jpg', hz: 480, k: .6,
       floor: [[332, 941], [1338, 941], [1338, 642], [1098, 626], [1090, 522], [580, 522], [572, 626], [332, 642]],
       block: [[716, 766, 954, 836]],
@@ -585,9 +585,15 @@
   }
 
   /* ---------- Bạn ---------- */
-  let input = { x: 0, y: 0 }, meIdle = 0, meBusy = false, switching = false;
+  let input = { x: 0, y: 0 }, meIdle = 0, meBusy = false, switching = false, turnLock = 0;
   async function stepMe(dt) {
     if (switching) return;
+    // vừa sang cảnh quay ngược hướng nhìn (vd. Sân → Mặt tiền): đứng lại cho tới khi buông nút,
+    // nếu không giữ nút đi xuống sẽ nhảy qua lại hai cảnh mãi
+    if (turnLock) {
+      if (Math.sign(input.y) === turnLock && Math.abs(input.y) > .3) { if (me.mode === 'walk') { me.mode = 'pose'; me.frame = me.dir === 'up' ? F.up : F.stand; } return; }
+      turnLock = 0;
+    }
     const mag = Math.hypot(input.x, input.y);
     if (mag > .15 && !meBusy) {
       meIdle = 0;
@@ -649,6 +655,7 @@
     fadeT = 1;                                                              // chuyển cảnh mờ dần
     await sleep(260);
     strollers.splice(0).forEach(p => { p.room = 'gone'; const i = people.indexOf(p); i >= 0 && people.splice(i, 1); });
+    turnLock = (face === 'up' && input.y > .3) ? 1 : (face === 'down' && input.y < -.3) ? -1 : 0;
     room = to; me.room = to; me.mode = 'pose'; me.target = null;
     [me.fx, me.fy] = at || [836, 900]; me.dir = face; me.frame = face === 'up' ? F.up : F.stand;
     if (!walkable(me.fx, me.fy)) {                                          // chỗ hẹn rơi vào lư, đèn đá…: tìm chỗ trống gần nhất, không nằm trên lối ra
