@@ -4,6 +4,12 @@
    đi ra mép cảnh hoặc qua cửa thì sang cảnh kế bên. */
 (() => {
   const W = 1672, H = 941;
+  // Toạ độ chạm/chuột khi khung chùa đang xoay ngang bằng CSS (html.force-land: quay 90° theo chiều kim đồng hồ)
+  const LHV = window.LHV = {
+    rot: () => document.documentElement.classList.contains('force-land'),
+    pt: e => LHV.rot() ? { x: e.clientY, y: innerWidth - e.clientX } : { x: e.clientX, y: e.clientY },
+    rect: el => { const r = el.getBoundingClientRect(); return LHV.rot() ? { left: r.top, top: innerWidth - r.right, width: r.height, height: r.width } : r; }
+  };
   const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
   const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -759,7 +765,7 @@
   }
   requestAnimationFrame(frame);
 
-  const toStage = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+  const toStage = e => { const r = LHV.rect(cv), p = LHV.pt(e); return [(p.x - r.left) * W / r.width, (p.y - r.top) * H / r.height]; };
   const scn = document.getElementById('scene') || cv;           // #cv không nhận chuột (pointer-events:none)
   scn.addEventListener('click', e => {
     const tp = R().tap; if (!tp) return;
