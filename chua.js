@@ -289,8 +289,21 @@
   // ánh nến trong chánh điện: phủ nhẹ một lớp vàng ấm lên áo lam để hợp tông màu ảnh nền
   const warmUp = i => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const g = c.getContext('2d'); g.drawImage(i, 0, 0);
     g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,170,80,.16)'; g.fillRect(0, 0, c.width, c.height); return c; };
+  // Bộ tư thế thu nhỏ sẵn 1/2, 1/4 (từng ô riêng, không lem ô bên): người ở xa vẽ từ bản nhỏ,
+  // đỡ phải thu nhỏ ảnh lớn ~100 lần mỗi khung hình — đây là phần nặng nhất khi vẽ
+  const mips = (src, S) => {
+    const out = [{ img: src, k: 1, cw: S.cw, ch: S.ch }];
+    let prev = out[0];
+    for (const k of [.5, .25]) {
+      const cw = Math.ceil(S.cw * k), ch = Math.ceil(S.ch * k), c = document.createElement('canvas');
+      c.width = cw * 4; c.height = ch * 6; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+      for (let r = 0; r < 6; r++) for (let q = 0; q < 4; q++) g.drawImage(prev.img, q * prev.cw, r * prev.ch, prev.cw, prev.ch, q * cw, r * ch, cw, ch);
+      prev = { img: c, k, cw, ch }; out.push(prev);
+    }
+    return out;
+  };
   Promise.all([
-    ...['nu', 'nam', 'tt'].map(k => load(`assets/song/${{ nu: 'nu', nam: 'nam', tt: 'tru-tri' }[k]}.png`).then(i => { SHEETS[k].img = i; SHEETS[k].warm = warmUp(i); })),
+    ...['nu', 'nam', 'tt'].map(k => load(`assets/song/${{ nu: 'nu', nam: 'nam', tt: 'tru-tri' }[k]}.png`).then(i => { const S = SHEETS[k]; S.img = i; S.warm = warmUp(i); S.mipImg = mips(i, S); S.mipWarm = mips(S.warm, S); })),
     load('assets/song/monk.png').then(i => monk = i), load(ROOMS.hall.img).then(i => imgs.hall = i), load(ROOMS.hall.fg).then(i => imgs.hallFg = i)
   ]).then(() => { ready = true; document.documentElement.classList.add('song-ready'); realList = window.Presence ? Presence.others() : []; syncReal();
     Object.keys(ROOMS).forEach(k => { if (k !== 'hall') load(ROOMS[k].img).then(i => imgs[k] = i); if (ROOMS[k].lu) load(ROOMS[k].lu.src).then(i => imgs['lu-' + k] = i); }); });
@@ -310,7 +323,7 @@
   const dAt = (k, x, y) => { const d = depth[k]; if (!d) return 0; const ix = Math.max(0, Math.min(d.w - 1, x * d.w / W | 0)), iy = Math.max(0, Math.min(d.h - 1, y * d.h / H | 0)); return d.data[(iy * d.w + ix) * 4] / 255; };
   const PX = (() => {
     const c = document.createElement('canvas'); c.width = W; c.height = H;
-    const gl = c.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+    const gl = c.getContext('webgl', { premultipliedAlpha: false, alpha: false });
     if (!gl) return null;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     const prog = gl.createProgram();
@@ -341,6 +354,10 @@
       gl.viewport(0, 0, W, H); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return c;
     } };
   })();
+  // nền WebGL hiện thẳng thành một lớp dưới #cv (trước đây chép sang canvas 2D mỗi khung hình: rất tốn)
+  if (PX) { PX.canvas.style.cssText = 'display:none;position:absolute;left:0;top:0;width:1672px;height:941px;pointer-events:none'; cv.parentNode.insertBefore(PX.canvas, cv); }
+  let pxOn = false;
+  const showPX = on => { if (on !== pxOn && PX) { pxOn = on; PX.canvas.style.display = on ? 'block' : 'none'; } };
   const cam3 = { x: 0, y: 0 }, FOCUS = .35;
   let pointer = { x: .5, y: .5 };
   addEventListener('pointermove', e => { pointer = { x: e.clientX / innerWidth, y: e.clientY / innerHeight }; });
@@ -375,12 +392,14 @@
     ctx.save(); ctx.translate(p.fx, p.fy + 1);
     if (flip) ctx.scale(-1, 1);
     if (p.squash) ctx.scale(1, p.squash);
-    ctx.drawImage(rm.key === 'hall' && S.warm || S.img, col * S.cw, row * S.ch, S.cw, S.ch, -dw / 2, -dh, dw, dh);
+    const L = (rm.key === 'hall' ? S.mipWarm : S.mipImg) || [{ img: S.img, cw: S.cw, ch: S.ch }];
+    let m = L[0]; for (const l of L) if (l.ch >= dh * .95) m = l;          // bản nhỏ nhất vẫn đủ nét
+    ctx.drawImage(m.img, col * m.cw, row * m.ch, m.cw, m.ch, -dw / 2, -dh, dw, dh);
     ctx.restore();
     if (p.holding) drawHeldSticks(p, h);
     if (p.holdingFlower) bloom(p.fx, p.fy - h * .52, h * .09);
     const el = tagFor(p);
-    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.left = p._tx.toFixed(1) + 'px'; el.style.top = (p._ty + (p._off || 0)).toFixed(1) + 'px'; el.style.transform = `translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
+    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.transform = `translate3d(${p._tx.toFixed(1)}px,${(p._ty + (p._off || 0)).toFixed(1)}px,0) translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
   }
   // Gió: mạnh yếu từng đợt (dùng chung cho lá cây trong nền và khói hương)
   window.GIO = t => .65 + .35 * Math.sin(t * .37) + .15 * Math.sin(t * 1.13);
@@ -707,8 +726,8 @@
       const ty = -(me.fy - 760) / 300 * 6 - (pointer.y - .5) * 8 + Math.cos(t * .23) * 2.5;
       cam3.x += (tx - cam3.x) * Math.min(1, dt * 2.5); cam3.y += (ty - cam3.y) * Math.min(1, dt * 2.5);
       const dk = depth[room];
-      if (bg && PX && dk) ctx.drawImage(PX.draw(bg, dk, cam3.x, cam3.y, FOCUS, t), 0, 0);
-      else if (bg) ctx.drawImage(bg, 0, 0); else { ctx.fillStyle = '#2a1408'; ctx.fillRect(0, 0, W, H); }
+      if (bg && PX && dk) { PX.draw(bg, dk, cam3.x, cam3.y, FOCUS, t); showPX(true); ctx.clearRect(0, 0, W, H); }
+      else { showPX(false); if (bg) ctx.drawImage(bg, 0, 0); else { ctx.fillStyle = '#2a1408'; ctx.fillRect(0, 0, W, H); } }
       const vis = people.filter(p => p.room === room);
       const at = (x, y, fn) => () => { const [dx, dy] = shiftAt(x, y); ctx.save(); ctx.translate(dx, dy); fn(); ctx.restore(); };
       const items = vis.map(p => ({ y: p.fy, draw: at(p.fx, p.fy, () => drawPerson(p)) }));
