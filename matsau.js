@@ -54,14 +54,15 @@
     warm.set(S.img, c); return c;
   }
   // khung hình theo hướng nhìn từ cửa vào: đi về phía cửa (xuống ở mặt trước) thì quay mặt ra máy quay; trái/phải đảo chiều
-  const FR = { down: 0, up: 4, left: 12, right: 8 };
+  // mặt trước: 'up' = đi về phía cửa (về phía máy quay mặt sau) → thấy mặt; 'down' = đi vào phía Phật → thấy lưng
+  const FR = { up: 0, down: 4, left: 12, right: 8 }, BACK = 4;
   const tags = [];
   function drawPerson(S, p, t, i) {
     if (!S || !S.img) return;
     const { x, y } = place(p), h = K * (y - HZ) * (p.abbot ? 1.4 : 1), s = h / S.stand;
     if (y > H + h * .2) return;                                          // đã ra khỏi cửa
     let f = BACK_SIT, flip = p.flip;
-    if (!p.sit) { f = p.walk ? FR[p.dir] + ((p.walkT * 8) | 0) % 4 : FR.up; flip = false; }
+    if (!p.sit) { f = p.walk ? FR[p.dir] + ((p.walkT * 8) | 0) % 4 : BACK; flip = false; }
     const col = f % 4, row = (f / 4) | 0, dw = S.cw * s, dh = S.ch * s;
     const k = t - bowT, b = p.me && k > 0 && k < 6 ? Math.max(0, Math.sin(k / 2 * Math.PI)) : p.bow || 0;   // ai lạy người nấy
     ctx.save(); ctx.translate(x, y);
