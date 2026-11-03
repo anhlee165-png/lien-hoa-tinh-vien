@@ -1,5 +1,5 @@
 /* Trò chuyện chung theo phòng qua Firebase Realtime Database: mọi máy trong cùng một điện, cùng một cảnh
-   thấy cùng một khung chat (chat/h{điện}/{cảnh}). Ai cũng đọc được; muốn gửi phải đăng nhập Gmail/Facebook.
+   thấy cùng một khung chat (chat/h{điện}/{cảnh}). Ai cũng đọc được; muốn gửi phải đăng nhập Gmail.
    Luật máy chủ (database.rules.json) kiểm: đúng người gửi, độ dài, giờ máy chủ, mỗi người 1,5 giây mới gửi được 1 tin;
    cờ "nhà chùa" chỉ tài khoản có claim admin mới gắn được; chỉ quản trị gỡ được tin của người khác.
    window.ChatNet = { on(), watch(hall, room, cb), send(hall, room, {name, text, admin}), remove(hall, room, id), uid() } */

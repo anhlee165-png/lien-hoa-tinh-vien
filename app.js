@@ -106,7 +106,7 @@
     const list = net ? net.map(m => ({ who: m.name, text: m.text, me: !!myUid && m.uid === myUid, admin: !!m.admin, id: m.id })) : store.get(chatKey(), []);
     log.innerHTML = list.length ? list.map(m => `<div class="m ${m.me ? 'me' : ''} ${m.sys ? 'sys' : ''} ${m.admin ? 'admin' : ''}">${m.sys ? '' : `<b>${esc(m.who)}</b>`}${esc(m.text)}${mod && m.id ? `<button class="m-del" data-cid="${esc(m.id)}" title="Gỡ tin">✕</button>` : ''}</div>`).join('')
       : '<div class="m sys">Chưa có tin nhắn. Hãy chào đại chúng 🙏</div>';
-    if (net && !myUid) log.insertAdjacentHTML('beforeend', '<div class="m sys">Đăng nhập Gmail / Facebook để trò chuyện cùng đại chúng.</div>');
+    if (net && !myUid) log.insertAdjacentHTML('beforeend', '<div class="m sys">Đăng nhập Gmail để trò chuyện cùng đại chúng.</div>');
     log.scrollTop = log.scrollHeight;
   }
   function chatWatch() {
@@ -354,7 +354,7 @@
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
   paintWallet();
   const signedIn = () => !!(window.Vi && Vi.signedIn());
-  const needLogin = what => { toast(`Mời đạo hữu đăng nhập Gmail hoặc Facebook để ${what} 🙏`); showLogin(); };
+  const needLogin = what => { toast(`Mời đạo hữu đăng nhập Gmail để ${what} 🙏`); showLogin(); };
   addEventListener('vi-change', () => {
     paintWallet(); const vb = $('#v-bal'); if (vb) vb.textContent = xuText() + ' xu';
     // vai Quản trị chỉ giữ được khi máy chủ xác nhận claim admin
@@ -577,7 +577,7 @@
     hall() { closeModal(); setView('all'); if (state.outside) goInside(); },
     wallet(open) {
       if (isAdmin()) return openModal('Ví xu', '<p>Số dư</p><p class="big">∞ xu</p><p class="note">Tài khoản chủ chùa không mất xu. Doanh thu và đối soát xem ở trang Quản trị.</p><a class="btn nap" href="ad_min165/" target="_blank" rel="noopener">Mở trang Quản trị</a>');
-      if (!window.Vi || !Vi.signedIn()) return openModal('Ví xu', '<p>Ví xu gắn với tài khoản, dùng được trên mọi máy.</p><p class="note">Đạo hữu vẫn tham quan miễn phí. Muốn nạp xu, thắp hương hay cúng dường, mời đăng nhập.</p><button class="btn nap" id="v-login">Đăng nhập Gmail / Facebook</button>',
+      if (!window.Vi || !Vi.signedIn()) return openModal('Ví xu', '<p>Ví xu gắn với tài khoản, dùng được trên mọi máy.</p><p class="note">Đạo hữu vẫn tham quan miễn phí. Muốn nạp xu, thắp hương hay cúng dường, mời đăng nhập.</p><button class="btn nap" id="v-login">Đăng nhập Gmail</button>',
         body => $('#v-login', body).addEventListener('click', () => { closeModal(); showLogin(); }));
       const packs = Vi.packs();
       openModal('Ví xu', `<p>Số dư</p><p class="big" id="v-bal">${xuText()} xu</p>
@@ -706,7 +706,7 @@
         <h3>🎁 Hòm Công đức</h3><p>Giữ số Hương, Hoa sen, Đèn, Cúng dường Tam Bảo, Ấn tống kinh đạo hữu đã nhận. Bấm <b>Nhận thêm</b> để nhận thêm bằng xu; mỗi lần thắp hương hay cúng dường sẽ dùng 1 phần.</p>` : ''}
         <h3>💌 Tâm sự kín</h3><p>Nơi gửi tâm sự, câu chuyện của mình (có thể ẩn danh). Mọi người và nhà chùa có thể vào từng tâm sự để trả lời, chia sẻ.</p>
         <h3>💬 Trò chuyện</h3><p>Khung bên phải để nhắn với đạo hữu cùng phòng. Có thể ẩn bằng dấu ✕.</p>
-        <p class="note">Tham quan miễn phí. Thắp hương, cúng dường, ủng hộ cần đăng nhập Gmail hoặc Facebook để lưu xu và công đức trên mọi máy.</p></div>`);
+        <p class="note">Tham quan miễn phí. Thắp hương, cúng dường, ủng hộ cần đăng nhập Gmail để lưu xu và công đức trên mọi máy.</p></div>`);
     },
     tamsu() {
       // Tâm sự kín: danh sách tâm sự của mọi người; vào từng tâm sự để xem và trả lời (khung chat con)
@@ -760,7 +760,7 @@
     },
     hom(buy) {
       // Hòm Công đức: số Hương và lễ cúng dường đạo hữu đã nhận (máy chủ giữ số), "Nhận thêm" bằng xu
-      if (!window.Vi || !Vi.signedIn()) return openModal('Hòm Công đức', '<p>Hòm Công đức giữ số Hương, Hoa sen, Đèn… đạo hữu đã nhận, dùng được trên mọi máy.</p><button class="btn nap" id="v-login">Đăng nhập Gmail / Facebook</button>',
+      if (!window.Vi || !Vi.signedIn()) return openModal('Hòm Công đức', '<p>Hòm Công đức giữ số Hương, Hoa sen, Đèn… đạo hữu đã nhận, dùng được trên mọi máy.</p><button class="btn nap" id="v-login">Đăng nhập Gmail</button>',
         body => $('#v-login', body).addEventListener('click', () => { closeModal(); showLogin(); }));
       const pr = GIA(), of = pr.offers || {};
       const ROWS = [['huong', 'Hương (3 nén)', pr.incense, '🪔'], ...OFFERS.map(([k, n, , x]) => [k, (of[k] && of[k].name) || n, (of[k] || {}).xu || x, { sen: '🪷', den: '🏮', tambao: '🙏', kinh: '📜' }[k]])];
@@ -848,7 +848,7 @@
       });
   }
 
-  /* ---------- Đăng nhập: Gmail, Facebook, hoặc vào với tư cách khách ---------- */
+  /* ---------- Đăng nhập: Gmail hoặc vào với tư cách khách ---------- */
   const login = $('#login');
   function showLogin() {
     login.hidden = false;
@@ -917,7 +917,7 @@
   $$('[data-login]', login).forEach(b => b.addEventListener('click', async () => {
     const k = b.dataset.login;
     if (k === 'guest') return setRole('guest');
-    if (!window.Auth || !Auth.ready()) { toast('Đăng nhập ' + (k === 'google' ? 'Gmail' : 'Facebook') + ' chưa mở, mời vào với tư cách khách'); return; }
+    if (!window.Auth || !Auth.ready()) { toast('Đăng nhập Gmail chưa mở, mời vào với tư cách khách'); return; }
     try { const u = await Auth.signIn(k); await Auth.settled(); if (window.Vi) await Vi.hello();
       setRole(window.Vi && Vi.isAdmin() ? 'admin' : 'guest', { name: u.name, email: u.email }); }
     catch (err) { toast('Đăng nhập không thành công: ' + (err && err.message || err)); }
