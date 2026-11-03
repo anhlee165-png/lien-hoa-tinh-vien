@@ -574,7 +574,8 @@
         <div class="ung-ho">
           <div class="uh-ic">💝</div>
           <h3>Ủng hộ nhà phát triển</h3>
-          <p class="note">Tùy tâm, không bắt buộc. Ủng hộ để cùng duy trì và phát triển không gian Liên Hoa Tịnh Viện. Khoản này không đổi ra xu.</p>
+          <p class="uh-sub">(tùy tâm, không bắt buộc)</p>
+          <p class="note">Ủng hộ để cùng duy trì và phát triển không gian Liên Hoa Tịnh Viện. Khoản này không đổi ra xu.</p>
           <div class="uh-row"><input id="tam-in" type="number" min="2000" step="1000" inputmode="numeric" placeholder="Số tiền tùy tâm (đ)"><button class="btn" id="tam-go">Ủng hộ</button></div>
           <div id="tam-pay" hidden></div>
         </div>`,
