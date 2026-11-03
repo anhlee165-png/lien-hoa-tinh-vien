@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Liên Hoa Tịnh Viện",
+  "short_name": "Liên Hoa",
+  "description": "Chùa online Liên Hoa Tịnh Viện: chánh điện, sân chùa, lễ Phật, niệm Phật, thiền định.",
+  "lang": "vi",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#2a0808",
+  "theme_color": "#3d0a0a",
+  "categories": ["lifestyle", "education"],
+  "icons": [
+    { "src": "/assets/app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/app/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

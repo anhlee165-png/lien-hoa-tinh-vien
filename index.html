@@ -6,6 +6,12 @@
 <title>Liên Hoa Tịnh Viện</title>
 <meta name="description" content="Liên Hoa Tịnh Viện – chùa online: chánh điện, cửa chính, sân chùa, tranh Phật.">
 <meta name="theme-color" content="#3d0a0a">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/app/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Liên Hoa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23e8b54a' d='M32 8c6 8 8 16 0 30C24 24 26 16 32 8zM10 22c10 2 18 8 20 18-10 0-18-6-20-18zm44 0c-2 12-10 18-20 18 2-10 10-16 20-18zM6 40c10-2 20 2 26 8-10 4-20 2-26-8zm52 0c-6 10-16 12-26 8 6-6 16-10 26-8z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,6 +100,7 @@
     <button id="xoay" class="panel" aria-label="Xoay góc nhìn mặt trước / mặt sau"><span class="ring">⟲</span><span id="xoay-t">Mặt trước</span></button>
     <nav id="ways" class="panel" aria-label="Đi đến khu khác"></nav>
     <button id="acct" class="panel" aria-label="Tài khoản">Khách</button>
+    <button id="app-btn" class="panel" data-open="app" aria-label="Tải ứng dụng Liên Hoa Tịnh Viện">📲 Tải App</button>
     <button id="guide-btn" class="panel" data-open="guide">📖 Hướng dẫn</button>
     <button id="tamsu-btn" class="panel" data-open="tamsu">💌 Tâm sự kín</button>
 
@@ -218,6 +225,7 @@
 </svg>
 
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script src="pwa.js"></script>
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-auth-compat.js"></script>
 <script src="vendor/firebase-database-compat.js"></script>

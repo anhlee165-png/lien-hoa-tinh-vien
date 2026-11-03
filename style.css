@@ -390,6 +390,15 @@ body.live-noside #live-side{display:none}
 #ts .ts-del{margin-left:auto;font-size:13px;padding:2px 8px;border-radius:6px;border:1px solid #b05030;background:none;color:#f0a080}
 #guide-btn,#tamsu-btn{position:absolute;top:14px;height:52px;font:700 16px var(--sans);color:var(--cream);white-space:nowrap;padding:0 10px}
 #guide-btn{left:1149px;width:146px}#tamsu-btn{left:1305px;width:148px}
-body.live #guide-btn,body.live #tamsu-btn{display:none!important}
+#app-btn{position:absolute;top:14px;left:1009px;width:130px;height:52px;font:700 16px var(--sans);color:var(--cream);white-space:nowrap;padding:0 10px}
+#app-btn.done{opacity:.7}
+body.live #guide-btn,body.live #tamsu-btn,body.live #app-btn,html.is-app #app-btn{display:none!important}
+/* hướng dẫn cài app */
+.pwa ol{margin:6px 0 4px 24px;padding:0;list-style:decimal}.sheet .pwa li{display:list-item;margin:4px 0;padding:6px 0;font-size:17px;line-height:1.7}.pwa .note{opacity:.8;font-size:14px}
+.pwa .k{display:inline-block;padding:1px 7px;border:1px solid rgba(255,215,122,.55);border-radius:6px;background:rgba(255,215,122,.12);font-weight:700}
+#pwa-update{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-radius:14px;background:#3d0a0a;border:1.5px solid #e8b54a;color:#f6e7c8;font:600 15px var(--sans);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#pwa-update button{border:0;border-radius:9px;padding:7px 14px;font:700 14px var(--sans);cursor:pointer;background:linear-gradient(#e8b54a,#a8701c);color:#2a0808}
+#pwa-update button[data-u=later]{background:none;color:#f6e7c8;padding:7px 8px}
+body.live #pwa-update{display:none}
 #ts a{color:var(--gold-hi)}
 .sheet .ung-ho .uh-sub{margin:0;font-size:13px;opacity:.75;font-style:italic}

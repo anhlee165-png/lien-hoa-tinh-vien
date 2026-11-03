@@ -644,6 +644,40 @@
           });
         });
     },
+    // Tải App (PWA): chỉ mở khi đạo hữu bấm nút; trình duyệt cho cài thì gọi hộp thoại cài, không thì hướng dẫn theo máy
+    async app() {
+      const P = window.PWA; if (!P) return;
+      if (P.installed()) return openModal('Tải App', '<div class="pwa"><p>Liên Hoa Tịnh Viện đã được cài trên máy này 🙏</p><p class="note">Mở app từ màn hình chính hoặc danh sách ứng dụng.</p></div>');
+      if (P.canPrompt()) {
+        const r = await P.prompt();
+        if (r === 'accepted') { toast('Đã cài App Liên Hoa Tịnh Viện 🙏'); paintApp(); return; }
+        if (r === 'dismissed') { toast('Đạo hữu vẫn dùng chùa trên web như bình thường 🙏'); return; }
+      }
+      const { os, browser } = P.platform(), K = t => `<span class="k">${t}</span>`;
+      let steps, note = '';
+      if (browser === 'inapp') {
+        steps = [`Bấm ${K('⋯')} hoặc ${K('⋮')} ở góc màn hình`, `Chọn ${K('Mở bằng trình duyệt')} (Safari / Chrome)`, 'Trong trình duyệt, bấm lại nút <b>📲 Tải App</b>'];
+        note = 'Ứng dụng TikTok, Facebook, Zalo… không cho cài app từ bên trong.';
+      } else if (os === 'ios') {
+        steps = browser === 'safari' || browser === 'other'
+          ? [`Bấm nút Chia sẻ ${K('⬆︎')} ở thanh dưới (hoặc trên) của Safari`, `Kéo xuống, chọn ${K('Thêm vào MH chính')}`, `Bấm ${K('Thêm')}: biểu tượng hoa sen hiện trên màn hình chính`]
+          : [`Bấm nút Chia sẻ ${K('⬆︎')} trên thanh địa chỉ`, `Chọn ${K('Thêm vào MH chính')} (nếu không thấy, mở trang này bằng Safari)`, `Bấm ${K('Thêm')}`];
+        note = 'iPhone/iPad không cho web tự cài app, nên cần làm theo các bước trên.';
+      } else if (os === 'android') {
+        steps = browser === 'firefox'
+          ? [`Bấm ${K('⋮')} góc trên bên phải`, `Chọn ${K('Cài đặt')} hoặc ${K('Thêm vào màn hình chính')}`]
+          : [`Bấm ${K('⋮')} góc trên bên phải trình duyệt`, `Chọn ${K('Cài đặt ứng dụng')} hoặc ${K('Thêm vào màn hình chính')}`, `Bấm ${K('Cài đặt')}`];
+      } else if (browser === 'chrome' || browser === 'edge' || browser === 'opera') {
+        steps = [`Bấm biểu tượng cài đặt ${K('⊕')} ở cuối thanh địa chỉ`, `Hoặc mở menu ${K('⋮')} / ${K('⋯')} → ${K('Cài đặt Liên Hoa Tịnh Viện')} (Edge: ${K('Ứng dụng')} → ${K('Cài đặt trang này thành ứng dụng')})`];
+      } else if (browser === 'safari') {
+        steps = [`Trên thanh menu, chọn ${K('Tệp')} → ${K('Thêm vào Dock')} (macOS Sonoma trở lên)`];
+      } else {
+        steps = ['Trình duyệt này chưa hỗ trợ cài app. Mời đạo hữu mở trang bằng <b>Chrome</b> hoặc <b>Edge</b> để cài.'];
+      }
+      openModal('Tải App Liên Hoa Tịnh Viện', `<div class="pwa"><p>Cài app để mở chùa nhanh từ màn hình chính, không cần gõ địa chỉ. <b>Không bắt buộc</b>: trên web vẫn dùng đầy đủ.</p>
+        <ol>${steps.map(x => `<li>${x}</li>`).join('')}</ol>${note ? `<p class="note">${note}</p>` : ''}
+        <p class="note">App và web dùng chung tài khoản, xu và phòng chùa. Lần đầu mở app có thể cần đăng nhập lại.</p></div>`);
+    },
     guide() {
       openModal('Hướng dẫn', `<div class="guide">
         <h3>🚶 Đi lại</h3><p>Kéo joystick (góc trái dưới) hoặc dùng phím mũi tên / WASD để đưa nhân vật "Bạn" đi khắp chùa. Đi qua cửa chính, cửa hông hay ra mép cảnh là sang khu kế bên. Đứng yên trên một thảm trống thì Bạn tự ngồi xuống.</p>
@@ -751,6 +785,8 @@
       openModal('Sổ tu tập', `<p>Chuỗi hạt: <b>${state.beads}/108</b> · Công đức: <b>${fmt(state.merit)}</b></p>${xuRows}<h3>Tu tập</h3><ul>${items}</ul>`);
     }
   };
+  function paintApp() { const b = $('#app-btn'); if (!b || !window.PWA) return; const done = PWA.installed(); b.classList.toggle('done', done); b.textContent = done ? '✓ Đã cài App' : '📲 Tải App'; }
+  addEventListener('pwa-change', paintApp); paintApp();
   $$('[data-open]').forEach(b => b.addEventListener('click', () => {
     if (b.closest('#nav')) { $$('#nav button').forEach(x => x.classList.toggle('on', x === b)); }
     PANELS[b.dataset.open]();
