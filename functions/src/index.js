@@ -60,6 +60,11 @@ exports.createTopup = call(async req => {
   return pay.createTopup(uid, String((req.data || {}).packId || ''), payosKeys());
 }, { secrets: PAYOS });
 
+exports.createDonation = call(async req => {                         // công đức tùy tâm: chuyển khoản bao nhiêu tùy ý, không đổi ra xu
+  const { uid } = await authSvc.requireUser(req);
+  return pay.createDonation(uid, (req.data || {}).vnd, payosKeys());
+}, { secrets: PAYOS });
+
 exports.cancelTopup = call(async req => {
   const { uid } = await authSvc.requireUser(req);
   return pay.cancelTopup(uid, (req.data || {}).orderId);
@@ -89,6 +94,7 @@ exports.adminSetLock = adminCall((d, by) => admin.setLock(by, String(d.uid || ''
 exports.adminAdjust = adminCall((d, by) => wallet.adjust(by, String(d.uid || ''), d.xu, d.reason, d.opId));
 exports.adminSetPacks = adminCall((d, by) => admin.setPacks(by, d.packs), { owner: true, recentLoginSec: 900 });
 exports.adminSetPrices = adminCall((d, by) => admin.setPrices(by, d), { owner: true, recentLoginSec: 900 });
+exports.adminSetCharging = adminCall((d, by) => admin.setCharging(by, d.on));
 exports.adminGetPayment = adminCall(() => admin.getPaymentConfig());
 exports.adminSetPayment = call(async req => { const a = await authSvc.requireAdmin(req, { owner: true, recentLoginSec: 300 }); return admin.setPaymentConfig(a.uid, req.data || {}, payosKeys()); }, { secrets: PAYOS });
 exports.adminReconcile = adminCall(d => admin.listReconcile(d.status === 'RESOLVED' ? 'RESOLVED' : 'OPEN'));
