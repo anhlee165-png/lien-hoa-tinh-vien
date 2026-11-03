@@ -357,10 +357,11 @@
         if (Nguoi.abbotHere && Nguoi.abbotHere()) { toast('Thầy trụ trì đang ngồi giữa điện, xin thắp hương sau khi thầy rời điện 🙏'); return; }
         const ci = Nguoi.canIncense(); if (ci !== true) { if (ci === 'nourn') toast('Hãy đi đến chỗ có lư hương (trong chánh điện, cửa điện, sân hoặc mặt tiền) để thắp hương'); return; }
       }
-      if (!window.Vi || !Vi.signedIn()) return needLogin('thắp hương');
+      const free = !!(window.Vi && !Vi.charging());
+      if (!free && (!window.Vi || !Vi.signedIn())) return needLogin('thắp hương');
       if (thapBusy) return; thapBusy = true;
-      let paid;
-      try { paid = await Vi.spend('incense'); }
+      let paid = { cost: 0, opId: null };
+      try { if (Vi.signedIn()) paid = await Vi.spend('incense'); }
       catch (e) { thapBusy = false; toast(e.message); if (/đủ xu/.test(e.message)) PANELS.wallet(true); return; }
       thapBusy = false;
       if (window.Dien3D && Dien3D.active()) {
@@ -368,7 +369,7 @@
       } else if (window.Nguoi) {
         floatText('Thắp nén tâm hương', 843, 520, true);
         const ok = await Nguoi.incense();
-        if (ok === false || ok === 'abbot') { Vi.refund(paid.opId).then(() => toast('Chưa thắp được hương, đã hoàn xu')).catch(() => {}); return; }
+        if (ok === false || ok === 'abbot') { if (!paid.opId) return; Vi.refund(paid.opId).then(() => toast('Chưa thắp được hương, đã hoàn xu')).catch(() => {}); return; }
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
       if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu thắp hương 🙏`);
       chime(1040, 2.5, .2);
@@ -381,17 +382,18 @@
         if (ok === 'novase') { toast('Hãy vào chánh điện để dâng hoa lên bàn thờ Phật'); return; }
         if (ok !== true) return;
       }
-      if (!window.Vi || !Vi.signedIn()) return needLogin('dâng hoa');
+      const free = !!(window.Vi && !Vi.charging());
+      if (!free && (!window.Vi || !Vi.signedIn())) return needLogin('dâng hoa');
       if (thapBusy) return; thapBusy = true;
-      let paid;
-      try { paid = await Vi.spend('flower'); }
+      let paid = { cost: 0, opId: null };
+      try { if (Vi.signedIn()) paid = await Vi.spend('flower'); }
       catch (err) { thapBusy = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; }
       thapBusy = false;
       if (window.Dien3D && Dien3D.active()) { Dien3D.flower(); floatText('Nguyện hoa tâm thanh tịnh dâng lên chư Phật', 843, 560, true); }
       else if (window.Nguoi) {
         floatText('Dâng hoa cúng Phật', 843, 520, true);
         const r = await Nguoi.flower();
-        if (!r) { Vi.refund(paid.opId).then(() => toast('Chưa dâng được hoa, đã hoàn xu')).catch(() => {}); return; }
+        if (!r) { if (!paid.opId) return; Vi.refund(paid.opId).then(() => toast('Chưa dâng được hoa, đã hoàn xu')).catch(() => {}); return; }
       }
       addMerit(3, 'Dâng hoa');
       if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu dâng hoa 🙏`);
@@ -521,12 +523,12 @@
     },
     hall() { closeModal(); setView('all'); if (state.outside) goInside(); },
     wallet(open) {
-      if (isAdmin()) return openModal('Ví xu', '<p>Số dư</p><p class="big">∞ xu</p><p class="note">Tài khoản chủ chùa không mất xu. Doanh thu và đối soát xem ở trang Quản trị.</p><a class="btn nap" href="quan-tri.html" target="_blank" rel="noopener">Mở trang Quản trị</a>');
+      if (isAdmin()) return openModal('Ví xu', '<p>Số dư</p><p class="big">∞ xu</p><p class="note">Tài khoản chủ chùa không mất xu. Doanh thu và đối soát xem ở trang Quản trị.</p><a class="btn nap" href="ad_min165/" target="_blank" rel="noopener">Mở trang Quản trị</a>');
       if (!window.Vi || !Vi.signedIn()) return openModal('Ví xu', '<p>Ví xu gắn với tài khoản, dùng được trên mọi máy.</p><p class="note">Đạo hữu vẫn tham quan miễn phí. Muốn nạp xu, thắp hương hay cúng dường, mời đăng nhập.</p><button class="btn nap" id="v-login">Đăng nhập Gmail / Facebook</button>',
         body => $('#v-login', body).addEventListener('click', () => { closeModal(); showLogin(); }));
       const packs = Vi.packs();
       openModal('Ví xu', `<p>Số dư</p><p class="big" id="v-bal">${xuText()} xu</p>
-        <p class="note">Thắp hương (3 nén) ${GIA().incense} xu · dâng hoa ${GIA().flower} xu một bông. Xu chỉ dùng trong chùa, không đổi lại thành tiền.</p>
+        <p class="note">${Vi.charging() ? `Thắp hương (3 nén) ${GIA().incense} xu · dâng hoa ${GIA().flower} xu một bông.` : "Nhà chùa đang mở miễn phí thắp hương, dâng hoa, cúng dường."} Xu chỉ dùng trong chùa, không đổi lại thành tiền.</p>
         <button class="btn nap" id="nap-btn"${open ? ' hidden' : ''}>＋ Nạp xu</button>
         <div id="packs"${open ? '' : ' hidden'}>${packs.length ? `<p>Chọn gói nạp:</p>
           <div class="grid">${packs.map(p => `<button data-pack="${esc(p.id)}"><b>${fmt(p.xu)} xu</b><small>${fmt(p.vnd)} đ</small></button>`).join('')}</div>` : '<p class="note">Máy chủ nạp xu chưa sẵn sàng, xin quay lại sau.</p>'}</div>
@@ -559,23 +561,64 @@
         });
     },
     merit() {
+      // Quản trị bật thu phí: cúng dường bằng xu (máy chủ trừ). Tắt thu phí: các nút công đức miễn phí.
+      const charging = !(window.Vi && !Vi.charging());
       const of = GIA().offers || { sen: { xu: 200, name: 'Cúng hoa sen' }, den: { xu: 500, name: 'Cúng đèn' }, tambao: { xu: 1000, name: 'Cúng dường Tam Bảo' }, kinh: { xu: 2000, name: 'Ấn tống kinh' } };
       const opts = Object.entries(of).map(([k, o]) => [o.xu, o.name, k]);
+      const FREE = [[20, 'Niệm Phật'], [50, 'Cúng hoa sen'], [100, 'Cúng đèn'], [200, 'Cúng dường Tam Bảo']];
+      const TAM = [20000, 50000, 100000, 200000];
       openModal('Công đức', `<p>Công đức tích lũy</p><p class="big" id="m-pt">${fmt(state.merit)}</p>
-        <p>Cúng dường bằng xu (đang có ${xuText()} xu):</p>
-        <div class="grid">${opts.map(([v, t, k]) => `<button data-v="${v}" data-t="${esc(t)}" data-k="${esc(k)}">${esc(t)}<small>${fmt(v)} xu</small></button>`).join('')}</div>`,
-        body => body.addEventListener('click', async e => { const b = e.target.closest('[data-v]'); if (!b || b.disabled) return;
-          const v = +b.dataset.v;
-          if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('cúng dường'); }
-          b.disabled = true;
-          try { await Vi.spend('offer', { item: b.dataset.k }); }
-          catch (err) { b.disabled = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; } addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
-          $('#m-pt', body).textContent = fmt(state.merit); closeModal(); toast(`Tùy hỷ công đức: ${b.dataset.t} 🙏`); }));
+        ${charging ? `<p>Cúng dường bằng xu (đang có ${xuText()} xu):</p>
+        <div class="grid">${opts.map(([v, t, k]) => `<button data-v="${v}" data-t="${esc(t)}" data-k="${esc(k)}">${esc(t)}<small>${fmt(v)} xu</small></button>`).join('')}</div>`
+        : `<p>Hôm nay nhà chùa mở miễn phí, mời đạo hữu phát tâm:</p>
+        <div class="grid">${FREE.map(([v, t]) => `<button data-free="${v}" data-t="${esc(t)}"><b>+${v} công đức</b><small>${esc(t)}</small></button>`).join('')}</div>`}
+        <h3 style="margin:16px 0 6px">Công đức tùy tâm</h3>
+        <p class="note">Gửi tịnh tài cúng dường nhà chùa bằng chuyển khoản, số tiền tùy tâm (không đổi ra xu).</p>
+        <div class="grid" id="tam">${TAM.map(v => `<button data-vnd="${v}">${fmt(v)} đ</button>`).join('')}</div>
+        <div style="display:flex;gap:8px;margin-top:8px"><input id="tam-in" type="number" min="5000" step="1000" inputmode="numeric" placeholder="Số tiền khác (đ)" style="flex:1;min-width:0"><button class="btn" id="tam-go">Tạo mã QR</button></div>
+        <div id="tam-pay" hidden></div>`,
+        body => {
+          let stop = null;
+          new MutationObserver((m, o) => { if (modal.hidden) { stop && stop(); o.disconnect(); } }).observe(modal, { attributes: true, attributeFilter: ['hidden'] });
+          const donate = async vnd => {
+            if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('gửi công đức tùy tâm'); }
+            vnd = Math.round(+vnd || 0);
+            if (vnd < 5000) return toast('Số tiền tối thiểu 5.000 đ');
+            const pay = $('#tam-pay', body); pay.hidden = false; pay.innerHTML = '<p class="note">Đang tạo mã QR…</p>';
+            let o; try { o = await Vi.createDonation(vnd); } catch (err) { pay.innerHTML = `<p class="note">${esc(err.message)}</p>`; return; }
+            stop && stop();
+            pay.innerHTML = `<p style="text-align:center"><b>${fmt(o.vnd)} đ</b></p><img class="qr" src="${esc(o.qrUrl)}" alt="Mã QR công đức tùy tâm"><p id="t-st"></p>`;
+            stop = Vi.watchOrder(o.orderId, d => {
+              const st = $('#t-st', body); if (!st) return;
+              if (d.status === 'PAID') { stop && stop(); st.innerHTML = `<b>Nhà chùa đã nhận ${fmt(d.vnd)} đ công đức. A Di Đà Phật 🙏</b>`; bell(); petals(24); addMerit(Math.max(1, Math.round(d.vnd / 1000)), 'Công đức tùy tâm'); toast('Tùy hỷ công đức 🙏'); }
+              else if (d.status === 'REVIEW') st.textContent = 'Đã nhận giao dịch, nhà chùa sẽ đối soát.';
+              else if (d.status === 'EXPIRED') st.textContent = 'Mã QR đã hết hạn, mời tạo mã mới.';
+            });
+          };
+          body.addEventListener('click', async e => {
+            const fv = e.target.closest('[data-vnd]'); if (fv) return donate(fv.dataset.vnd);
+            if (e.target.closest('#tam-go')) return donate($('#tam-in', body).value);
+            const fr = e.target.closest('[data-free]');
+            if (fr) {
+              if (window.Vi && Vi.charging()) { closeModal(); return toast('Nhà chùa vừa bật lại cúng dường bằng xu'); }
+              addMerit(+fr.dataset.free, fr.dataset.t); bell(); petals(12);
+              $('#m-pt', body).textContent = fmt(state.merit); toast(`Tùy hỷ công đức +${fr.dataset.free} 🙏`); return;
+            }
+            const b = e.target.closest('[data-v]'); if (!b || b.disabled) return;
+            const v = +b.dataset.v;
+            if (!window.Vi || !Vi.signedIn()) { closeModal(); return needLogin('cúng dường'); }
+            b.disabled = true;
+            try { await Vi.spend('offer', { item: b.dataset.k }); }
+            catch (err) { b.disabled = false; toast(err.message); if (/đủ xu/.test(err.message)) PANELS.wallet(true); return; } addMerit(Math.round(v / 100), b.dataset.t); bell(); petals(20);
+            $('#m-pt', body).textContent = fmt(state.merit); closeModal(); toast(`Tùy hỷ công đức: ${b.dataset.t} 🙏`);
+          });
+        });
     },
+
     async book() {
       let xuRows = '';
       if (window.Vi && Vi.signedIn()) {
-        try { const L = await Vi.ledger(30); const T = { TOPUP: 'Nạp xu', TOPUP_MANUAL: 'Nạp xu (đối soát)', SPEND: 'Dùng xu', ADJUST: 'Điều chỉnh', REFUND: 'Hoàn xu' };
+        try { const L = await Vi.ledger(30); const T = { DONATE: 'Công đức tùy tâm', TOPUP: 'Nạp xu', TOPUP_MANUAL: 'Nạp xu (đối soát)', SPEND: 'Dùng xu', ADJUST: 'Điều chỉnh', REFUND: 'Hoàn xu' };
           xuRows = `<h3>Lịch sử xu</h3><ul>${L.map(x => `<li><span>${T[x.type] || x.type}${x.reason ? ' · ' + esc(x.reason) : ''} <b>${x.xu > 0 ? '+' : ''}${fmt(x.xu)}</b></span><small>${new Date(x.at).toLocaleString('vi-VN')}</small></li>`).join('') || '<li>Chưa có.</li>'}</ul>`; } catch {}
       }
       const items = state.log.length ? state.log.map(l => `<li><span>${l.text}${l.merit ? ` <small>+${l.merit}</small>` : ''}</span><small>${new Date(l.t).toLocaleString('vi-VN')}</small></li>`).join('') : '<li>Chưa có ghi chép. Hãy chắp tay, niệm Phật hay thắp hương.</li>';
@@ -600,7 +643,7 @@
         <button data-ao="-10">− 10</button><button data-ao="-1">− 1</button><button data-ao="1">+ 1</button><button data-ao="10">+ 10</button>
       </div>
       <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><button id="a-lay">Mời đại chúng lạy Phật</button><button id="a-full">Đầy chánh điện</button></div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><a class="btn" href="quan-tri.html" target="_blank" rel="noopener" style="text-align:center">Trang Quản trị (doanh thu, đối soát)</a><button id="a-panel">Thông báo</button></div></div>`,
+      <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><a class="btn" href="ad_min165/" target="_blank" rel="noopener" style="text-align:center">Trang Quản trị (doanh thu, đối soát)</a><button id="a-panel">Thông báo</button></div></div>`,
       body => {
         $('#s-amb', body).addEventListener('change', e => { state.ambient = e.target.checked; save(); });
         const upd = n => { $('#a-n', body).textContent = n; paintHall(); };
@@ -614,7 +657,7 @@
   /* ---------- Quản trị: thông báo, mã QR, sổ công đức ---------- */
   function adminPanel() {
     if (!isAdmin()) return;
-    openModal('Thông báo', `<p class="note">Doanh thu, ví xu, gói nạp, tài khoản nhận tiền và đối soát nằm ở <a href="quan-tri.html" target="_blank" rel="noopener">trang Quản trị</a>.</p>
+    openModal('Thông báo', `<p class="note">Doanh thu, ví xu, gói nạp, tài khoản nhận tiền và đối soát nằm ở <a href="ad_min165/" target="_blank" rel="noopener">trang Quản trị</a>.</p>
       <textarea id="note-in" rows="3" maxlength="300" placeholder="Nội dung thông báo cho Phật tử…"></textarea><button id="note-post">Đăng thông báo</button>
       <ul>${getNotes().map((n, i) => `<li><span>${esc(n.text)}</span><button data-del="${i}">Xoá</button></li>`).join('')}</ul>`,
       body => {
@@ -723,7 +766,7 @@
       body => {
         const sw = $('#sw-role', body); if (sw) sw.addEventListener('click', () => { closeModal(); setRole(isAdmin() ? 'guest' : 'admin', state.user); });
         $('#nick-ch', body).addEventListener('click', () => nickModal(!state.nick));
-        const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => window.open('quan-tri.html', '_blank', 'noopener'));
+        const ga = $('#go-admin', body); if (ga) ga.addEventListener('click', () => window.open('ad_min165/', '_blank', 'noopener'));
         $('#logout', body).addEventListener('click', () => { closeModal(); window.Auth && Auth.ready() && Auth.signOut(); state.nick = null; state.role = ''; state.user = null; save(); window.Nguoi && Nguoi.abbotLeave(); paintRole(); paintWallet(); showLogin(); });
       });
  }

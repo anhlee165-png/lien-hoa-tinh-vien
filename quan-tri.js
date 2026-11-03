@@ -34,9 +34,13 @@
 
   const TABS = {
     async tong() {
-      const s = await call('adminStats');
+      const [s, h] = await Promise.all([call('adminStats'), call('hello')]);
+      const on = !(h.prices && h.prices.charging === false);
       const days = Object.entries(s.byDay).sort().slice(-30), max = Math.max(1, ...days.map(d => d[1]));
-      view.innerHTML = `<div class="cards">
+      view.innerHTML = `<div class="sw ${on ? 'on' : 'off'}"><div><b>Thu phí hương, hoa, cúng dường: ${on ? 'ĐANG BẬT' : 'ĐANG TẮT (miễn phí)'}</b>
+          <small>${on ? 'Khách cần xu để thắp hương, dâng hoa, cúng dường.' : 'Mọi người thắp hương, dâng hoa, cúng dường miễn phí; mục Công đức hiện nút +20 / +50 / +100 / +200.'} Khách vẫn có thể gửi công đức tùy tâm bằng QR.</small></div>
+          <button id="sw-btn">${on ? 'Tắt thu phí' : 'Bật thu phí'}</button></div>
+        <div class="cards">
         <div class="card"><small>Tổng tiền nạp thành công</small><b>${fmt(s.revenue)} đ</b><small>${fmt(s.paidCount)} đơn</small></div>
         <div class="card"><small>Xu đã cấp</small><b>${fmt(s.xuGranted)}</b></div>
         <div class="card"><small>Xu đã dùng</small><b>${fmt(s.xuSpent)}</b></div>
@@ -46,6 +50,11 @@
         <h2>Doanh thu 30 ngày</h2><div class="bar">${days.map(([d, v]) => `<i style="height:${(v / max * 100).toFixed(1)}%" title="${esc(d)}: ${fmt(v)} đ"></i>`).join('') || '<span class="note">Chưa có</span>'}</div>
         <h2>Theo tuần</h2>${table(['Tuần bắt đầu', 'Doanh thu'], Object.entries(s.byWeek).sort().reverse().slice(0, 12).map(([k, v]) => [k, fmt(v) + ' đ']))}
         <h2>Theo tháng</h2>${table(['Tháng', 'Doanh thu'], Object.entries(s.byMonth).sort().reverse().map(([k, v]) => [k, fmt(v) + ' đ']))}`;
+      $('#sw-btn').addEventListener('click', async e => {
+        e.target.disabled = true;
+        try { await call('adminSetCharging', { on: !on }); toast(on ? 'Đã tắt thu phí: hương hoa miễn phí' : 'Đã bật thu phí'); show('tong'); }
+        catch (err) { e.target.disabled = false; toast(err.message); }
+      });
     },
     async nguoi() {
       view.innerHTML = `<form id="f"><input id="q" placeholder="UID, email hoặc biệt danh" size="34" required><button>Tìm</button></form><div id="res"></div>`;

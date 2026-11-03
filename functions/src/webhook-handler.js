@@ -93,6 +93,14 @@ async function process(t) {
     if (t.amount < od.vnd) return review('UNDERPAID', { expected: od.vnd });
     if (t.amount > od.vnd) return review('OVERPAID', { expected: od.vnd });
 
+    // Công đức tùy tâm: không cộng xu, ghi một dòng sổ (0 xu) để khách xem lại trong Sổ
+    if (od.kind === 'donate') {
+      const r = post(tx, { uid: od.uid, wallet: w, delta: 0, type: 'DONATE', ref: `order:${orderId}`, reason: `Công đức tùy tâm ${od.vnd.toLocaleString('vi-VN')}đ`, meta: { vnd: od.vnd, txKey } });
+      tx.set(usedRef, { ...base, orderId, status: 'DONATED', uid: od.uid });
+      tx.update(oref, { status: 'PAID', paidAt: now(), txKey, ledgerId: r.entryId });
+      tx.set(db.collection('alerts').doc(), { kind: 'donate', msg: `Công đức tùy tâm ${od.vnd.toLocaleString('vi-VN')}đ`, uid: od.uid, orderId, read: false, at: now() });
+      return { result: 'donated', orderId, uid: od.uid, vnd: od.vnd };
+    }
     // Hợp lệ: cộng xu đúng một lần
     const r = post(tx, { uid: od.uid, wallet: w, delta: od.xu, type: 'TOPUP', ref: `order:${orderId}`, reason: `Nạp ${od.vnd.toLocaleString('vi-VN')}đ`, meta: { vnd: od.vnd, txKey } });
     tx.set(usedRef, { ...base, orderId, status: 'CREDITED', uid: od.uid });

@@ -28,3 +28,10 @@ form,.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
 .bar i:hover::after{content:attr(title);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#000;padding:2px 6px;border-radius:4px;font-size:12px}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:8px;border:1px solid var(--line)}
 @media (max-width:600px){header h1{font-size:15px} main{padding:10px}}
+
+/* công tắc thu phí */
+.sw{display:flex;align-items:center;gap:16px;justify-content:space-between;padding:16px 18px;border-radius:12px;margin:0 0 18px;border:2px solid}
+.sw b{display:block;font-size:20px;margin-bottom:4px}.sw small{opacity:.85}
+.sw.on{background:rgba(190,120,30,.18);border-color:#c8902f}.sw.off{background:rgba(40,140,70,.18);border-color:#3d9a5a}
+.sw button{font-size:18px;padding:12px 18px;white-space:nowrap}
+@media (max-width:600px){.sw{flex-direction:column;align-items:stretch}}

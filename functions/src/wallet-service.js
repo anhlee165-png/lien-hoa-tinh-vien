@@ -2,7 +2,7 @@
    Sổ cái chỉ thêm dòng mới, không sửa. Số dư không bao giờ âm. */
 const { db, FieldValue, now, fail } = require('./core');
 
-const DEFAULT_PRICES = { incense: 50, flower: 150, rename: 20,
+const DEFAULT_PRICES = { charging: true, incense: 50, flower: 150, rename: 20,
   offers: { sen: { xu: 200, name: 'Cúng hoa sen' }, den: { xu: 500, name: 'Cúng đèn' }, tambao: { xu: 1000, name: 'Cúng dường Tam Bảo' }, kinh: { xu: 2000, name: 'Ấn tống kinh' } } };
 const RENAME_FREE_AFTER_MS = 24 * 3600e3;
 
@@ -51,6 +51,7 @@ async function spend(uid, isOwner, kind, opId, payload = {}) {
       const at = u.exists && u.data().nickAt ? u.data().nickAt.toMillis() : 0;
       if (!u.exists || !u.data().nick || Date.now() - at >= RENAME_FREE_AFTER_MS) cost = 0;   // lần đầu hoặc đã qua 24 giờ: miễn phí
     }
+    if (pr.charging === false && kind !== 'rename') cost = 0;                                 // quản trị tắt thu phí: hương, hoa, cúng dường miễn phí
     if (isOwner) cost = 0;                                                                     // chủ chùa không mất xu
     let result = { balance: w.exists ? w.data().balance : 0, cost };
     if (cost > 0) {

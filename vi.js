@@ -38,6 +38,8 @@
     fire('vi-change', Vi.state());
   }
   if (ok) firebase.auth().onAuthStateChanged(onUser);
+  // giá & công tắc thu phí (config/prices đọc công khai): quản trị bật/tắt là mọi máy đổi ngay, không cần tải lại
+  if (ok) db.collection('config').doc('prices').onSnapshot(s => { if (s.exists) { cfg.prices = { ...cfg.prices, ...s.data() }; fire('vi-change', Vi.state()); } }, () => {});
 
   window.Vi = {
     ready: () => ok,
@@ -49,6 +51,7 @@
     balance: () => balance,
     profile: () => profile,
     prices: () => cfg.prices,
+    charging: () => cfg.prices.charging !== false,          // false = quản trị đã tắt thu phí (máy chủ cũng không trừ xu)
     packs: () => cfg.packs,
     state: () => ({ uid, balance, admin: claims.admin === true, owner: claims.owner === true, online, profile }),
     hello, call, opId,
@@ -57,6 +60,7 @@
     refund: id => call('refundSpend', { opId: id }),
     createTopup: packId => call('createTopup', { packId }),
     cancelTopup: orderId => call('cancelTopup', { orderId }),
+    createDonation: vnd => call('createDonation', { vnd }),
     watchOrder(orderId, cb) { return db.collection('orders').doc(orderId).onSnapshot(s => s.exists && cb(s.data()), () => {}); },
     async ledger(n = 50) {
       if (!uid) return [];

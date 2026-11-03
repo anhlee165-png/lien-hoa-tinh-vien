@@ -103,6 +103,15 @@ async function setPrices(actor, p) {
   return { incense, flower, rename };
 }
 
+/* Bật/tắt thu phí: tắt thì thắp hương, dâng hoa, cúng dường đều miễn phí (máy chủ không trừ xu). Ghi kiểm toán. */
+async function setCharging(actor, on) {
+  if (typeof on !== 'boolean') fail('invalid-argument', 'Thiếu trạng thái bật/tắt');
+  const ref = db.collection('config').doc('prices'), before = (await ref.get()).data() || {};
+  await ref.set({ charging: on, updatedAt: now(), updatedBy: actor }, { merge: true });
+  await audit(actor, 'set_charging', { before: before.charging !== false, after: on });
+  return { charging: on };
+}
+
 /* Đổi tài khoản nhận tiền: chỉ chủ chùa, đã đăng nhập lại gần đây (kiểm ở index.js).
    Sau khi đổi, nạp xu TẠM ĐÓNG cho tới khi xác minh: chủ chùa chuyển một khoản nhỏ vào tài khoản mới
    với nội dung LHTVXM<mã>; webhook từ cổng thanh toán khớp mã + tài khoản thì mới mở lại. */
@@ -187,5 +196,5 @@ async function exportCsv(kind, from, to) {
   return '﻿' + [keys.join(','), ...rows.map(r => keys.map(k => cell(r[k])).join(','))].join('\n');
 }
 
-module.exports = { stats, findUser, userHistory, setLock, setPacks, setPrices, setPaymentConfig, getPaymentConfig, listReconcile, resolveReconcile,
+module.exports = { stats, findUser, userHistory, setLock, setPacks, setPrices, setCharging, setPaymentConfig, getPaymentConfig, listReconcile, resolveReconcile,
   listAlerts, markAlertsRead, listAudit, exportCsv, DEFAULT_PACKS };

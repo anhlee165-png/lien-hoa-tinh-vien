@@ -47,6 +47,20 @@ async function createTopup(uid, packId, payosKeys) {
   if (!cfg || !cfg.accountNumber || !cfg.bankCode || cfg.enabled === false) fail('failed-precondition', 'Nhà chùa chưa mở nạp xu, xin quay lại sau');
   const pack = (await packs()).find(p => p.id === packId && p.on !== false);
   if (!pack) fail('invalid-argument', 'Gói nạp không còn mở');
+  return createOrder(uid, cfg, { packId: pack.id, vnd: pack.vnd, xu: pack.xu }, payosKeys);
+}
+
+/* Công đức tùy tâm: số tiền do khách chọn (5.000đ – 100.000.000đ), không cộng xu; tiền về đúng đơn thì ghi sổ công đức. */
+const DONATE_MIN = 5000, DONATE_MAX = 100_000_000;
+async function createDonation(uid, vnd, payosKeys) {
+  vnd = Math.trunc(Number(vnd));
+  if (!Number.isFinite(vnd) || vnd < DONATE_MIN || vnd > DONATE_MAX) fail('invalid-argument', `Số tiền từ ${DONATE_MIN.toLocaleString('vi-VN')}đ đến ${DONATE_MAX.toLocaleString('vi-VN')}đ`);
+  const cfg = await paymentConfig();
+  if (!cfg || !cfg.accountNumber || !cfg.bankCode || cfg.enabled === false) fail('failed-precondition', 'Nhà chùa chưa mở nhận công đức, xin quay lại sau');
+  return createOrder(uid, cfg, { kind: 'donate', packId: null, vnd, xu: 0 }, payosKeys);
+}
+
+async function createOrder(uid, cfg, pack, payosKeys) {
   await rateLimit('topup_' + uid, 10, 3600);                                  // tối đa 10 đơn mỗi giờ
   const pending = await db.collection('orders').where('uid', '==', uid).where('status', '==', 'PENDING').limit(5).get();
   const live = pending.docs.filter(d => d.data().expiresAt.toMillis() > Date.now());
@@ -54,7 +68,7 @@ async function createTopup(uid, packId, payosKeys) {
   // Mã tham chiếu ngẫu nhiên, không dựa vào biệt danh; tạo bằng create() nên không bao giờ trùng
   for (let i = 0; i < 5; i++) {
     const code = CODE_PREFIX + randomCode(8), ref = db.collection('orders').doc(code);
-    const order = { uid, packId: pack.id, vnd: pack.vnd, xu: pack.xu, currency: 'VND', code, provider: provider(cfg).name,
+    const order = { uid, kind: pack.kind || 'topup', packId: pack.packId, vnd: pack.vnd, xu: pack.xu, currency: 'VND', code, provider: provider(cfg).name,
       account: cfg.accountNumber, status: 'PENDING', createdAt: now(), expiresAt: Timestamp.fromMillis(Date.now() + ORDER_TTL_MS) };
     try { await ref.create(order); } catch (e) { if (e.code === 6) continue; throw e; }
     if (order.provider === 'payos') {
@@ -94,4 +108,4 @@ async function expireOrders() {
   return q.size;
 }
 
-module.exports = { payosLink, PROVIDERS, DEFAULT_PACKS, CODE_RE, packs, paymentConfig, provider, createTopup, cancelTopup, expireOrders };
+module.exports = { payosLink, PROVIDERS, DEFAULT_PACKS, CODE_RE, packs, paymentConfig, provider, createTopup, createDonation, cancelTopup, expireOrders };

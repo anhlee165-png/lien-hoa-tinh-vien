@@ -155,6 +155,39 @@ test('Dâng hoa: giá máy chủ 150 xu/bông, bấm lặp chỉ trừ 1 lần, 
   assert.ok(L.docs.some(d => d.data().reason === 'Dâng hoa' && d.data().xu === -150));
 });
 
+test('Bật/tắt thu phí: chỉ quản trị đổi được; tắt thì thắp hương, dâng hoa, cúng dường không trừ xu; bật lại thì trừ', async () => {
+  await assert.rejects(call('adminSetCharging', { on: false }, B.token), /quyền|permission|PERMISSION/i);
+  assert.deepEqual(await call('adminSetCharging', { on: false }, OWNER.token), { charging: false });
+  assert.equal((await call('hello', {}, B.token)).prices.charging, false);
+  const before = await bal(B.uid);
+  for (const [kind, payload] of [['incense', {}], ['flower', {}], ['offer', { item: 'kinh' }]]) {
+    const r = await call('spend', { kind, opId: opId(), payload }, B.token);
+    assert.equal(r.cost, 0);
+  }
+  assert.equal(await bal(B.uid), before);
+  assert.ok((await db.collection('audit').where('action', '==', 'set_charging').get()).size >= 1);
+  await call('adminSetCharging', { on: true }, OWNER.token);
+  if (before >= 50) { const r = await call('spend', { kind: 'incense', opId: opId() }, B.token); assert.equal(r.cost, 50); assert.equal(await bal(B.uid), before - 50); }
+  else await assert.rejects(call('spend', { kind: 'incense', opId: opId() }, B.token), /đủ xu/);
+});
+
+test('Công đức tùy tâm: số tiền tự chọn, tiền về đúng đơn thì ghi sổ, không cộng xu; số tiền sai bị chặn', async () => {
+  await assert.rejects(call('createDonation', { vnd: 1000 }, A.token), /Số tiền/);
+  await assert.rejects(call('createDonation', { vnd: 50000 }), /đăng nhập/);
+  const before = await bal(A.uid);
+  const o = await call('createDonation', { vnd: 50000 }, A.token);
+  assert.equal(o.vnd, 50000); assert.equal(o.xu, 0);
+  assert.equal(await hook(sepayBody({ amount: 50000, content: `CT ${o.code}` })), 200);
+  assert.equal(await bal(A.uid), before);
+  const od = (await db.collection('orders').doc(o.orderId).get()).data();
+  assert.equal(od.status, 'PAID'); assert.equal(od.kind, 'donate');
+  const L = await db.collection('ledger').where('uid', '==', A.uid).where('type', '==', 'DONATE').get();
+  assert.equal(L.size, 1); assert.equal(L.docs[0].data().vnd, 50000); assert.equal(L.docs[0].data().xu, 0);
+  const o2 = await call('createDonation', { vnd: 20000 }, A.token);
+  assert.equal(await hook(sepayBody({ amount: 10000, content: `CT ${o2.code}` })), 200);
+  assert.equal((await db.collection('orders').doc(o2.orderId).get()).data().status, 'REVIEW');
+});
+
 test('10. Thiếu/thừa tiền, trả sau khi hết hạn, sai tài khoản → không cộng, vào đối soát; hoàn tất thủ công có ghi log', async () => {
   const D = await signUp('d@vd.vn'); await call('hello', {}, D.token);
   const o1 = await call('createTopup', { packId: 'p1' }, D.token);
