@@ -303,6 +303,7 @@
   const xuText = () => isAdmin() ? '∞' : fmt(xu());
   const paintWallet = () => { $('#wallet').textContent = xuText(); };
   paintWallet();
+  const signedIn = () => !!(window.Vi && Vi.signedIn());
   const needLogin = what => { toast(`Mời đạo hữu đăng nhập Gmail hoặc Facebook để ${what} 🙏`); showLogin(); };
   addEventListener('vi-change', () => {
     paintWallet(); const vb = $('#v-bal'); if (vb) vb.textContent = xuText() + ' xu';
@@ -617,8 +618,8 @@
         <h3>🚶 Đi lại</h3><p>Kéo joystick (góc trái dưới) hoặc dùng phím mũi tên / WASD để đưa nhân vật "Bạn" đi khắp chùa. Đi qua cửa chính, cửa hông hay ra mép cảnh là sang khu kế bên. Đứng yên trên một thảm trống thì Bạn tự ngồi xuống.</p>
         <h3>🔄 Góc nhìn</h3><p>Nút <b>Mặt trước / Mặt sau</b> bên phải đổi giữa nhìn từ bàn thờ ra và nhìn từ sau lưng đại chúng lên Phật. "Điểm nhìn nhanh" phóng tới các góc trong điện.</p>
         <h3>🙏 Hành lễ</h3><p>Thanh dưới cùng: Chắp tay, Cúi chào, Lạy Phật, Niệm Phật, Thiền, Nghe kinh, Chuỗi hạt, <b>Thắp hương</b> (đến gần lư hương) và <b>Dâng hoa</b> (đến bên bình sen trên bàn thờ).</p>
-        <h3>🪷 Tiếp sức Liên Hoa</h3><p>Bấm vào <b>biệt danh</b> ở góc phải trên để mở menu: Ví xu, Nạp xu, Tiếp sức Liên Hoa (cúng dường, tích công đức), Hòm Công đức, Sổ tu tập, Tài khoản.</p>
-        <h3>🎁 Hòm Công đức</h3><p>Giữ số Hương, Hoa sen, Đèn, Cúng dường Tam Bảo, Ấn tống kinh đạo hữu đã nhận. Bấm <b>Nhận thêm</b> để nhận thêm bằng xu; mỗi lần thắp hương hay cúng dường sẽ dùng 1 phần.</p>
+        ${signedIn() ? `<h3>🪷 Tiếp sức Liên Hoa</h3><p>Bấm vào <b>biệt danh</b> ở góc phải trên để mở menu: Ví xu, Nạp xu, Tiếp sức Liên Hoa (cúng dường, tích công đức), Hòm Công đức, Sổ tu tập, Tài khoản.</p>
+        <h3>🎁 Hòm Công đức</h3><p>Giữ số Hương, Hoa sen, Đèn, Cúng dường Tam Bảo, Ấn tống kinh đạo hữu đã nhận. Bấm <b>Nhận thêm</b> để nhận thêm bằng xu; mỗi lần thắp hương hay cúng dường sẽ dùng 1 phần.</p>` : ''}
         <h3>💌 Tâm sự kín</h3><p>Nơi gửi tâm sự, câu chuyện của mình (có thể ẩn danh). Mọi người và nhà chùa có thể vào từng tâm sự để trả lời, chia sẻ.</p>
         <h3>💬 Trò chuyện</h3><p>Khung bên phải để nhắn với đạo hữu cùng phòng. Có thể ẩn bằng dấu ✕.</p>
         <p class="note">Tham quan miễn phí. Thắp hương, cúng dường, ủng hộ cần đăng nhập Gmail hoặc Facebook để lưu xu và công đức trên mọi máy.</p></div>`);
@@ -840,10 +841,11 @@
   $('#acct').addEventListener('click', e => {
     e.stopPropagation();
     if (!acctMenu.hidden) { acctMenu.hidden = true; return; }
-    acctMenu.innerHTML = `<button data-am="wallet"><span>💰 Ví</span><small>${esc(xuText())} xu</small></button>
+    // chưa đăng nhập (vào với tư cách khách): không hiện Ví, Nạp xu, Tiếp sức Liên Hoa, Hòm Công đức
+    acctMenu.innerHTML = (signedIn() ? `<button data-am="wallet"><span>💰 Ví</span><small>${esc(xuText())} xu</small></button>
       <button data-am="topup"><span>➕ Nạp xu</span></button>
       <button data-am="merit"><span>🪷 Tiếp sức Liên Hoa</span><small>${fmt(state.merit)}</small></button>
-      <button data-am="hom"><span>🎁 Hòm Công đức</span></button>
+      <button data-am="hom"><span>🎁 Hòm Công đức</span></button>` : '') + `
       <button data-am="book"><span>📖 Sổ tu tập</span></button>
       <button data-am="acct"><span>👤 Tài khoản</span><small>${esc(isAdmin() ? 'Quản trị' : myName())}</small></button>`;
     acctMenu.style.left = '1333px'; acctMenu.style.minWidth = '260px';
