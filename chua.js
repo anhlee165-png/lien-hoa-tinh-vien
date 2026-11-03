@@ -780,6 +780,7 @@
       const sit = p.mode === 'seat', s = sit ? (p.abbot ? ABBOT_SEAT : p.seat) : null;
       return { id: p.id, x: s ? s.x : p.fx, y: s ? s.y : p.fy, sit, walk: p.mode === 'walk', dir: p.dir, walkT: p.walkT, sheet: p.sheet, flip: p.flip,
         me: !!p.me, abbot: !!p.abbot, real: !!p.real, name: p.name,
+        kneel: p.mode === 'pose' && (p.frame === F.sit || p.frame === F.prostrate),
         bow: p.frame === F.prostrate ? 1 : p.frame === F.sitBow || p.frame === F.standBow ? .4 : 0 };
     }),
     sheets: () => SHEETS,
