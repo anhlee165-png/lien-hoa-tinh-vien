@@ -59,7 +59,7 @@
     // Tiêu xu: máy chủ kiểm đủ xu rồi mới trừ; cùng opId gửi lại nhiều lần chỉ trừ một lần
     async spend(kind, payload = {}, id = opId()) { const r = await call('spend', { kind, opId: id, payload }); if (kind === 'rename') profile = { nick: payload.nick, sex: payload.sex, nickAt: Date.now() }; return { ...r, opId: id }; },
     refund: id => call('refundSpend', { opId: id }),
-    buy: (item, qty) => Vi.spend('buy', { item, qty }),
+    async buy(item, qty) { const r = await Vi.spend('buy', { item, qty }); if (r.items) { items = r.items; fire('vi-change', Vi.state()); } return r; },
     // Tâm sự kín: đọc thẳng Firestore (công khai), ghi qua máy chủ
     stories: {
       async list(n = 60) { const q = await db.collection('stories').orderBy('lastAt', 'desc').limit(n).get(); return q.docs.map(d => ({ id: d.id, ...d.data(), at: d.data().at && d.data().at.toMillis(), lastAt: d.data().lastAt && d.data().lastAt.toMillis() })); },

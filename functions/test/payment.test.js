@@ -207,6 +207,8 @@ test('Hòm Công đức: nhận thêm bằng xu, thắp hương/cúng dường d
   r = await call('spend', { kind: 'offer', opId: opId(), payload: { item: 'sen' } }, C.token);
   assert.equal(r.cost, 0); assert.equal(r.used, 'sen'); assert.equal(await bal(C.uid), 450);
   await assert.rejects(call('spend', { kind: 'buy', opId: opId(), payload: { item: 'kinh', qty: 1 } }, C.token), /đủ xu/);
+  const ob = await call('spend', { kind: 'buy', opId: opId(), payload: { item: 'den', qty: 2 } }, OWNER.token);   // chủ chùa: không mất xu, hòm vẫn tăng
+  assert.equal(ob.cost, 0); assert.equal(ob.items.den, 2);
   const r2 = await fetch(`${FS}/wallets/${C.uid}?updateMask.fieldPaths=items.huong`, { method: 'PATCH', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + C.token },
     body: JSON.stringify({ fields: { items: { mapValue: { fields: { huong: { integerValue: '999' } } } } } }) });
   assert.equal(r2.status, 403);                                                      // không tự sửa số trong hòm
