@@ -8,11 +8,14 @@
         "$uid": {
           ".write": "auth != null && auth.uid === $uid && $hall.matches(/^h([1-9]|1[0-9]|20)$/)",
           ".validate": "newData.hasChildren(['name', 'room', 't']) && newData.child('name').isString() && newData.child('name').val().length <= 40 && newData.child('room').isString() && newData.child('room').val().length <= 20 && newData.child('t').val() <= now + 60000",
+          "abbot": {
+            ".validate": "newData.val() === true && auth.token.admin === true"
+          },
           "sheet": {
             ".validate": "newData.val() === 'nu' || newData.val() === 'nam'"
           },
           "$other": {
-            ".validate": "$other === 'name' || $other === 'room' || $other === 't' || $other === 'sheet'"
+            ".validate": "$other === 'name' || $other === 'room' || $other === 't' || $other === 'sheet' || $other === 'abbot'"
           }
         }
       }

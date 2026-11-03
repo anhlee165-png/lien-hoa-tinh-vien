@@ -56,7 +56,8 @@
     if (ref) { ref.onDisconnect().cancel(); ref.remove(); ref = null; }
     if (!u || !who) return;
     ref = db.ref(`presence/h${mine.hall}/${u.uid}`); ref.onDisconnect().remove();
-    ref.set({ name: who.name.slice(0, 40), sheet: who.sheet, room: mine.room, t: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+    ref.set({ name: who.name.slice(0, 40), sheet: who.sheet, room: mine.room, t: firebase.database.ServerValue.TIMESTAMP })
+      .then(() => { if (mine.abbot && ref) return ref.child('abbot').set(true); }).catch(() => {});
   }
   // số người thật ở từng điện: đọc nông 20 điện một lượt, tối đa 1 lần mỗi 30 giây
   let lastCounts = 0;
@@ -89,6 +90,13 @@
     others: () => Object.values(all).filter(p => !who || p.uid !== who.uid),
     // biệt danh và giới tính do Phật tử tự đặt
     setMe(name, sheet) { nick = { name, sheet }; if (who) { who.name = name; who.sheet = sheet; } Presence._write && Presence._write(); ping(); },
+    // quản trị đang ở vai Trụ trì: báo cho mọi máy, để thầy chỉ hiện ở đúng điện quản trị đang ngồi
+    // (máy chủ chỉ nhận cờ này từ tài khoản có claim admin)
+    setAbbot(on) {
+      on = !!on; if (!!mine.abbot === on) return; mine.abbot = on;
+      if (ref) ref.child('abbot').set(on || null).catch(() => {});
+      ping();
+    },
     me: () => who, mode: () => mode
   };
   addEventListener('auth-user', e => identify(e.detail));

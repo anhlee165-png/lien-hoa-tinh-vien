@@ -214,13 +214,17 @@
   const realPeople = {};
   function syncReal() {
     const here = realList.filter(r => (r.hall | 0) === hallId);
+    // quản trị (vai Trụ trì) đang ngồi trong điện này → hiện thầy Trụ trì; rời điện → thầy biến mất
+    const isAbbot = r => r.abbot === true && (r.room || 'hall') === 'hall';
+    if (here.some(isAbbot)) { if (!abbot) abbotEnter(true); }
+    else if (abbot && abbot.remote) abbotLeave(true);
     for (const uid in realPeople) {
       const p = realPeople[uid], r = here.find(r => r.uid === uid);
-      if (!r || (r.room || 'hall') !== p.room) { drop(p); delete realPeople[uid]; }
+      if (!r || isAbbot(r) || (r.room || 'hall') !== p.room) { drop(p); delete realPeople[uid]; }
     }
     syncVirtual();                                                          // ảo ra trước để nhường chỗ
     for (const r of here) {
-      if (realPeople[r.uid]) continue;
+      if (realPeople[r.uid] || isAbbot(r)) continue;
       const rm = r.room || 'hall', sheet = r.sheet === 'nu' ? 'nu' : 'nam', name = String(r.name || 'Đạo hữu').slice(0, 24);
       let p;
       if (rm === 'hall') {
@@ -242,6 +246,7 @@
     if (id === hallId) return;
     hallId = id; syncedOnce = false;
     people.filter(p => !p.me && !p.abbot).forEach(drop);
+    if (abbot && abbot.remote) abbotLeave(true);                          // thầy ở điện cũ, không theo sang điện mới
     for (const k in realPeople) delete realPeople[k];
     strollers.length = 0;
     if (me.seat && !me.seat.owner && me.mode === 'seat') me.seat.owner = me;
@@ -750,9 +755,11 @@
   /* ---------- Trụ trì: chỉ xuất hiện khi quản trị vào điện, đi từ sân vào ngồi chỗ của thầy ---------- */
   let abbot = null;
   const ABBOT_SEAT = SEATS.find(s => s.abbotSeat);
-  async function abbotEnter() {
+  // remote = thầy do máy khác (quản trị) báo qua presence; không có remote = chính máy này đang là quản trị
+  async function abbotEnter(remote) {
     if (abbot) return;
     abbot = makePerson({ sheet: 'tt', name: 'Thầy Trụ trì', flip: false, room: 'hall', fx: 836, fy: 562, mode: 'pose', frame: F.down, busy: true, abbot: true, big: 1.4 });
+    abbot.remote = !!remote;
     people.push(abbot); ABBOT_SEAT.owner = abbot;
     // ai đang đứng trên lối giữa thì về chỗ, để thầy đi thẳng theo thảm đỏ vào ngồi chính giữa
     if (me.room === 'hall' && me.mode !== 'seat' && me.fx > 770 && me.fx < 910 && me.fy > 650 && !meBusy) { meBusy = true; await walkTo(me, 640, 735); me.mode = 'pose'; meBusy = false; }
@@ -761,8 +768,9 @@
     abbot.frame = F.stand; await sleep(250); abbot.frame = F.sit; abbot.mode = 'seat'; abbot.busy = false;
     dispatchEvent(new CustomEvent('chua-count', { detail: count() }));
   }
-  function abbotLeave() {
-    if (!abbot) return; ABBOT_SEAT.owner = null; const i = people.indexOf(abbot); if (i >= 0) people.splice(i, 1);
+  function abbotLeave(force) {
+    if (!abbot || (abbot.remote && force !== true)) return;              // thầy của máy khác chỉ đi khi presence báo
+    ABBOT_SEAT.owner = null; const i = people.indexOf(abbot); if (i >= 0) people.splice(i, 1);
     if (tags[abbot.id]) { tags[abbot.id].remove(); delete tags[abbot.id]; } abbot = null;
   }
 

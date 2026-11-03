@@ -824,6 +824,7 @@
   }
   function paintRole() {
     document.documentElement.classList.toggle('is-admin', isAdmin());
+    window.Presence && Presence.setAbbot && Presence.setAbbot(isAdmin());
     $('#acct').textContent = isAdmin() ? 'Quản trị' : myName();
   }
   $$('[data-login]', login).forEach(b => b.addEventListener('click', async () => {
