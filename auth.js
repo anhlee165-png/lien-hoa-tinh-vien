@@ -1,5 +1,5 @@
-/* Đăng nhập Gmail / Facebook qua Firebase Authentication.
-   window.Auth = { ready(), signIn('google'|'facebook') → {name, email, admin}, signOut() } */
+/* Đăng nhập Gmail qua Firebase Authentication.
+   window.Auth = { ready(), signIn("google") → {name, email, admin}, signOut() } */
 (() => {
   // Quyền quản trị KHÔNG xác định ở đây: máy chủ cấp custom claim (scripts/set-owner.js), web đọc qua Vi.isAdmin().
   const config = {
@@ -40,8 +40,8 @@
     user: () => current,
     settled: () => settled,
     async signIn(kind) {
-      const p = kind === 'facebook' ? new firebase.auth.FacebookAuthProvider() : new firebase.auth.GoogleAuthProvider();
-      if (kind !== 'facebook') p.setCustomParameters({ prompt: 'select_account' });
+      const p = new firebase.auth.GoogleAuthProvider();   // Facebook đã gỡ (chưa cấu hình được)
+      p.setCustomParameters({ prompt: 'select_account' });
       try { const r = await auth.signInWithPopup(p); return info(r.user); }
       catch (e) {
         if (e && e.code === 'auth/popup-blocked') { await auth.signInWithRedirect(p); return new Promise(() => {}); }
