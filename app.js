@@ -630,6 +630,7 @@
       const ago = t => { if (!t) return ''; const m = Math.floor((Date.now() - t) / 60e3); return m < 1 ? 'vừa xong' : m < 60 ? `${m} phút trước` : m < 1440 ? `${Math.floor(m / 60)} giờ trước` : new Date(t).toLocaleDateString('vi-VN'); };
       const who = x => `<b class="${x.admin ? 'ts-admin' : ''}">${esc(x.name || 'Phật tử')}</b>`;
       const text = t => esc(t).replace(/\n/g, '<br>');
+      const canMod = () => !!(window.Vi && Vi.isAdmin());   // nút Gỡ: theo quyền quản trị của tài khoản (máy chủ kiểm lại), dù đang ở vai nào
       const form = (ph, btn) => Vi.signedIn() ? `<form class="ts-form"><textarea maxlength="${btn === 'Gửi tâm sự' ? 2000 : 1000}" rows="3" placeholder="${ph}" required></textarea>
         <div class="ts-act"><label><input type="checkbox" class="ts-anon"> Ẩn danh</label><button class="btn">${btn}</button></div></form>`
         : `<p class="note">Mời <a href="#" class="ts-login">đăng nhập</a> để ${btn === 'Gửi tâm sự' ? 'gửi tâm sự' : 'trả lời'}.</p>`;
@@ -647,8 +648,8 @@
         body.dataset.sid = id;
         stop && stop();
         stop = Vi.stories.watch(id, d => {
-          if ('story' in d) $('.ts-story', body).innerHTML = d.story ? `<div class="ts-head">${who(d.story)}<small>${ago(d.story.at)}</small>${isAdmin() ? `<button class="ts-del" data-del="${esc(id)}">Gỡ</button>` : ''}</div><p>${text(d.story.text)}</p>` : '<p class="note">Tâm sự này đã được gỡ.</p>';
-          if (d.replies) { const box = $('.ts-replies', body); box.innerHTML = d.replies.map(r => `<div class="ts-rep ${r.admin ? 'ts-adm' : ''}"><div class="ts-head">${who(r)}<small>${ago(r.at)}</small>${isAdmin() ? `<button class="ts-del" data-del="${esc(id)}" data-rid="${esc(r.id)}">Gỡ</button>` : ''}</div><p>${text(r.text)}</p></div>`).join('') || '<p class="note">Chưa có trả lời.</p>'; box.scrollTop = box.scrollHeight; }
+          if ('story' in d) $('.ts-story', body).innerHTML = d.story ? `<div class="ts-head">${who(d.story)}<small>${ago(d.story.at)}</small>${canMod() ? `<button class="ts-del" data-del="${esc(id)}">Gỡ</button>` : ''}</div><p>${text(d.story.text)}</p>` : '<p class="note">Tâm sự này đã được gỡ.</p>';
+          if (d.replies) { const box = $('.ts-replies', body); box.innerHTML = d.replies.map(r => `<div class="ts-rep ${r.admin ? 'ts-adm' : ''}"><div class="ts-head">${who(r)}<small>${ago(r.at)}</small>${canMod() ? `<button class="ts-del" data-del="${esc(id)}" data-rid="${esc(r.id)}">Gỡ</button>` : ''}</div><p>${text(r.text)}</p></div>`).join('') || '<p class="note">Chưa có trả lời.</p>'; box.scrollTop = box.scrollHeight; }
         });
       };
       openModal('Tâm sự kín', '<div id="ts"></div>', root => {
