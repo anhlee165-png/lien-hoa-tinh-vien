@@ -138,7 +138,7 @@
           <div id="prog" hidden><progress max="100" value="0" style="width:320px"></progress> <span id="pct"></span></div>
           <h2>Danh sách nhạc (${list.length})</h2>
           ${table(['Tên bài', 'Nghe thử', ''], list.map((t, i) => [esc(t.name), `<audio controls preload="none" src="${esc(t.url)}"></audio>`,
-            `<button data-up="${i}" ${i ? '' : 'disabled'}>↑ Lên</button><button class="danger" data-del="${i}">Xoá</button>`]), true)}
+            `<button data-ren="${i}">Đổi tên</button><button data-up="${i}" ${i ? '' : 'disabled'}>↑ Lên</button><button class="danger" data-del="${i}">Xoá</button>`]), true)}
           <details style="margin-top:14px"><summary class="note">Thêm bằng link (nếu nhạc đã có sẵn trên mạng)</summary>
           <form id="f"><input id="ln" placeholder="Tên bài" maxlength="60" size="26" required>
           <input id="u" type="url" placeholder="https://…/bai-nhac.mp3" size="44" required><button>Thêm</button></form></details>`;
@@ -172,7 +172,15 @@
         };
         $('#f').onsubmit = async e => { e.preventDefault(); list.push({ name: $('#ln').value.trim(), url: $('#u').value.trim() }); try { await save('Đã thêm bài'); } catch (err) { list.pop(); toast(err.message); } };
         view.onclick = async e => {
-          const d = e.target.closest('[data-del]'), u = e.target.closest('[data-up]');
+          const d = e.target.closest('[data-del]'), u = e.target.closest('[data-up]'), rn = e.target.closest('[data-ren]');
+          if (rn) {
+            const t = list[+rn.dataset.ren], v = prompt('Tên mới cho bài này:', t.name);
+            const name = v == null ? '' : v.trim().replace(/\s+/g, ' ').replace(/[<>]/g, '').slice(0, 60);
+            if (!name || name === t.name) return;
+            const old = t.name; t.name = name;
+            try { await save('Đã đổi tên thành: ' + name); } catch (err) { t.name = old; toast(err.message); }
+            return;
+          }
           if (d) {
             const t = list[+d.dataset.del]; if (!confirm(`Xoá bài "${t.name}"?`)) return;
             list.splice(+d.dataset.del, 1);
