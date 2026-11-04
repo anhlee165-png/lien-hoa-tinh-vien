@@ -940,11 +940,22 @@
     const k = b.dataset.login;
     if (k === 'guest') return setRole('guest');
     if (!window.Auth || !Auth.ready()) { toast('Đăng nhập Gmail chưa mở, mời vào với tư cách khách'); return; }
-    try { const u = await Auth.signIn(k); await Auth.settled(); if (window.Vi) await Vi.hello();
-      const tt = TRUTRI && window.Vi && Vi.isAdmin();
+    // Gmail mở trong cửa sổ nhỏ (trang chùa vẫn giữ nguyên phía sau); xong là vào chùa ngay,
+    // ví / biệt danh tải tiếp ở nền (không chờ máy chủ khởi động)
+    const busy = $('#login-busy'), note = $('#login-note');
+    if (busy) { busy.hidden = false; busy.textContent = 'Đang mở cửa sổ Gmail… Mời chọn tài khoản ở cửa sổ nhỏ vừa hiện.'; }
+    note.textContent = '';
+    $$('[data-login]', login).forEach(x => x.disabled = true);
+    try {
+      const u = await Auth.signIn(k);
+      if (busy) busy.textContent = 'Đã xác nhận Gmail, đang vào chùa…';
+      const tt = TRUTRI && (await Auth.claims()).admin === true;
       if (TRUTRI && !tt) toast('Gmail này chưa được cấp quyền trụ trì, đang vào như Phật tử');
-      setRole(tt ? 'admin' : 'guest', { name: u.name, email: u.email }); }
-    catch (err) { toast('Đăng nhập không thành công: ' + (err && err.message || err)); }
+      setRole(tt ? 'admin' : 'guest', { name: u.name, email: u.email });
+    } catch (err) {
+      const inapp = window.PWA && PWA.platform().browser === 'inapp';
+      note.textContent = (err && err.message || 'Đăng nhập chưa xong') + (inapp ? '. Trong TikTok/Zalo/Facebook, mời bấm ⋯ → Mở bằng trình duyệt.' : '');
+    } finally { if (busy) busy.hidden = true; $$('[data-login]', login).forEach(x => x.disabled = false); }
   }));
   // Ví, Công đức, Sổ gom vào nút biệt danh: bấm biệt danh mới hiện
   const acctMenu = $('#acct-menu');

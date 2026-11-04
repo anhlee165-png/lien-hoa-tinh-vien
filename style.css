@@ -270,6 +270,12 @@ html.force-land #rotate span{display:none}
 #login p{margin:0 0 6px;color:var(--cream);font-size:18px}
 #login button{display:flex;align-items:center;justify-content:center;gap:10px;height:50px;border-radius:10px;font:700 18px var(--sans)}
 #login button b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#fff;font:700 18px Arial}
+#login .busy{margin:0;padding:10px 12px;border-radius:10px;background:rgba(232,181,74,.15);border:1px solid rgba(232,181,74,.5);font-size:16px;color:var(--cream)}
+#login .busy[hidden]{display:none}
+#login .busy::before{content:'';display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid var(--gold-hi);border-right-color:transparent;border-radius:50%;animation:lhspin .8s linear infinite}
+@keyframes lhspin{to{transform:rotate(360deg)}}
+#login button:disabled{opacity:.6}
+#login small{color:#ffd77a;font-size:15px}
 #login .g{background:#fff;color:#333}#login .g b{color:#ea4335;background:none}
 #login .f{background:#1877f2;color:#fff}#login .f b{color:#1877f2}
 #login .k{background:linear-gradient(#e8b54a,#a86d1c);color:#3a1800}
