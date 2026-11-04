@@ -32,6 +32,7 @@
     uid = u ? u.uid : null; balance = 0; items = {}; claims = {}; profile = null; online = false;
     if (u) {
       try { claims = (await u.getIdTokenResult()).claims || {}; } catch {}
+      fire('vi-change', Vi.state());
       unsub = db.collection('wallets').doc(u.uid).onSnapshot(s => { if (s.exists) { balance = s.data().balance | 0; items = s.data().items || {}; fire('vi-change', Vi.state()); } }, () => {});
       await hello();
     }

@@ -361,6 +361,7 @@
   paintWallet();
   const signedIn = () => !!(window.Vi && Vi.signedIn());
   const needLogin = what => { toast(`Mời đạo hữu đăng nhập Gmail để ${what} 🙏`); showLogin(); };
+  let wasAdmin = false;
   addEventListener('vi-change', () => {
     paintWallet(); const vb = $('#v-bal'); if (vb) vb.textContent = xuText() + ' xu';
     // vai Quản trị chỉ giữ được khi máy chủ xác nhận claim admin
@@ -373,6 +374,9 @@
     if (p && p.nick && (!state.nick || state.nick.name !== p.nick || state.nick.sex !== p.sex)) { state.nick = { name: p.nick, sex: p.sex, t: p.nickAt || 0 }; store.set(nickKey(), state.nick); applyNick(); }
     if (window.Vi && Vi.signedIn() && Vi.online() && p && !p.nick && state.role && !isAdmin() && !$('#nick-in')) nickModal(true);
     paintRole();
+    const adm = isAdmin();
+    if (adm && !wasAdmin && window.Nguoi && Nguoi.abbotEnter) { if (Nguoi.room() === 'hall') Nguoi.abbotEnter(); paintMeAbbot(); }
+    wasAdmin = adm;
   });
 
   /* ---------- Hành động ---------- */
@@ -1005,7 +1009,7 @@
   }
   if (state.role === 'guest' && window.Auth && Auth.ready() && Auth.settled) Auth.settled().then(u => { if (!u && state.role === 'guest') Auth.guest(); });
   if (!state.role) showLogin();
-  else if (!isAdmin() && !state.nick) setTimeout(() => nickModal(true), 300);
+  else if (state.role !== 'admin' && !state.nick) setTimeout(() => nickModal(true), 300);
   applyNick(); addEventListener('auth-user', applyNick);
   addEventListener('chua-ready', () => { if (isAdmin() && Nguoi.room() === 'hall') Nguoi.abbotEnter(); });
   setTimeout(() => { if (isAdmin() && window.Nguoi && Nguoi.room() === 'hall') Nguoi.abbotEnter(); }, 1500);
