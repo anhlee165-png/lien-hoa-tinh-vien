@@ -468,7 +468,7 @@
     },
     rangoai() { state.outside ? goInside() : goOutside(); }
   };
-  $$('#actions button').forEach(b => b.addEventListener('click', () => {
+  $$('#actions button[data-act]').forEach(b => b.addEventListener('click', () => {
     audio();
     const name = b.dataset.act, a = ACTIONS[name];
     if (a.toggle) {
