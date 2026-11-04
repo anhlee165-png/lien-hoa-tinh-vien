@@ -117,7 +117,8 @@ async function setMusic(actor, tracks) {
     if (url.length > 600 || !/^https:\/\/[^\s"'<>\\]+$/.test(url)) fail('invalid-argument', `Link bài "${name}" phải bắt đầu bằng https://`);
     if (!/^[a-z0-9]{6,20}$/.test(id) || seen.has(id)) id = Math.random().toString(36).slice(2, 12) + i;
     seen.add(id);
-    return { id, name, url };
+    const path = String((t && t.path) || '');
+    return /^nhac\/[A-Za-z0-9_.-]{1,80}$/.test(path) ? { id, name, url, path } : { id, name, url };
   });
   const ref = db.collection('config').doc('music'), before = (await ref.get()).data() || {};
   await ref.set({ tracks: out, updatedAt: now(), updatedBy: actor });
