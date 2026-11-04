@@ -97,6 +97,7 @@
     <p>Trong TikTok LIVE Studio chỉ quay <b>${L.mode === 'doc' ? 'khung bên trái' : 'khung phía trên'}</b> (cắt bỏ bảng này).</p>
     <div class="grid">${ACTS.map((a, i) => { const b = document.querySelector(`#actions [data-act="${a}"]`); return `<button data-a="${a}"><kbd>${i + 1}</kbd>${esc(b ? b.textContent.trim() : a)}</button>`; }).join('')}</div>
     <div class="grid2"><button data-k="z">Đổi độ phóng (Z)</button><button data-k="q">Ẩn/hiện QR (Q)</button><button data-k="xoay">Mặt trước / Mặt sau (X)</button><button data-k="ra">Ra ngoài / vào điện</button><button data-k="full">Toàn màn hình</button></div>
+    <h3 style="font-size:15px;margin-top:4px">Đi đến</h3><div class="ways" id="lv-ways"></div>
     <p class="note">Đi lại bằng phím mũi tên hoặc W A S D. Ở mặt sau, giữ chuột kéo trái/phải để quay nhìn, lăn chuột để phóng to.</p>`;
   document.body.appendChild(side);
   side.addEventListener('click', e => {
@@ -104,10 +105,18 @@
     if (b.dataset.a) { const x = document.querySelector(`#actions [data-act="${b.dataset.a}"]`); x && x.click(); }
     else if (b.dataset.k === 'z') zi = (zi + 1) % ZOOMS.length;
     else if (b.dataset.k === 'q') $('#lv-qr').classList.toggle('off');
+    else if (b.dataset.w) { const x = document.querySelector(`#ways [data-way="${b.dataset.w}"]`); x && x.click(); }
     else if (b.dataset.k === 'xoay') { const x = $('#xoay'); x && x.click(); }
     else if (b.dataset.k === 'ra') { const x = document.querySelector('#actions [data-act="rangoai"]'); x && x.click(); }
     else if (b.dataset.k === 'full') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); }
     b.blur();
   });
+  // các lối đi của cảnh hiện tại (giống bảng "Đi đến" trên màn hình)
+  function paintWays() {
+    const box = $('#lv-ways'); if (!box) return;
+    const ex = window.Nguoi && Nguoi.exits ? Nguoi.exits() : [], A = { left: '◀', right: '▶', up: '▲', down: '▼' };
+    box.innerHTML = ex.map((e, i) => `<button data-w="${i}">${A[e.side] || ''} ${esc(e.name)}</button>`).join('') || '<span class="note">Không có lối đi</span>';
+  }
+  addEventListener('chua-room', () => setTimeout(paintWays, 0)); addEventListener('chua-ready', paintWays); setTimeout(paintWays, 1500);
   dispatchEvent(new Event('resize'));
 })();

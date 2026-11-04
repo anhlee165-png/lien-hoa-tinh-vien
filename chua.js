@@ -231,7 +231,7 @@
     syncVirtual();                                                          // ảo ra trước để nhường chỗ
     for (const r of here) {
       if (realPeople[r.uid] || isAbbot(r)) continue;
-      const rm = r.room || 'hall', sheet = r.sheet === 'nu' ? 'nu' : 'nam', name = String(r.name || 'Đạo hữu').slice(0, 24);
+      const rm = r.room || 'hall', tt = r.abbot === true, sheet = tt ? 'tt' : r.sheet === 'nu' ? 'nu' : 'nam', name = tt ? 'Thầy Trụ trì' : String(r.name || 'Đạo hữu').slice(0, 24);
       let p;
       if (rm === 'hall') {
         const free = SEATS.filter(s => !s.owner && !s.mine && !s.abbotSeat);
@@ -241,7 +241,7 @@
       } else if (ROOMS[rm]) {
         const R2 = ROOMS[rm]; let x, y, k = 0;
         do { x = rnd(200, W - 200); y = rnd(R2.hz + 80, 900); k++; } while (!walkable(x, y, R2) && k < 80);
-        p = makePerson({ name, sheet, real: true, room: rm, fx: x, fy: y, mode: 'pose', frame: F.stand });
+        p = makePerson({ name, sheet, real: true, room: rm, fx: x, fy: y, mode: 'pose', frame: F.stand, big: tt ? 1.25 : undefined });
       } else continue;
       people.push(p); realPeople[r.uid] = p;
     }
@@ -842,7 +842,7 @@
     },
     setMe({ name, sheet }) {
       if (name) { me.name = name; const el = tags[me.id]; if (el) { el.textContent = name; me._tw = 0; } }
-      if (sheet === 'nu' || sheet === 'nam') me.sheet = sheet;
+      if (sheet === 'nu' || sheet === 'nam' || sheet === 'tt') { me.sheet = sheet; me.big = sheet === 'tt' ? 1.25 : undefined; }
     },
     canIncense: () => meBusy ? 'busy' : !R().urn ? 'nourn' : true,
     canFlower: () => meBusy ? 'busy' : !R().vases ? 'novase' : abbot && room === 'hall' ? 'abbot' : true,

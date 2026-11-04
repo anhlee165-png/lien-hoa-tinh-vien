@@ -19,10 +19,11 @@
     volume: store.get('volume', 70),
     muted: store.get('muted', false),
     ambient: store.get('ambient', true),
+    track: store.get('track', 'niem-phat'),
     log: store.get('log', []),
     outside: false
   };
-  const save = () => ['role', 'user', 'merit', 'beads', 'hall', 'volume', 'muted', 'ambient', 'log'].forEach(k => store.set(k, state[k]));
+  const save = () => ['role', 'user', 'merit', 'beads', 'hall', 'volume', 'muted', 'ambient', 'log', 'track'].forEach(k => store.set(k, state[k]));
   const fmt = n => n.toLocaleString('vi-VN');
 
   /* ---------- Co giãn sân khấu ---------- */
@@ -30,6 +31,11 @@
   const LIVE = (() => { const v = (new URLSearchParams(location.search).get('live') || '').toLowerCase();
     return !v ? '' : /^(ngang|16:?9|h)$/.test(v) ? 'ngang' : 'doc'; })();
   if (LIVE) document.body.classList.add('live', 'live-' + LIVE);
+  // Link riêng của sư trụ trì: lienhoatinhvien.com/trutri (chuyển về /?trutri=1). Trang chính luôn vào vai khách,
+  // kể cả Gmail quản trị; chỉ ở link này, Gmail có claim admin (máy chủ cấp) mới thành Thầy Trụ trì.
+  const TRUTRI = new URLSearchParams(location.search).has('trutri');
+  if (TRUTRI) document.documentElement.classList.add('trutri');
+  if (!TRUTRI && state.role === 'admin') state.role = 'guest';
   const vp = $('#viewport');
   function fit() {
     const land = document.documentElement.classList.contains('force-land');
@@ -345,7 +351,7 @@
     state.log.unshift({ t: Date.now(), text, merit }); state.log = state.log.slice(0, 60); save();
   }
   // Quyền quản trị = custom claim đã ký trong ID token (máy chủ cấp), KHÔNG dựa vào localStorage hay email
-  const isAdmin = () => state.role === 'admin' && !!window.Vi && Vi.isAdmin();
+  const isAdmin = () => TRUTRI && state.role === 'admin' && !!window.Vi && Vi.isAdmin();
   const xu = () => window.Vi ? Vi.balance() : 0;
   const GIA = () => Object.assign({ incense: 50, flower: 150, rename: 20 }, window.Vi && Vi.prices());
   const OFFERS = [['sen', 'Cúng hoa sen', 20, 200], ['den', 'Cúng đèn', 50, 500], ['tambao', 'Cúng dường Tam Bảo', 100, 1000], ['kinh', 'Ấn tống kinh', 200, 2000]];   // [mã, tên, công đức, xu mặc định]
@@ -359,7 +365,11 @@
     paintWallet(); const vb = $('#v-bal'); if (vb) vb.textContent = xuText() + ' xu';
     // vai Quản trị chỉ giữ được khi máy chủ xác nhận claim admin
     if (state.role === 'admin' && window.Vi && Vi.signedIn() && !Vi.isAdmin()) { state.role = 'guest'; save(); window.Nguoi && Nguoi.abbotLeave(); }
+    // ở link /trutri: Gmail trụ trì đã đăng nhập sẵn thì vào thẳng vai Trụ trì
+    if (TRUTRI && state.role !== 'admin' && window.Vi && Vi.signedIn() && Vi.isAdmin()) { setRole('admin', state.user); return; }
     const p = window.Vi && Vi.profile();
+    // máy mới / trình duyệt mới: biệt danh đã có trên máy chủ thì dùng luôn, đóng bảng "Đặt biệt danh"
+    if (p && p.nick && nickFirst && !modal.hidden && $('#nick-in')) { nickFirst = false; closeModal(); }
     if (p && p.nick && (!state.nick || state.nick.name !== p.nick || state.nick.sex !== p.sex)) { state.nick = { name: p.nick, sex: p.sex, t: p.nickAt || 0 }; store.set(nickKey(), state.nick); applyNick(); }
     if (window.Vi && Vi.signedIn() && Vi.online() && p && !p.nick && state.role && !isAdmin() && !$('#nick-in')) nickModal(true);
     paintRole();
@@ -539,7 +549,7 @@
     toast(`Chánh điện ${id} đã đầy`);
   }
   function joinHall(id) {
-    if (fullOf(id)) return hallFull(id);
+    if (fullOf(id) && !isAdmin()) return hallFull(id);
     state.hall = id; save(); window.Nguoi && Nguoi.setHall && Nguoi.setHall(id); window.Presence && Presence.set({ hall: id }); paintHall(); setView('all'); chime(523, 2.5, .3);
     if (isAdmin() && window.Nguoi) { Nguoi.abbotLeave(); if (Nguoi.room() === 'hall') Nguoi.abbotEnter(); else Nguoi.go('hall'); }
     toast(`Đã vào Chánh điện ${id}`); chatRoom(chat.room, chat.room === 'hall' ? 'Chánh điện ' + id : $('#chat-room').textContent);
@@ -817,6 +827,7 @@
 
   $('#gear').addEventListener('click', () => {
     openModal('Cài đặt', `<label><input type="checkbox" id="s-amb" ${state.ambient ? 'checked' : ''}> Chuông chào khi vào điện</label>
+      <label class="nick-l" style="margin-top:10px">Nhạc trong điện<select id="s-tr">${TRACKS().map(t => `<option value="${esc(t.id)}" ${t.id === music.dataset.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
       <p style="opacity:.8;font-size:17px">Điều khiển: joystick hoặc phím mũi tên / WASD đưa nhân vật “Bạn” đi khắp chùa. Đi qua cửa chính, cửa hông hay ra mép cảnh là sang khu kế bên. Đứng yên trên một thảm trống thì Bạn tự ngồi xuống.</p>
       <div class="admin-only"><h3 style="margin:14px 0 6px">Quản trị · Phật tử ảo</h3>
       <p style="margin:0 0 8px">Đang có <b id="a-n">${window.Nguoi ? Nguoi.ao() : 0}</b> / ${window.Nguoi ? Nguoi.maxAo() : 0} Phật tử ảo trong chánh điện. Họ vẫn đứng dậy, đi lại, thắp hương và quỳ lạy như mọi người.</p>
@@ -827,6 +838,7 @@
       <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:8px"><a class="btn" href="ad_min165/" target="_blank" rel="noopener" style="text-align:center">Trang Quản trị (doanh thu, đối soát)</a><button id="a-panel">Thông báo</button></div></div>`,
       body => {
         $('#s-amb', body).addEventListener('change', e => { state.ambient = e.target.checked; save(); });
+        $('#s-tr', body).addEventListener('change', e => { const t = pickTrack(e.target.value, true); toast('Đang phát: ' + t.name); });
         const upd = n => { $('#a-n', body).textContent = n; paintHall(); };
         $$('[data-ao]', body).forEach(b => b.addEventListener('click', () => upd(Nguoi.setAo(Nguoi.ao() + +b.dataset.ao))));
         $('#a-full', body).addEventListener('click', () => upd(Nguoi.setAo(Nguoi.maxAo())));
@@ -859,7 +871,11 @@
     state.role = role; state.user = user || null; save(); login.hidden = true; paintWallet(); paintRole();
     if (role === 'admin' && window.Nguoi && Nguoi.room() === 'hall') Nguoi.abbotEnter();
     if (role !== 'admin' && window.Nguoi) Nguoi.abbotLeave();
-    state.nick = store.get(nickKey(), null); applyNick();
+    if (role === 'guest' && !(user && user.email) && window.Auth && Auth.guest) Auth.guest();   // khách: mã ẩn danh để người cùng phòng thấy nhau
+    state.nick = store.get(nickKey(), null);
+    const pn = window.Vi && Vi.profile();
+    if (!state.nick && pn && pn.nick) { state.nick = { name: pn.nick, sex: pn.sex, t: pn.nickAt || 0 }; store.set(nickKey(), state.nick); }
+    applyNick();
     if (role !== 'admin' && !state.nick) return nickModal(true);
     toast(role === 'admin' ? 'Chào Thầy, đã vào vai Quản trị 🙏' : `Chào ${myName()} 🙏`);
   }
@@ -867,7 +883,7 @@
   const GIA_DOI_TEN = 20, CHO_DOI = 24 * 3600e3;
   const RESERVED = /^(thầy|trụ trì|admin|quản trị|bạn)\b/i;
   const nickKey = () => 'nick:' + (state.user && state.user.email ? state.user.email.toLowerCase() : 'khach');
-  let nickRequired = false;
+  let nickRequired = false, nickFirst = false;
   state.nick = store.get(nickKey(), null);                                   // { name, sex: 'nu'|'nam', t }
   const myName = () => state.nick ? state.nick.name : state.user ? state.user.name : 'Khách';
   function applyNick() {
@@ -889,7 +905,7 @@
       <button class="btn nap" id="nick-ok">${free ? 'Xác nhận' : `Đổi ngay (${GIA().rename} xu)`}</button>`,
       body => {
         let sex = n ? n.sex : null;
-        if (first) { nickRequired = true; const x = $('#modal .close'); if (x) x.hidden = true; }
+        nickFirst = !!first;                                            // vẫn có nút ✕: khách đóng được, đặt biệt danh sau ở Tài khoản
         $$('[data-sex]', body).forEach(b => b.addEventListener('click', () => { sex = b.dataset.sex; $$('[data-sex]', body).forEach(x => x.classList.toggle('on', x === b)); }));
         $('#nick-ok', body).addEventListener('click', async e => {
           if (e.currentTarget.disabled) return;
@@ -903,11 +919,17 @@
             try { await Vi.spend('rename', { nick: name, sex }); }
             catch (err) { btn.disabled = false; msg.textContent = /đủ xu/.test(err.message) ? `${err.message}. Hãy nạp thêm hoặc chờ ${left} nữa để đổi miễn phí.` : err.message; return; }
           }
-          state.nick = { name, sex, t: Date.now() }; store.set(nickKey(), state.nick); save(); nickRequired = false;
-          const x = $('#modal .close'); if (x) x.hidden = false;
+          state.nick = { name, sex, t: Date.now() }; store.set(nickKey(), state.nick); save(); nickFirst = false;
           closeModal(); applyNick(); toast(first ? `Chào ${name} 🙏` : `Đã đổi biệt danh thành ${name}`);
         });
       });
+  }
+  // trụ trì đi ra các cảnh ngoài điện: chính nhân vật của mình mặc cà sa, tên "Thầy Trụ trì" (trong điện thầy ngồi chỗ riêng)
+  function paintMeAbbot() {
+    if (!window.Nguoi || !Nguoi.setMe) return;
+    const out = isAdmin() && Nguoi.room() !== 'hall';
+    if (out) { paintMeAbbot.on = true; Nguoi.setMe({ name: 'Thầy Trụ trì', sheet: 'tt' }); }
+    else if (paintMeAbbot.on) { paintMeAbbot.on = false; Nguoi.setMe({ name: state.nick ? state.nick.name : 'Bạn', sheet: state.nick ? state.nick.sex : 'nam' }); }
   }
   function paintRole() {
     document.documentElement.classList.toggle('is-admin', isAdmin());
@@ -919,7 +941,9 @@
     if (k === 'guest') return setRole('guest');
     if (!window.Auth || !Auth.ready()) { toast('Đăng nhập Gmail chưa mở, mời vào với tư cách khách'); return; }
     try { const u = await Auth.signIn(k); await Auth.settled(); if (window.Vi) await Vi.hello();
-      setRole(window.Vi && Vi.isAdmin() ? 'admin' : 'guest', { name: u.name, email: u.email }); }
+      const tt = TRUTRI && window.Vi && Vi.isAdmin();
+      if (TRUTRI && !tt) toast('Gmail này chưa được cấp quyền trụ trì, đang vào như Phật tử');
+      setRole(tt ? 'admin' : 'guest', { name: u.name, email: u.email }); }
     catch (err) { toast('Đăng nhập không thành công: ' + (err && err.message || err)); }
   }));
   // Ví, Công đức, Sổ gom vào nút biệt danh: bấm biệt danh mới hiện
@@ -958,11 +982,17 @@
   // vai Quản trị lưu trong máy chỉ là lựa chọn giao diện; quyền thật kiểm bằng claim (isAdmin) và ở máy chủ
   // quản trị có thể đổi sang vai khách và quay lại
   function roleSwitch() {
-    if (!(window.Vi && Vi.isAdmin())) return '';
+    if (!TRUTRI || !(window.Vi && Vi.isAdmin())) return '';          // trang chính không có nút vào vai quản trị
     return `<button id="sw-role">${isAdmin() ? 'Vào vai Khách' : 'Vào vai Quản trị'}</button>`;
   }
   window.__roleSwitch = roleSwitch;
   paintRole();
+  if (TRUTRI) {                                                            // màn đăng nhập riêng của sư trụ trì
+    const g = login.querySelector('[data-login=guest]'); if (g) g.style.display = 'none';
+    const h = login.querySelector('h1'), p = login.querySelector('p'); if (h) h.textContent = 'Sư trụ trì vào chùa'; if (p) p.textContent = 'Đăng nhập bằng Gmail trụ trì';
+    if (state.role !== 'admin') state.role = '';
+  }
+  if (state.role === 'guest' && window.Auth && Auth.ready() && Auth.settled) Auth.settled().then(u => { if (!u && state.role === 'guest') Auth.guest(); });
   if (!state.role) showLogin();
   else if (!isAdmin() && !state.nick) setTimeout(() => nickModal(true), 300);
   applyNick(); addEventListener('auth-user', applyNick);
@@ -970,7 +1000,30 @@
   setTimeout(() => { if (isAdmin() && window.Nguoi && Nguoi.room() === 'hall') Nguoi.abbotEnter(); }, 1500);
 
   /* ---------- Nhạc niệm Phật: chỉ khi ở trong chánh điện ---------- */
-  const music = new Audio('assets/am/niem-phat.mp3'); music.loop = true; music.preload = 'auto';
+  const music = new Audio('assets/am/niem-phat.mp3'); music.loop = true; music.preload = 'auto'; music.dataset.id = 'niem-phat';
+  // danh sách bài: bài mặc định của chùa + bài quản trị thêm ở trang Quản trị › Nhạc (config/music)
+  const TRACKS = () => [{ id: 'niem-phat', name: 'Niệm Phật A Di Đà (mặc định)', url: 'assets/am/niem-phat.mp3' }, ...((window.Vi && Vi.music && Vi.music()) || [])];
+  function pickTrack(id, user) {
+    const list = TRACKS(), t = list.find(x => x.id === id) || list[0];
+    if (user) { state.track = t.id; save(); }
+    if (music.dataset.id === t.id) return t;
+    music.src = t.url; music.dataset.id = t.id; music.load(); syncMusic();
+    return t;
+  }
+  addEventListener('music-change', () => pickTrack(state.track));
+  function musicModal() {
+    const list = TRACKS(), cur = music.dataset.id;
+    openModal('Chọn nhạc', `<p class="note">Nhạc chỉ phát khi đạo hữu ở trong chánh điện. Lựa chọn lưu trên máy này.</p>
+      <div class="nhac">${list.map(t => `<button data-tr="${esc(t.id)}" class="${t.id === cur ? 'on' : ''}">${t.id === cur ? '🔊 ' : '🎵 '}${esc(t.name)}</button>`).join('')}
+      <button data-tr="off" class="${state.muted ? 'on' : ''}">🔇 Tắt nhạc</button></div>`,
+      body => body.addEventListener('click', e => {
+        const b = e.target.closest('[data-tr]'); if (!b) return;
+        if (b.dataset.tr === 'off') { if (!state.muted) $('#mute').click(); }
+        else { const t = pickTrack(b.dataset.tr, true); if (state.muted) $('#mute').click(); toast('Đang phát: ' + t.name); }
+        setTimeout(syncMusic, 0); closeModal();
+      }));
+  }
+  $('#nhac') && $('#nhac').addEventListener('click', musicModal);
   let musicOk = false;
   function syncMusic() {
     music.volume = state.muted ? 0 : Math.min(1, (state.volume / 100) ** 1.4 * .8);
@@ -986,6 +1039,7 @@
     if (!inHall || state.muted || !music.paused) ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev => removeEventListener(ev, unlock, true));
   };
   ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev => addEventListener(ev, unlock, true));
+  pickTrack(state.track);
   volEl.addEventListener('input', syncMusic); $('#mute').addEventListener('click', () => setTimeout(syncMusic, 0));
 
   /* ---------- Nút xoay: mặt trước (nhìn ra phía Phật tử) / mặt sau (sau lưng Phật tử, nhìn lên Phật) ---------- */
@@ -1010,6 +1064,7 @@
   addEventListener('chua-room', e => {
     paintWays(); syncMusic(); paintXoay(); window.Presence && Presence.set({ room: e.detail.room });
     if (e.detail.room === 'hall' && isAdmin()) Nguoi.abbotEnter(); else if (e.detail.room !== 'hall' && window.Nguoi) Nguoi.abbotLeave();
+    paintMeAbbot();
   });
   setTimeout(paintWays, 500);
 

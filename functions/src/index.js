@@ -101,6 +101,7 @@ exports.adminAdjust = adminCall((d, by) => wallet.adjust(by, String(d.uid || '')
 exports.adminSetPacks = adminCall((d, by) => admin.setPacks(by, d.packs), { owner: true, recentLoginSec: 900 });
 exports.adminSetPrices = adminCall((d, by) => admin.setPrices(by, d), { owner: true, recentLoginSec: 900 });
 exports.adminSetCharging = adminCall((d, by) => admin.setCharging(by, d.on));
+exports.adminSetMusic = adminCall((d, by) => admin.setMusic(by, d.tracks));
 exports.adminGetPayment = adminCall(() => admin.getPaymentConfig());
 exports.adminSetPayment = call(async req => { const a = await authSvc.requireAdmin(req, { owner: true, recentLoginSec: 300 }); return admin.setPaymentConfig(a.uid, req.data || {}, payosKeys()); }, { secrets: PAYOS });
 exports.adminReconcile = adminCall(d => admin.listReconcile(d.status === 'RESOLVED' ? 'RESOLVED' : 'OPEN'));

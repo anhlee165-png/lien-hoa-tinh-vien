@@ -171,6 +171,18 @@ test('Bật/tắt thu phí: chỉ quản trị đổi được; tắt thì thắ
   else await assert.rejects(call('spend', { kind: 'incense', opId: opId() }, B.token), /đủ xu/);
 });
 
+test('Nhạc trong điện: chỉ quản trị đặt được, chỉ nhận link https; khách ẩn danh không gọi được chức năng ví', async () => {
+  await assert.rejects(call('adminSetMusic', { tracks: [{ name: 'X', url: 'https://a.vn/x.mp3' }] }, B.token), /quyền|permission|PERMISSION/i);
+  await assert.rejects(call('adminSetMusic', { tracks: [{ name: 'X', url: 'javascript:alert(1)' }] }, OWNER.token), /https/);
+  await assert.rejects(call('adminSetMusic', { tracks: [{ name: '<b>', url: 'https://a.vn/x.mp3' }] }, OWNER.token), /không hợp lệ/);
+  const r = await call('adminSetMusic', { tracks: [{ name: 'Chú Đại Bi', url: 'https://a.vn/dai-bi.mp3' }, { name: 'Bát Nhã', url: 'https://a.vn/bat-nha.mp3' }] }, OWNER.token);
+  assert.equal(r.tracks.length, 2); assert.ok(r.tracks.every(t => /^[a-z0-9]{6,20}$/.test(t.id)));
+  const pub = await fetch(`${FS}/config/music`); assert.equal(pub.status, 200);      // ai cũng đọc được danh sách nhạc
+  const an = await (await fetch(`${AUTH}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true }) })).json();
+  await assert.rejects(call('hello', {}, an.idToken), /đăng nhập/i);
+  await assert.rejects(call('createTopup', { packId: 'p1' }, an.idToken), /đăng nhập/i);
+});
+
 test('Công đức tùy tâm: số tiền tự chọn, tiền về đúng đơn thì ghi sổ, không cộng xu; số tiền sai bị chặn', async () => {
   await assert.rejects(call('createDonation', { vnd: 1000 }, A.token), /Số tiền/);
   await assert.rejects(call('createDonation', { vnd: 1999 }, A.token), /Số tiền/);

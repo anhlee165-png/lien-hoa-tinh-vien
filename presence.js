@@ -1,4 +1,4 @@
-/* Phật tử thật đang có mặt (đăng nhập Gmail / Facebook).
+/* Phật tử thật đang có mặt (đăng nhập Gmail, hoặc khách: đăng nhập ẩn danh của Firebase).
    Có Firebase Realtime Database thì dùng nó (mọi máy thấy nhau); chưa có thì dùng BroadcastChannel (các tab cùng máy).
    window.Presence = { set({hall, room}), others(), countIn(hall), refreshCounts(), mode(), me() }; mỗi lần đổi phát sự kiện 'presence'.
    Chống quá tải (20 điện × 100 người = 2.000 người): mỗi máy chỉ nghe danh sách người trong ĐIỆN CỦA MÌNH
@@ -78,7 +78,7 @@
 
   function identify(u) {
     const fu = window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser;
-    who = u ? { uid: fu ? fu.uid : 'e:' + (u.email || u.name), name: u.name || 'Đạo hữu' } : null;
+    who = u || fu ? { uid: fu ? fu.uid : 'e:' + (u.email || u.name), name: (u && u.name) || 'Đạo hữu' } : null;
     if (who) { who.sheet = nick ? nick.sheet : sheetOf(who.uid); if (nick) who.name = nick.name; }
     if (!who && bc) bc.postMessage({ uid: 'x', bye: true });
     Presence._write && Presence._write(); ping();
