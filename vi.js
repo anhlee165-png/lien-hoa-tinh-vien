@@ -21,7 +21,7 @@
     try {
       const r = await call('hello');
       online = true; profile = { nick: r.nick, sex: r.sex, nickAt: r.nickAt };
-      cfg = { prices: r.prices || cfg.prices, packs: r.packs || [] };
+      cfg = { ...cfg, prices: r.prices || cfg.prices, packs: r.packs || [] };   // giữ danh sách nhạc đã tải
       balance = r.balance; items = r.items || items; fire('vi-change', Vi.state());
       return r;
     } catch (e) { online = false; fire('vi-change', Vi.state()); return null; }
