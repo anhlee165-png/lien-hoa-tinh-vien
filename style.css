@@ -160,7 +160,6 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #actions button.exit:hover{filter:brightness(1.12)}
 
 /* ---------- Volume ---------- */
-#nhac{flex:none;font-size:22px;line-height:1;background:none;border:0;cursor:pointer;padding:0}
 .nhac{display:flex;flex-direction:column;gap:8px;margin-top:8px}.nhac button{text-align:left;padding:10px 12px}
 #volume{position:absolute;left:1385px;top:866px;width:281px;height:64px;display:flex;align-items:center;gap:12px;padding:0 14px 0 18px;
   background:linear-gradient(#3c0907,#220403);border:2px solid #a8762e;border-radius:32px;box-shadow:0 4px 14px rgba(0,0,0,.6)}
