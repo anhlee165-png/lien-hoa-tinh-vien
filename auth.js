@@ -31,7 +31,10 @@
     'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập',
     'auth/cancelled-popup-request': 'Bạn đã đóng cửa sổ đăng nhập',
     'auth/account-exists-with-different-credential': 'Email này đã đăng nhập bằng cách khác, hãy dùng Gmail',
-    'auth/network-request-failed': 'Mất kết nối mạng'
+    'auth/network-request-failed': 'Mất kết nối mạng',
+    'auth/internal-error': 'Chưa kết nối được Gmail, mời thử lại',
+    'auth/web-storage-unsupported': 'Trình duyệt đang chặn dữ liệu trang, mời mở bằng Chrome hoặc Safari',
+    'auth/operation-not-supported-in-this-environment': 'Ứng dụng này không cho đăng nhập Gmail, mời mở trang bằng Chrome hoặc Safari'
   };
   let current = null;
   const settled = new Promise(r => auth.onAuthStateChanged(u => { current = u && !u.isAnonymous ? info(u) : null; r(current); dispatchEvent(new CustomEvent('auth-user', { detail: current })); }));
@@ -44,7 +47,8 @@
       p.setCustomParameters({ prompt: 'select_account' });
       try { const r = await auth.signInWithPopup(p); return info(r.user); }
       catch (e) {
-        if (e && e.code === 'auth/popup-blocked') { await auth.signInWithRedirect(p); return new Promise(() => {}); }
+        // không chuyển trang sang Google (mất trang chùa): trình duyệt chặn cửa sổ nhỏ thì báo để bấm lại
+        if (e && e.code === 'auth/popup-blocked') { const err = new Error('Trình duyệt đã chặn cửa sổ Gmail, mời bấm lại nút Đăng nhập'); err.code = 'popup-blocked'; throw err; }
         throw new Error(MSG[e && e.code] || (e && e.message) || 'Lỗi không rõ');
       }
     },
@@ -52,6 +56,8 @@
     // Khách (không Gmail): đăng nhập ẩn danh để có mã riêng, nhờ đó khách cùng phòng thấy nhau.
     // Tài khoản ẩn danh KHÔNG có ví, không chat, không gọi được chức năng nào của máy chủ (máy chủ và luật đều chặn).
     guest: () => auth.currentUser ? Promise.resolve(true) : auth.signInAnonymously().then(() => true, () => false),
+    // quyền đã ký trong mã đăng nhập (đọc ngay, không chờ máy chủ)
+    claims: async () => { const u = auth.currentUser; if (!u || u.isAnonymous) return {}; try { return (await u.getIdTokenResult()).claims || {}; } catch { return {}; } },
     isGuest: () => !!(auth.currentUser && auth.currentUser.isAnonymous)
   };
 })();
