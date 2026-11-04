@@ -473,7 +473,12 @@
     const name = b.dataset.act, a = ACTIONS[name];
     if (a.toggle) {
       const was = current === name; stopContinuous();
-      if (!was) { current = name; b.classList.add('on'); a.start(); logIt(b.textContent.trim()); }
+      if (!was) {
+        const go = () => { current = name; b.classList.add('on'); a.start(); logIt(b.textContent.trim()); };
+        // Nghe kinh: mở bảng chọn bài trước (bài mặc định + bài nhà chùa tải lên), chọn xong mới bắt đầu. Live: vào thẳng
+        if (name === 'nghekinh' && !LIVE) return musicModal(go);
+        go();
+      }
     } else a();
   }));
 
@@ -1026,9 +1031,9 @@
     return t;
   }
   addEventListener('music-change', () => pickTrack(state.track));
-  function musicModal() {
+  function musicModal(onPick) {
     const list = TRACKS(), cur = music.dataset.id;
-    openModal('Chọn nhạc', `<p class="note">Nhạc chỉ phát khi đạo hữu ở trong chánh điện. Lựa chọn lưu trên máy này.</p>
+    openModal('Nghe kinh · Chọn bài', `<p class="note">Chọn bài để nghe trong chánh điện. Lựa chọn lưu trên máy này.</p>
       <div class="nhac">${list.map(t => `<button data-tr="${esc(t.id)}" class="${t.id === cur ? 'on' : ''}">${t.id === cur ? '🔊 ' : '🎵 '}${esc(t.name)}</button>`).join('')}
       <button data-tr="off" class="${state.muted ? 'on' : ''}">🔇 Tắt nhạc</button></div>`,
       body => body.addEventListener('click', e => {
@@ -1036,9 +1041,9 @@
         if (b.dataset.tr === 'off') { if (!state.muted) $('#mute').click(); }
         else { const t = pickTrack(b.dataset.tr, true); if (state.muted) $('#mute').click(); toast('Đang phát: ' + t.name); }
         setTimeout(syncMusic, 0); closeModal();
+        if (b.dataset.tr !== 'off' && onPick) onPick();
       }));
   }
-  $('#nhac') && $('#nhac').addEventListener('click', musicModal);
   let musicOk = false;
   function syncMusic() {
     music.volume = state.muted ? 0 : Math.min(1, (state.volume / 100) ** 1.4 * .8);
