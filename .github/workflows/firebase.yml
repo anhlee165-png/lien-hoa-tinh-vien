@@ -2,10 +2,10 @@
 name: Firebase backend
 on:
   pull_request:
-    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'database.rules.json', 'firebase.json', '.github/workflows/firebase.yml']
+    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'database.rules.json', 'storage.rules', 'firebase.json', '.github/workflows/firebase.yml']
   push:
     branches: [main]
-    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'database.rules.json', 'firebase.json', '.github/workflows/firebase.yml']
+    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'database.rules.json', 'storage.rules', 'firebase.json', '.github/workflows/firebase.yml']
   workflow_dispatch:
     inputs:
       owner_email:
@@ -90,6 +90,11 @@ jobs:
       - name: Triển khai Functions + Rules
         if: env.HAS_KEY == 'true'
         run: firebase deploy --only functions,firestore,database --project lien-hoa-tinh-vien --force --non-interactive
+      - name: Triển khai luật Storage (nhạc tải lên)
+        # Storage chỉ có sau khi bấm "Get started" trong Firebase Console; chưa có thì bỏ qua, không làm hỏng lần triển khai
+        if: env.HAS_KEY == 'true'
+        continue-on-error: true
+        run: firebase deploy --only storage --project lien-hoa-tinh-vien --force --non-interactive
       - name: Cấp quyền chủ chùa
         if: env.HAS_KEY == 'true' && github.event.inputs.owner_email != ''
         env: { OWNER_EMAIL: '${{ github.event.inputs.owner_email }}' }
