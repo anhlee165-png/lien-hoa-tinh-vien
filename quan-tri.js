@@ -122,6 +122,32 @@
       $('#f').onsubmit = async e => { e.preventDefault();
         try { const csv = await call('adminExport', { kind: $('#k').value, from: Date.parse($('#a').value), to: Date.parse($('#b').value) + 864e5 });
           const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `lhtv-${$('#k').value}-${$('#a').value}.csv`; a.click(); } catch (err) { toast(err.message); } };
+    },
+    // Nhạc trong điện: quản trị thêm / bớt bài, khách tự chọn ở nút 🎵 cạnh thanh âm lượng
+    async nhac() {
+      const s = await firebase.firestore().collection('config').doc('music').get();
+      let list = (s.exists && s.data().tracks) || [];
+      const paint = () => {
+        view.innerHTML = `<p class="note">Khách bấm nút 🎵 cạnh thanh âm lượng (hoặc Cài đặt) để chọn bài. Bài <b>Niệm Phật A Di Đà (mặc định)</b> luôn có sẵn.</p>
+          <p class="note">Link phải là <b>file âm thanh trực tiếp</b> (đuôi .mp3 / .m4a / .ogg, mở link là nghe được ngay), bắt đầu bằng https://. Link YouTube, Facebook, TikTok không phát được.</p>
+          ${table(['Tên bài', 'Link', 'Nghe thử', ''], list.map((t, i) => [esc(t.name), `<small>${esc(t.url)}</small>`, `<audio controls preload="none" src="${esc(t.url)}"></audio>`,
+            `<button data-up="${i}" ${i ? '' : 'disabled'}>↑</button><button class="danger" data-del="${i}">Xoá</button>`]), true)}
+          <h2>Thêm bài</h2><form id="f"><input id="n" placeholder="Tên bài (vd. Chú Đại Bi)" maxlength="60" size="26" required>
+          <input id="u" type="url" placeholder="https://…/bai-nhac.mp3" size="44" required><button>Thêm</button></form>
+          <p><button id="save">Lưu danh sách nhạc</button> <span class="note" id="st"></span></p>`;
+        $('#f').onsubmit = e => { e.preventDefault(); list.push({ name: $('#n').value.trim(), url: $('#u').value.trim() }); paint(); $('#st').textContent = 'Chưa lưu: bấm "Lưu danh sách nhạc".'; };
+        view.onclick = e => {
+          const d = e.target.closest('[data-del]'), u = e.target.closest('[data-up]');
+          if (d) { list.splice(+d.dataset.del, 1); paint(); $('#st').textContent = 'Chưa lưu: bấm "Lưu danh sách nhạc".'; }
+          if (u) { const i = +u.dataset.up; [list[i - 1], list[i]] = [list[i], list[i - 1]]; paint(); $('#st').textContent = 'Chưa lưu: bấm "Lưu danh sách nhạc".'; }
+        };
+        $('#save').onclick = async e => {
+          e.target.disabled = true;
+          try { const r = await call('adminSetMusic', { tracks: list }); list = r.tracks; paint(); toast('Đã lưu: khách thấy danh sách mới ngay'); }
+          catch (err) { e.target.disabled = false; toast(err.message); }
+        };
+      };
+      paint();
     }
   };
 

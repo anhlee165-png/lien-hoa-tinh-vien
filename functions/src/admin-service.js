@@ -107,6 +107,24 @@ async function setPrices(actor, p) {
 }
 
 /* Bật/tắt thu phí: tắt thì thắp hương, dâng hoa, cúng dường đều miễn phí (máy chủ không trừ xu). Ghi kiểm toán. */
+/* Nhạc trong điện: danh sách do quản trị đặt, web đọc công khai (config/music). Chỉ nhận link https tới file âm thanh. */
+async function setMusic(actor, tracks) {
+  if (!Array.isArray(tracks) || tracks.length > 30) fail('invalid-argument', 'Tối đa 30 bài');
+  const seen = new Set(), out = tracks.map((t, i) => {
+    const name = String((t && t.name) || '').trim().replace(/\s+/g, ' '), url = String((t && t.url) || '').trim();
+    let id = String((t && t.id) || '').trim();
+    if (name.length < 1 || name.length > 60 || /[<>]/.test(name)) fail('invalid-argument', `Tên bài ${i + 1} không hợp lệ`);
+    if (url.length > 600 || !/^https:\/\/[^\s"'<>\\]+$/.test(url)) fail('invalid-argument', `Link bài "${name}" phải bắt đầu bằng https://`);
+    if (!/^[a-z0-9]{6,20}$/.test(id) || seen.has(id)) id = Math.random().toString(36).slice(2, 12) + i;
+    seen.add(id);
+    return { id, name, url };
+  });
+  const ref = db.collection('config').doc('music'), before = (await ref.get()).data() || {};
+  await ref.set({ tracks: out, updatedAt: now(), updatedBy: actor });
+  await audit(actor, 'set_music', { before: (before.tracks || []).length, after: out.length });
+  return { tracks: out };
+}
+
 async function setCharging(actor, on) {
   if (typeof on !== 'boolean') fail('invalid-argument', 'Thiếu trạng thái bật/tắt');
   const ref = db.collection('config').doc('prices'), before = (await ref.get()).data() || {};
@@ -199,5 +217,5 @@ async function exportCsv(kind, from, to) {
   return '﻿' + [keys.join(','), ...rows.map(r => keys.map(k => cell(r[k])).join(','))].join('\n');
 }
 
-module.exports = { stats, findUser, userHistory, setLock, setPacks, setPrices, setCharging, setPaymentConfig, getPaymentConfig, listReconcile, resolveReconcile,
+module.exports = { stats, findUser, userHistory, setLock, setPacks, setPrices, setCharging, setMusic, setPaymentConfig, getPaymentConfig, listReconcile, resolveReconcile,
   listAlerts, markAlertsRead, listAudit, exportCsv, DEFAULT_PACKS };

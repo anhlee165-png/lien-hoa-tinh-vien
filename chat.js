@@ -18,7 +18,7 @@
 
   window.ChatNet = {
     on: () => on,
-    uid: () => { const u = window.firebase && firebase.apps.length && firebase.auth().currentUser; return u ? u.uid : null; },
+    uid: () => { const u = window.firebase && firebase.apps.length && firebase.auth().currentUser; return u && !u.isAnonymous ? u.uid : null; },   // khách ẩn danh chỉ đọc
     // nghe đúng một phòng; đổi phòng thì bỏ nghe phòng cũ. cb(list) với list = [{id, uid, name, text, t, admin}]
     watch(hall, room, cb) {
       if (!db) return;

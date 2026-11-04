@@ -160,6 +160,8 @@ button.pill:hover{border-color:var(--gold-hi);filter:brightness(1.12)}
 #actions button.exit:hover{filter:brightness(1.12)}
 
 /* ---------- Volume ---------- */
+#nhac{flex:none;font-size:22px;line-height:1;background:none;border:0;cursor:pointer;padding:0}
+.nhac{display:flex;flex-direction:column;gap:8px;margin-top:8px}.nhac button{text-align:left;padding:10px 12px}
 #volume{position:absolute;left:1385px;top:866px;width:281px;height:64px;display:flex;align-items:center;gap:12px;padding:0 14px 0 18px;
   background:linear-gradient(#3c0907,#220403);border:2px solid #a8762e;border-radius:32px;box-shadow:0 4px 14px rgba(0,0,0,.6)}
 #volume .ic{width:34px;height:34px;color:#f4e2c4}
@@ -316,6 +318,10 @@ body.live-ngang #live-ov .lv-qr{width:13%;top:5%;right:2%}
 body.live-ngang #live-ov .lv-feed{top:20%;width:35%;left:2%}
 /* live ngang: giữ nút Mặt trước / Mặt sau trong khung (dưới mã QR) để bấm chuột quay xem hai chiều */
 body.live.live-ngang #xoay{display:flex!important;left:auto;right:24px;top:auto;bottom:150px;z-index:60}
+/* live ngang: vẫn có bảng "Đi đến" để bấm chuột sang các khu khác */
+body.live.live-ngang #ways{display:flex!important;z-index:60}
+body.live-ngang #live-ov .lv-feed{top:44%}
+#live-side .ways{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px}
 body.live #dien3d-tag{display:none!important}
 body.live #topbar,body.live #info,body.live #views,body.live #xoay,body.live #ways,body.live #acct,body.live #chat,body.live #chat-show,
 body.live #rotate,body.live #joy,body.live #nav,body.live #actions,body.live #volume,body.live #hall-menu,body.live #bell-menu,body.live #acct-menu,body.live #toast{display:none!important}

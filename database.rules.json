@@ -28,7 +28,7 @@
             "t"
           ],
           "$msg": {
-            ".write": "$hall.matches(/^h([1-9]|1[0-9]|20)$/) && $room.matches(/^[a-z-]{1,20}$/) && auth != null && ((!data.exists() && newData.exists() && newData.child('uid').val() === auth.uid) || (data.exists() && !newData.exists() && (auth.token.admin === true || data.child('uid').val() === auth.uid || data.child('t').val() < now - 86400000)))",
+            ".write": "$hall.matches(/^h([1-9]|1[0-9]|20)$/) && $room.matches(/^[a-z-]{1,20}$/) && auth != null && auth.provider !== 'anonymous' && ((!data.exists() && newData.exists() && newData.child('uid').val() === auth.uid) || (data.exists() && !newData.exists() && (auth.token.admin === true || data.child('uid').val() === auth.uid || data.child('t').val() < now - 86400000)))",
             ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('t').val() === now && newData.parent().parent().parent().parent().child('chatLast').child(auth.uid).val() === now",
             "uid": {
               ".validate": "newData.val() === auth.uid"
@@ -54,7 +54,7 @@
     },
     "chatLast": {
       "$uid": {
-        ".write": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.provider !== 'anonymous' && auth.uid === $uid",
         ".validate": "newData.val() === now && (!data.exists() || data.val() < now - 1500)"
       }
     }

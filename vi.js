@@ -37,7 +37,9 @@
     }
     fire('vi-change', Vi.state());
   }
-  if (ok) firebase.auth().onAuthStateChanged(onUser);
+  if (ok) firebase.auth().onAuthStateChanged(u => onUser(u && !u.isAnonymous ? u : null));   // khách ẩn danh = chưa đăng nhập
+  // nhạc trong điện do quản trị thêm (config/music đọc công khai)
+  if (ok) db.collection('config').doc('music').onSnapshot(s => { cfg.music = (s.exists && Array.isArray(s.data().tracks)) ? s.data().tracks : []; fire('music-change', cfg.music); }, () => {});
   // giá & công tắc thu phí (config/prices đọc công khai): quản trị bật/tắt là mọi máy đổi ngay, không cần tải lại
   if (ok) db.collection('config').doc('prices').onSnapshot(s => { if (s.exists) { cfg.prices = { ...cfg.prices, ...s.data() }; fire('vi-change', Vi.state()); } }, () => {});
 
@@ -54,6 +56,7 @@
     prices: () => cfg.prices,
     charging: () => cfg.prices.charging !== false,          // false = quản trị đã tắt thu phí (máy chủ cũng không trừ xu)
     packs: () => cfg.packs,
+    music: () => cfg.music || [],
     state: () => ({ uid, balance, admin: claims.admin === true, owner: claims.owner === true, online, profile }),
     hello, call, opId,
     // Tiêu xu: máy chủ kiểm đủ xu rồi mới trừ; cùng opId gửi lại nhiều lần chỉ trừ một lần

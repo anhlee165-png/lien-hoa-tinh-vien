@@ -34,7 +34,7 @@
     'auth/network-request-failed': 'Mất kết nối mạng'
   };
   let current = null;
-  const settled = new Promise(r => auth.onAuthStateChanged(u => { current = u ? info(u) : null; r(current); dispatchEvent(new CustomEvent('auth-user', { detail: current })); }));
+  const settled = new Promise(r => auth.onAuthStateChanged(u => { current = u && !u.isAnonymous ? info(u) : null; r(current); dispatchEvent(new CustomEvent('auth-user', { detail: current })); }));
   window.Auth = {
     ready: () => true,
     user: () => current,
@@ -48,6 +48,10 @@
         throw new Error(MSG[e && e.code] || (e && e.message) || 'Lỗi không rõ');
       }
     },
-    signOut: () => auth.signOut()
+    signOut: () => auth.signOut(),
+    // Khách (không Gmail): đăng nhập ẩn danh để có mã riêng, nhờ đó khách cùng phòng thấy nhau.
+    // Tài khoản ẩn danh KHÔNG có ví, không chat, không gọi được chức năng nào của máy chủ (máy chủ và luật đều chặn).
+    guest: () => auth.currentUser ? Promise.resolve(true) : auth.signInAnonymously().then(() => true, () => false),
+    isGuest: () => !!(auth.currentUser && auth.currentUser.isAnonymous)
   };
 })();

@@ -3,7 +3,9 @@ const { db, fail, now, audit, alert, rateLimit } = require('./core');
 
 // Người gọi phải đăng nhập (Firebase ID token đã được Cloud Functions xác minh).
 async function requireUser(req) {
-  if (!req.auth || !req.auth.uid) fail('unauthenticated', 'Mời đạo hữu đăng nhập Gmail hoặc Facebook');
+  if (!req.auth || !req.auth.uid) fail('unauthenticated', 'Mời đạo hữu đăng nhập Gmail');
+  // khách ẩn danh (chỉ để hiện mặt trong điện) không có ví, không nạp, không tiêu, không đăng tâm sự
+  if (req.auth.token && req.auth.token.firebase && req.auth.token.firebase.sign_in_provider === 'anonymous') fail('unauthenticated', 'Mời đạo hữu đăng nhập Gmail');
   const uid = req.auth.uid;
   const u = await db.collection('users').doc(uid).get();
   if (u.exists && u.data().locked) fail('permission-denied', 'Tài khoản đang bị tạm khoá, xin liên hệ nhà chùa');
