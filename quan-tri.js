@@ -152,6 +152,11 @@
           const ext = (f.name.match(/\.(mp3|m4a|aac|ogg|wav)$/i) || [, 'mp3'])[1].toLowerCase();
           const path = `nhac/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}.${ext}`;
           const type = f.type && f.type.startsWith('audio/') ? f.type : ({ mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg', wav: 'audio/wav' })[ext];
+          // kho chưa bật (chưa bấm Get started trong Firebase › Storage): báo ngay, không để thanh tiến độ đứng 0%
+          try {
+            const r = await fetch(`https://firebasestorage.googleapis.com/v0/b/${firebase.app().options.storageBucket}/o?maxResults=1&prefix=nhac/`);
+            if (r.status === 404) return toast('Kho nhạc chưa bật: vào Firebase Console › Storage › bấm Get started, rồi thử lại');
+          } catch {}
           const btn = e.submitter || $('#up button'); btn.disabled = true; $('#prog').hidden = false;
           try {
             const task = st.ref(path).put(f, { contentType: type, cacheControl: 'public, max-age=31536000' });
