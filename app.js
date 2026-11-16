@@ -281,6 +281,16 @@
     g.gain.setValueAtTime(.8, t); g.gain.exponentialRampToValueAtTime(.001, t + .18);
     o.connect(g).connect(master); o.start(t); o.stop(t + .2);
   };
+  // Thắp hương: ba tiếng chuông gia trì (chuông tay nhỏ) rồi một tiếng khánh trầm ngân dài
+  function huongSound(v = 1) {
+    [0, 650, 1300].forEach((d, i) => setTimeout(() => chime(1046, 2.2, .3 * v * (i === 2 ? 1.2 : 1)), d));
+    setTimeout(() => chime(392, 5, .32 * v), 1950);
+  }
+  // Dâng hoa: chuỗi chuông gió ngũ cung đi lên, kết bằng một tiếng chuông trong
+  function hoaSound(v = 1) {
+    [784, 880, 1046, 1175, 1318, 1568].forEach((f, i) => setTimeout(() => chime(f, 1.8, .13 * v), i * 140));
+    setTimeout(() => chime(1046, 3.2, .26 * v), 6 * 140 + 200);
+  }
   function drone(on) {
     if (on && !droneNodes) {
       const a = audio(), g = a.createGain(); g.gain.value = 0; g.connect(master);
@@ -341,6 +351,10 @@
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
   }
   const status = (msg) => { const s = $('#status'); if (msg) { s.textContent = msg; s.hidden = false; } else s.hidden = true; };
+
+  // cho live-qua.js (quà TikTok LIVE): dùng chung tiếng chuông, cánh hoa, chữ bay
+  window.ChuaFx = { audio: () => audio(), chime, bell: () => bell(), strike: k => strike(k), huong: huongSound, hoa: hoaSound,
+    petals, floatText, toast, smoke: n => { incenseBoost = Math.max(incenseBoost, n); } };
 
   /* ---------- Công đức / ví ---------- */
   function addMerit(n, why) {
@@ -439,7 +453,7 @@
       } else { incenseBoost = 18; addMerit(2, 'Thắp hương'); }
       if (paid.used) toast(`Đã dùng 1 phần Hương trong Hòm Công đức (còn ${fmt((paid.items || {}).huong || 0)}) 🙏`);
       else if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu thắp hương 🙏`);
-      chime(1040, 2.5, .2);
+      huongSound();
     },
     async danghoa() {
       // mỗi bông hoa cúng dường theo giá máy chủ (mặc định 150 xu); trừ xu ở máy chủ, dâng không thành thì máy chủ hoàn lại
@@ -464,7 +478,7 @@
       }
       addMerit(3, 'Dâng hoa');
       if (paid.cost) toast(`Đã cúng dường ${fmt(paid.cost)} xu dâng hoa 🙏`);
-      chime(1180, 2.5, .2);
+      hoaSound();
     },
     rangoai() { state.outside ? goInside() : goOutside(); }
   };
@@ -508,7 +522,14 @@
       <p class="note">Đạo hữu có thể nhắn góp ý trong khung Trò chuyện.</p>
       <button class="btn" id="soon-ok">Quay lại</button>`, body => $('#soon-ok', body).addEventListener('click', closeModal));
   });
-  addEventListener('chua-huong', e => { if (e.detail.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); chime(1040, 2.5, .2); } else incenseBoost = 6; });
+  // tiếng chuông của chính mình phát ở cuối thaphuong(); người khác trong cùng cảnh thắp hương / dâng hoa thì nghe nhỏ hơn.
+  // Quà TikTok (detail.gift) do live-qua.js tự phát tiếng to và đọc lời cảm ơn.
+  addEventListener('chua-huong', e => {
+    const d = e.detail || {};
+    if (d.me) { addMerit(2, 'Thắp hương'); floatText('Nguyện hương thơm lan khắp mười phương', 843, 560, true); }
+    else { incenseBoost = d.gift ? 18 : 6; if (d.here && !d.gift) huongSound(.35); }
+  });
+  addEventListener('chua-hoa', e => { const d = e.detail || {}; if (!d.me && d.here && !d.gift) hoaSound(.4); });
   addEventListener('chua-act', e => {
     const kind = e.detail;
     if (kind === 'chuong' && strike('chuong')) { setTimeout(() => floatText('Nguyện tiếng chuông này vang khắp pháp giới'), 600); addMerit(2, 'Thỉnh chuông'); }

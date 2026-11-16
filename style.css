@@ -425,3 +425,21 @@ body.live #guide-btn,body.live #tamsu-btn,body.live #app-btn,html.is-app #app-bt
 body.live #pwa-update{display:none}
 #ts a{color:var(--gold-hi)}
 .sheet .ung-ho .uh-sub{margin:0;font-size:13px;opacity:.75;font-style:italic}
+.tag.gift{background:linear-gradient(#d0306a,#8a1446);border:1.5px solid #ffd0e6;color:#fff;font-size:16px;padding:1px 10px 2px;box-shadow:0 0 10px rgba(255,120,180,.7)}
+/* Quà TikTok LIVE (live-qua.js) */
+#live-ov #lv-gift{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;width:84%;padding:.7em 1em .8em;border-radius:1em;text-align:center;
+  background:linear-gradient(160deg,rgba(150,18,60,.92),rgba(90,10,20,.92));border:2px solid #ffd77a;box-shadow:0 0 1.4em rgba(255,190,90,.7);transition:opacity .4s,transform .45s cubic-bezier(.2,1.4,.4,1)}
+#live-ov #lv-gift.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#live-ov #lv-gift.big{background:linear-gradient(160deg,rgba(190,120,10,.95),rgba(120,20,10,.95));box-shadow:0 0 2.4em rgba(255,215,120,.95)}
+#live-ov #lv-gift i{display:block;font-style:normal;font-weight:800;font-size:.62em;letter-spacing:.06em;color:#1a0606;background:#ffe9a8;border-radius:.4em;padding:.1em .4em;margin:0 auto .3em;width:max-content}
+#live-ov #lv-gift b{display:block;font:800 1.35em 'Noto Serif',serif;color:#ffe9a8;word-break:break-word}
+#live-ov #lv-gift span{display:block;font-size:.95em;margin-top:.1em}
+#live-ov #lv-gift small{display:block;font-size:.72em;margin-top:.3em;opacity:.95}
+#live-ov .lv-item.gift{background:rgba(170,20,70,.82)}
+body.live-ngang #live-ov #lv-gift{width:44%}
+body.live-ngang #lq{margin-top:10px;padding-top:10px;border-top:1px solid #5a1a10}
+#lq #lq-st{color:#ffb27a}#lq #lq-st.ok{color:#a8f07a}
+#lq .warn{background:#5a2a08;border-radius:8px;padding:8px 10px;font-size:13px}
+#lq .lq-opts{display:grid;gap:6px;margin-bottom:10px;font-size:14px}
+#lq select{max-width:220px;margin-left:6px}#lq input[type=range]{vertical-align:middle;margin-left:6px}
+#lq code{background:#3a0c08;padding:0 4px;border-radius:4px}
