@@ -436,13 +436,8 @@ body.live #pwa-update{display:none}
 #live-ov #lv-gift span{display:block;font-size:.95em;margin-top:.1em}
 #live-ov #lv-gift small{display:block;font-size:.72em;margin-top:.3em;opacity:.95}
 #live-ov .lv-item.gift{background:rgba(170,20,70,.82)}
-#live-ov #lv-cta{position:absolute;left:50%;bottom:9%;transform:translate(-50%,.6em);opacity:0;width:88%;text-align:center;font-size:.72em;line-height:1.35;padding:.45em .8em;border-radius:1em;
-  background:rgba(20,4,4,.72);border:1px solid rgba(255,215,122,.6);transition:opacity .8s,transform .8s;pointer-events:none}
-#live-ov #lv-cta.on{opacity:1;transform:translate(-50%,0)}
-#live-ov #lv-cta b{color:#ffd77a}
 body.live-ngang #live-ov #lv-gift{width:44%}
-body.live-ngang #live-ov #lv-cta{width:50%;bottom:4%}
-#lq{margin-top:10px;padding-top:10px;border-top:1px solid #5a1a10}
+body.live-ngang #lq{margin-top:10px;padding-top:10px;border-top:1px solid #5a1a10}
 #lq #lq-st{color:#ffb27a}#lq #lq-st.ok{color:#a8f07a}
 #lq .warn{background:#5a2a08;border-radius:8px;padding:8px 10px;font-size:13px}
 #lq .lq-opts{display:grid;gap:6px;margin-bottom:10px;font-size:14px}

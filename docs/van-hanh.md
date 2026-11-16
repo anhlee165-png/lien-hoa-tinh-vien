@@ -142,6 +142,4 @@ Khi có quà: bảng cảm ơn hiện giữa khung với tên người tặng, c
 
 Giọng đọc dùng giọng có sẵn của trình duyệt: nên mở trang live bằng **Microsoft Edge** (giọng HoaiMy / NamMinh). Bấm "🔊 Bật tiếng + giọng đọc" một lần sau khi mở trang (trình duyệt chặn tiếng khi chưa bấm). Trong TikTok LIVE Studio nhớ bật thu âm thanh của cửa sổ / hệ thống.
 
-Nút **Thử quà** ở bảng điều khiển chỉ để tập dượt: trên hình luôn có chữ *THỬ NGHIỆM · không phải quà thật*. Không có chế độ quà giả mạo người thật (vi phạm quy định TikTok về tương tác giả và dễ làm người xem hiểu lầm khi họ nạp tiền).
-
-Không khí chùa (tắt/bật trong bảng): chuông điểm mỗi 15 phút, cánh hoa rơi nhẹ, lời mời "Tặng quà để nhà chùa thắp hương thay bạn" mỗi 3 phút.
+Không khí chùa (tắt/bật trong bảng): chuông điểm mỗi 15 phút, cánh hoa rơi nhẹ.
