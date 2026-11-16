@@ -129,3 +129,19 @@ Chữ ký payOS khớp ví dụ trong tài liệu payOS; chữ ký Casso khớp 
 7. GitHub › Actions › “Firebase backend” › Run workflow, ô `owner_email` = Gmail chủ chùa → triển khai + cấp quyền chủ chùa. Đăng xuất, đăng nhập lại.
 8. Trang Quản trị (`/quan-tri.html`) › Tài khoản nhận tiền › chọn **payOS**, ngân hàng `MB`, số tài khoản `98616059699999`, tên `LE DUC ANH` › quét QR 2.000đ hiện ra (link payOS) và chuyển. payOS báo có → nạp xu tự mở.
 9. Nạp thử gói nhỏ nhất bằng tài khoản Gmail khác; kiểm tra xu, sổ cái, Dashboard.
+
+## 8. Quà TikTok LIVE → thắp hương / dâng hoa thay người tặng
+
+Trang live (`?live=doc` hoặc `?live=ngang`) nghe quà **thật** từ phiên live qua `ws://localhost:21213`:
+
+- **Cách 1 – TikFinity** (dễ nhất): mở TikFinity, đăng nhập kênh, bật *WebSocket API* (cổng 21213). Không cần cài gì thêm.
+- **Cách 2 – cầu nối của chùa**: cài Node.js, vào `scripts/tiktok-cau-noi`, bấm đúp `chay.bat` (hoặc `npm install` rồi `node index.js ten_kenh`).
+- Chỉ chạy **một** trong hai (cùng cổng). Đổi địa chỉ bằng `&tt=ws://…`, tắt bằng `&tt=0`.
+
+Khi có quà: bảng cảm ơn hiện giữa khung với tên người tặng, chuông vang, khói hương bốc, một Phật tử trong chánh điện đứng dậy thắp hương (quà thường) hoặc dâng hoa (Rose/hoa) với thẻ tên 🎁 người tặng, máy đọc lời cảm ơn tiếng Việt. Quà ≥ 99 xu TikTok thêm chuông lớn + mưa cánh hoa. Quà bấm liên tục được gộp, cảm ơn một lần khi hết chuỗi.
+
+Giọng đọc dùng giọng có sẵn của trình duyệt: nên mở trang live bằng **Microsoft Edge** (giọng HoaiMy / NamMinh). Bấm "🔊 Bật tiếng + giọng đọc" một lần sau khi mở trang (trình duyệt chặn tiếng khi chưa bấm). Trong TikTok LIVE Studio nhớ bật thu âm thanh của cửa sổ / hệ thống.
+
+Nút **Thử quà** ở bảng điều khiển chỉ để tập dượt: trên hình luôn có chữ *THỬ NGHIỆM · không phải quà thật*. Không có chế độ quà giả mạo người thật (vi phạm quy định TikTok về tương tác giả và dễ làm người xem hiểu lầm khi họ nạp tiền).
+
+Không khí chùa (tắt/bật trong bảng): chuông điểm mỗi 15 phút, cánh hoa rơi nhẹ, lời mời "Tặng quà để nhà chùa thắp hương thay bạn" mỗi 3 phút.

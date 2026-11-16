@@ -39,7 +39,10 @@
   }
   addEventListener('chua-toast', e => say(esc(e.detail), 'sys'));
   addEventListener('chua-chat', e => { const m = e.detail || {}; if (!m.sys && m.text) say(`<b>${esc(m.who)}</b> ${esc(m.text)}`); });
-  addEventListener('chua-huong', e => { if (!(e.detail && e.detail.me)) say('🪔 Một đạo hữu vừa dâng hương', 'sys'); });
+  // tên chỉ hiện với người thật: chính mình (biệt danh) hoặc người tặng quà TikTok (live-qua.js tự báo). Phật tử ảo không xưng tên.
+  const myName = () => { const m = window.Nguoi && Nguoi.me ? Nguoi.me() : null; return (m && m.name) || 'Đạo hữu'; };
+  addEventListener('chua-huong', e => { const d = e.detail || {}; if (d.gift) return; say(d.me ? `🪔 <b>${esc(myName())}</b> vừa thắp hương` : '🪔 Một đạo hữu vừa dâng hương', 'sys'); });
+  addEventListener('chua-hoa', e => { const d = e.detail || {}; if (d.gift || !d.me) return; say(`🪷 <b>${esc(myName())}</b> vừa dâng hoa cúng Phật`, 'sys'); });
   let known = null;
   addEventListener('presence', e => {
     const list = e.detail || [], ids = new Set(list.map(p => p.uid));
@@ -118,5 +121,6 @@
     box.innerHTML = ex.map((e, i) => `<button data-w="${i}">${A[e.side] || ''} ${esc(e.name)}</button>`).join('') || '<span class="note">Không có lối đi</span>';
   }
   addEventListener('chua-room', () => setTimeout(paintWays, 0)); addEventListener('chua-ready', paintWays); setTimeout(paintWays, 1500);
+  window.LiveFeed = { say, esc, side, ov };
   dispatchEvent(new Event('resize'));
 })();

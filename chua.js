@@ -277,7 +277,7 @@
     const vis = [];
     people.forEach(p => { const el = tags[p.id]; if (!el) return; if (p.room !== room || p._tx == null) { el.style.display = 'none'; return; } el.style.display = ''; vis.push(p); });
     if (!full) return;
-    const rank = p => p.me ? 3e4 : p.abbot ? 2e4 : p.real ? 1e4 : p.fy;
+    const rank = p => p.me ? 3e4 : p.gift ? 2.5e4 : p.abbot ? 2e4 : p.real ? 1e4 : p.fy;
     vis.sort((a, b) => rank(b) - rank(a));
     const kept = [];
     for (const p of vis) {
@@ -405,7 +405,7 @@
     if (p.holding) drawHeldSticks(p, h);
     if (p.holdingFlower) bloom(p.fx, p.fy - h * .52, h * .09);
     const el = tagFor(p);
-    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.transform = `translate3d(${p._tx.toFixed(1)}px,${(p._ty + (p._off || 0)).toFixed(1)}px,0) translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
+    if (el) { const top = p.fy - h * (f === F.prostrate ? .45 : f >= 18 ? .9 : 1.02); const [dx, dy] = shiftAt(p.fx, p.fy); p._tx = p.fx + dx; p._ty = top - 10 + dy; p._tk = p.me || p.real || p.abbot || p.gift ? 1 : Math.max(.72, Math.min(1, h / 170)); el.style.transform = `translate3d(${p._tx.toFixed(1)}px,${(p._ty + (p._off || 0)).toFixed(1)}px,0) translate(-50%,-50%) scale(${p._tk.toFixed(2)})`; }
   }
   // Gió: mạnh yếu từng đợt (dùng chung cho lá cây trong nền và khói hương)
   window.GIO = t => .65 + .35 * Math.sin(t * .37) + .15 * Math.sin(t * 1.13);
@@ -544,7 +544,7 @@
     await sleep(650); p.frame = u.face === 'up' ? F.up : F.stand;
     for (const dx of [-.12, 0, .12]) sticks.push({ room: p.room, x: to[0] + dx * u.len, y: to[1] + Math.abs(dx) * 4, len: u.len * rnd(.9, 1.05), t0: performance.now() });
     while (sticks.length > 60) sticks.shift();
-    dispatchEvent(new CustomEvent('chua-huong', { detail: { me: !!p.me } }));
+    dispatchEvent(new CustomEvent('chua-huong', { detail: { me: !!p.me, here: p.room === room, gift: p.gift || null } }));
     await sleep(500);
     return true;
   }
@@ -564,8 +564,31 @@
     p.frame = F.standBow; await sleep(700); p.frame = F.stand;
     blooms.push({ room: p.room, x: to[0], y: to[1], t0: performance.now() });
     while (blooms.length > 28) blooms.shift();
-    dispatchEvent(new CustomEvent('chua-hoa', { detail: { me: !!p.me } }));
+    dispatchEvent(new CustomEvent('chua-hoa', { detail: { me: !!p.me, here: p.room === room, gift: p.gift || null } }));
     return true;
+  }
+
+  // Người tặng quà THẬT trên TikTok LIVE: một Phật tử đang ngồi trong chánh điện đứng dậy thắp hương / dâng hoa thay,
+  // trong lúc làm thì thẻ tên đổi thành tên người tặng (🎁 …), xong trả lại tên cũ và về chỗ. Chỉ chạy trong chánh điện.
+  async function proxyOffer(kind, name) {
+    if (room !== 'hall' || abbot) return false;
+    const rm = ROOMS.hall; if (kind === 'hoa' ? !rm.vases : !rm.urn) return false;
+    const pool = people.filter(p => !p.me && !p.abbot && !p.real && !p.leaving && !p.busy && p.mode === 'seat' && p.room === 'hall' && p.seat);
+    const p = pick(pool); if (!p) return false;
+    p.busy = true; const old = p.name; p.gift = String(name).slice(0, 40);
+    const el = tagFor(p); if (el) { el.textContent = '🎁 ' + p.gift; el.classList.add('gift'); p._tw = 0; }
+    try {
+      await standUp(p); await walkTo(p, p.fx, LANE);
+      const ok = kind === 'hoa' ? await offerFlower(p) : await incense(p);
+      await sleep(1200);
+      if (p.fy < LANE - 6 && Math.abs(p.fy - p.seat.y) > 20) await walkTo(p, p.fx, Math.max(p.seat.y + 14, Math.min(LANE, p.fy)));
+      await walkTo(p, p.seat.x, Math.min(LANE, p.seat.y + 16));
+      await sitAt(p, p.seat);
+      return ok;
+    } finally {
+      p.gift = null; const t = tags[p.id]; if (t) { t.textContent = old; t.classList.remove('gift'); p._tw = 0; }
+      p.busy = false;
+    }
   }
 
   /* ---------- Phật tử tự sinh hoạt ---------- */
@@ -810,7 +833,7 @@
   const hallNpcs = () => people.filter(p => !p.me && !p.abbot && !p.real && !p.leaving && p.room === 'hall');
   window.Nguoi = {
     drive(x, y) { input = { x, y }; },
-    me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room }),
+    me: () => ({ x: me.fx, y: me.fy, standing: me.mode !== 'seat', room, name: me.name }),
     room: () => room, roomName: () => R().name,
     canWalk: (x, y) => walkable(x, y),
     exits: () => { const seen = new Set(); return (R().exits || []).filter(e => !e[1].startsWith('soon:') && !seen.has(e[1]) && seen.add(e[1]))
@@ -861,6 +884,7 @@
       try { return await incense(me); } finally { me.busy = false; meBusy = false; }
     },
     meditate(on) { if (me.mode === 'seat') me.frame = on ? F.zen : F.sit; },
+    proxyOffer,
     count, maxAo: () => MAX_AO, ao: () => aoCount,
     cap: () => CAP, hallCount, isFull, setHall, realsIn, trip: tripGroup, hallId: () => hallId,
     setAo(n) { aoCount = Math.max(0, Math.min(MAX_AO, n | 0)); store.set('ao', aoCount); syncedOnce = false; syncVirtual(); return aoCount; },

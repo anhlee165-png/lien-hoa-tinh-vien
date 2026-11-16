@@ -1,0 +1,8 @@
+{
+  "name": "lhtv-tiktok-cau-noi",
+  "private": true,
+  "type": "module",
+  "description": "Cầu nối quà TikTok LIVE thật → web chùa Liên Hoa Tịnh Viện (chạy trên máy phát live)",
+  "scripts": { "start": "node index.js" },
+  "dependencies": { "tiktok-live-connector": "2.5.0", "ws": "8.18.3" }
+}
